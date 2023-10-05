@@ -1,0 +1,65 @@
+## Script to clean UKB_master data
+
+```{r}
+#import libraries
+library(tidyverse)
+library(dplyr)
+
+#find wd and load data
+load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\Core Datasets\\UKB_master.Rda")
+```
+
+#### Exploring each variable independently to check for outliers and understand the data
+
+#Age
+
+Age is right-skewed, no outliers/errors
+
+```{r}
+#age
+hist(UKB_master$age,
+  xlab = "age",
+  main = "Histogram of age",
+  breaks = sqrt(nrow(UKB_master))
+)
+print('age range:')
+print(range(UKB_master$age))
+
+```
+
+#Ethnicity
+
+
+```{r}
+ethnicity_summary <- UKB_master %>%
+    group_by(ethnic) %>%
+    summarise(Count = n()) 
+
+#count number of NA 
+sum(is.na(UKB_master$ethnic))
+
+#find position of NA response
+#which(is.na(UKB_master$ethnic))
+
+#test barplot to visualise
+#ethnic_tab<- table(UKB_master$ethnic)
+#barplot(ethnic_tab)
+```
+
+#Sex
+
+```{r}
+ethnicity_summary <- UKB_master %>%
+    group_by(ethnic) %>%
+    summarise(Count = n()) 
+
+#count number of NA 
+sum(is.na(UKB_master$ethnic))
+
+#find position of NA response
+#which(is.na(UKB_master$ethnic))
+
+#test barplot to visualise
+#ethnic_tab<- table(UKB_master$ethnic)
+#barplot(ethnic_tab)
+```
