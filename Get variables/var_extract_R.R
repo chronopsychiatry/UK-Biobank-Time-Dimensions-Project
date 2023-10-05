@@ -1,6 +1,8 @@
 #script to extract variables of interest from R-format UK Biobank data
 # script authors: Cathy Wyse & Amber Roguski
 
+#note:  cbinding ataframes removes attributes of the original df. what can be done?!
+
 ######### R extract #########
 #set cwd
 setwd("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\Core Datasets")
@@ -79,6 +81,334 @@ UKB_master <- cbind(UKB_master,sex,year_born,month_born,assess_date,ethnic,age)
 #UKB_master <- cbind(UKB_master,assess_centre,assess_date,sex,year_born,month_born,age,ethnic,disability)
 
 rm(primary_demographics)
+
+## Geographic location #################
+
+#import data
+bd <- read.table(".\\ukb673864_Geographical_Location.tab", header=TRUE, sep="\t")
+
+#recode variables
+lvl.0170 <- c(-1)
+lbl.0170 <- c("Location could not be mapped")
+lvl.100299 <- c(-7,-3,1,2,3,4)
+lbl.100299 <- c("None of the above","Prefer not to answer","Car/motor vehicle","Walk","Public transport","Cycle")
+bd$f.6143.0.0 <- ordered(bd$f.6143.0.0, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.0.1 <- ordered(bd$f.6143.0.1, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.0.2 <- ordered(bd$f.6143.0.2, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.0.3 <- ordered(bd$f.6143.0.3, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.1.0 <- ordered(bd$f.6143.1.0, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.1.1 <- ordered(bd$f.6143.1.1, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.1.2 <- ordered(bd$f.6143.1.2, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.1.3 <- ordered(bd$f.6143.1.3, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.2.0 <- ordered(bd$f.6143.2.0, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.2.1 <- ordered(bd$f.6143.2.1, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.2.2 <- ordered(bd$f.6143.2.2, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.2.3 <- ordered(bd$f.6143.2.3, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.3.0 <- ordered(bd$f.6143.3.0, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.3.1 <- ordered(bd$f.6143.3.1, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.3.2 <- ordered(bd$f.6143.3.2, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.3.3 <- ordered(bd$f.6143.3.3, levels=lvl.100299, labels=lbl.100299)
+lvl.0091 <- c(1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18)
+lbl.0091 <- c("England/Wales - Urban - sparse","England/Wales - Town and Fringe - sparse","England/Wales - Village - sparse","England/Wales - Hamlet and Isolated dwelling - sparse","England/Wales - Urban - less sparse","England/Wales - Town and Fringe - less sparse","England/Wales - Village - less sparse","England/Wales - Hamlet and Isolated Dwelling - less sparse","Postcode not linkable","Scotland - Large Urban Area","Scotland - Other Urban Area","Scotland - Accessible Small Town","Scotland - Remote Small Town","Scotland - Very Remote Small Town","Scotland - Accessible Rural","Scotland - Remote Rural","Scotland - Very Remote Rural")
+bd$f.20118.0.0 <- ordered(bd$f.20118.0.0, levels=lvl.0091, labels=lbl.0091)
+lvl.1313 <- c(1904)
+lbl.1313 <- c("Date in or before calendar year of birth")
+bd$f.22700.0.0 <- as.Date(bd$f.22700.0.0)
+bd$f.22700.0.1 <- as.Date(bd$f.22700.0.1)
+bd$f.22700.0.2 <- as.Date(bd$f.22700.0.2)
+bd$f.22700.0.3 <- as.Date(bd$f.22700.0.3)
+bd$f.22700.0.4 <- as.Date(bd$f.22700.0.4)
+bd$f.22700.0.5 <- as.Date(bd$f.22700.0.5)
+bd$f.22700.0.6 <- as.Date(bd$f.22700.0.6)
+bd$f.22700.0.7 <- as.Date(bd$f.22700.0.7)
+bd$f.22700.0.8 <- as.Date(bd$f.22700.0.8)
+bd$f.22700.0.9 <- as.Date(bd$f.22700.0.9)
+bd$f.22700.0.10 <- as.Date(bd$f.22700.0.10)
+bd$f.22700.0.11 <- as.Date(bd$f.22700.0.11)
+bd$f.22700.0.12 <- as.Date(bd$f.22700.0.12)
+bd$f.22700.0.13 <- as.Date(bd$f.22700.0.13)
+bd$f.22700.0.14 <- as.Date(bd$f.22700.0.14)
+
+#rename bd as geographic
+geographic <- bd
+rm(bd)
+
+#import table of assessment centre latitudes
+Table_latitude_assesment_centres <- read.csv(".\\Table_latitude_assesment_centres.csv")
+
+#	Home area population density - urban or rural -20118
+urban <- geographic$f.20118.0.0
+comment(urban)<-c("Datafield = 20118.0.0")
+
+#assessment centre
+centre <- geographic$f.54.0.0
+comment(centre)<-c("Datafield = 54.0.0")
+
+#make latitude table for merge
+eid <- as.data.frame(geographic$f.eid)
+names(eid)<- "eid"
+centre <- as.data.frame(centre)
+eid_centre <- cbind(eid,centre)
+
+#merge eid_centre and latitude
+latitude_with_eid <- merge(eid_centre,Table_latitude_assesment_centres, by="centre")
+latitude_with_eid <- latitude_with_eid[order(latitude_with_eid$eid),] 
+
+UKB_master <- cbind(UKB_master,centre,urban)
+
+#merge final data frame to extract latitude and longitude and centre id
+UKB_master <- merge(UKB_master, latitude_with_eid[,c("eid","lat","long","short_name")], by="eid")
+
+rm(geographic)
+rm(centre)
+rm(eid)
+rm(latitude_with_eid)
+rm(Table_latitude_assesment_centres)
+rm(eid_centre)
+
+## Early life  #############################################
+
+#import data
+bd <- read.table(".\\ukb673864_Early_Life.tab", header=TRUE, sep="\t")
+
+#recode data
+lvl.100258 <- c(1,2,9)
+lbl.100258 <- c("Yes - pounds and ounces","Yes - Kilograms","No")
+bd$f.120.0.0 <- ordered(bd$f.120.0.0, levels=lvl.100258, labels=lbl.100258)
+bd$f.120.1.0 <- ordered(bd$f.120.1.0, levels=lvl.100258, labels=lbl.100258)
+bd$f.120.2.0 <- ordered(bd$f.120.2.0, levels=lvl.100258, labels=lbl.100258)
+lvl.0170 <- c(-1)
+lbl.0170 <- c("Location could not be mapped")
+lvl.100420 <- c(-3,-1,1,2,3,4,5,6)
+lbl.100420 <- c("Prefer not to answer","Do not know","England","Wales","Scotland","Northern Ireland","Republic of Ireland","Elsewhere")
+bd$f.1647.0.0 <- ordered(bd$f.1647.0.0, levels=lvl.100420, labels=lbl.100420)
+bd$f.1647.1.0 <- ordered(bd$f.1647.1.0, levels=lvl.100420, labels=lbl.100420)
+bd$f.1647.2.0 <- ordered(bd$f.1647.2.0, levels=lvl.100420, labels=lbl.100420)
+lvl.100349 <- c(-3,-1,0,1)
+lbl.100349 <- c("Prefer not to answer","Do not know","No","Yes")
+bd$f.1677.0.0 <- ordered(bd$f.1677.0.0, levels=lvl.100349, labels=lbl.100349)
+bd$f.1677.1.0 <- ordered(bd$f.1677.1.0, levels=lvl.100349, labels=lbl.100349)
+bd$f.1677.2.0 <- ordered(bd$f.1677.2.0, levels=lvl.100349, labels=lbl.100349)
+lvl.100428 <- c(-3,-1,1,2,3)
+lbl.100428 <- c("Prefer not to answer","Do not know","Thinner","Plumper","About average")
+bd$f.1687.0.0 <- ordered(bd$f.1687.0.0, levels=lvl.100428, labels=lbl.100428)
+bd$f.1687.1.0 <- ordered(bd$f.1687.1.0, levels=lvl.100428, labels=lbl.100428)
+bd$f.1687.2.0 <- ordered(bd$f.1687.2.0, levels=lvl.100428, labels=lbl.100428)
+lvl.100429 <- c(-3,-1,1,2,3)
+lbl.100429 <- c("Prefer not to answer","Do not know","Shorter","Taller","About average")
+bd$f.1697.0.0 <- ordered(bd$f.1697.0.0, levels=lvl.100429, labels=lbl.100429)
+bd$f.1697.1.0 <- ordered(bd$f.1697.1.0, levels=lvl.100429, labels=lbl.100429)
+bd$f.1697.2.0 <- ordered(bd$f.1697.2.0, levels=lvl.100429, labels=lbl.100429)
+lvl.100430 <- c(-3,1,2,3)
+lbl.100430 <- c("Prefer not to answer","Right-handed","Left-handed","Use both right and left hands equally")
+bd$f.1707.0.0 <- ordered(bd$f.1707.0.0, levels=lvl.100430, labels=lbl.100430)
+bd$f.1707.1.0 <- ordered(bd$f.1707.1.0, levels=lvl.100430, labels=lbl.100430)
+bd$f.1707.2.0 <- ordered(bd$f.1707.2.0, levels=lvl.100430, labels=lbl.100430)
+bd$f.1767.0.0 <- ordered(bd$f.1767.0.0, levels=lvl.100349, labels=lbl.100349)
+bd$f.1767.1.0 <- ordered(bd$f.1767.1.0, levels=lvl.100349, labels=lbl.100349)
+bd$f.1767.2.0 <- ordered(bd$f.1767.2.0, levels=lvl.100349, labels=lbl.100349)
+bd$f.1767.3.0 <- ordered(bd$f.1767.3.0, levels=lvl.100349, labels=lbl.100349)
+bd$f.1777.0.0 <- ordered(bd$f.1777.0.0, levels=lvl.100349, labels=lbl.100349)
+bd$f.1777.1.0 <- ordered(bd$f.1777.1.0, levels=lvl.100349, labels=lbl.100349)
+bd$f.1777.2.0 <- ordered(bd$f.1777.2.0, levels=lvl.100349, labels=lbl.100349)
+bd$f.1787.0.0 <- ordered(bd$f.1787.0.0, levels=lvl.100349, labels=lbl.100349)
+bd$f.1787.1.0 <- ordered(bd$f.1787.1.0, levels=lvl.100349, labels=lbl.100349)
+bd$f.1787.2.0 <- ordered(bd$f.1787.2.0, levels=lvl.100349, labels=lbl.100349)
+
+#rename bd as early_life
+early_life <- bd
+rm(bd)
+
+#1767 Adopted as a child
+adopted <- early_life$f.1767.0.0
+comment (adopted)<-c("Datafield = 1767  ")
+
+#20022 Birth weight
+birth_weight  <- early_life$f.20022.0.0
+comment (birth_weight)<-c("Datafield = 20022  ")
+
+#120 Birth weight metric
+birth_weight_metric  <- early_life$f.120.0.0
+comment (birth_weight_metric)<-c("Datafield = 120  ")
+
+#1677 Breastfed as a baby	
+breastfed <- early_life$f.1677.0.0
+comment (breastfed)<-c("Datafield = 1677")
+
+#20115 Country of Birth (non-UK origin)
+country_birth_nonuk <- early_life$f.20115.0.0
+comment (country_birth_nonuk)<-c("Datafield = 20115")
+
+#1647 Country of birth (UK/elsewhere)
+country_birth_uk <- early_life$f.1647.0.0
+comment (country_birth_uk)<-c("Datafield = 1647")
+
+#1707 Handedness (chirality/laterality)
+handedness <- early_life$f.1707.0.0
+comment (handedness)<-c("Datafield = 1707")
+
+#1787 maternal smoking around birth
+maternal_smoking <- early_life$f.1787.0.0
+comment (maternal_smoking)<-c("Datafield = 1787")
+
+#130 Place of birth in UK - east co-ordinate
+place_birth_east <- early_life$f.130.0.0
+comment (place_birth_east)<-c("Datafield = 130")
+
+#129 Place of birth in UK - north co-ordinate
+place_birth_north <- early_life$f.129.0.0
+comment (place_birth_north)<-c("Datafield = 129")
+
+UKB_master <- cbind(UKB_master,adopted,birth_weight,birth_weight_metric,
+                    breastfed,country_birth_uk,country_birth_nonuk,handedness,
+                    maternal_smoking,place_birth_east,place_birth_north)
+
+rm(early_life)
+
+
+
+
+## Education  #############################################
+
+#import data
+bd <- read.table(".\\ukb673864_Education_Employment.tab", header=TRUE, sep="\t")
+
+#recode data
+lvl.100290 <- c(-10,-3,-1)
+lbl.100290 <- c("Less than a year","Prefer not to answer","Do not know")
+lvl.100291 <- c(-3,-1)
+lbl.100291 <- c("Prefer not to answer","Do not know")
+lvl.100298 <- c(-10,-3,-1)
+lbl.100298 <- c("Less than once a week","Prefer not to answer","Do not know")
+lvl.100300 <- c(-10,-3,-1)
+lbl.100300 <- c("Less than one mile","Prefer not to answer","Do not know")
+lvl.100301 <- c(-3,-1,1,2,3,4)
+lbl.100301 <- c("Prefer not to answer","Do not know","Never/rarely","Sometimes","Usually","Always")
+bd$f.806.0.0 <- ordered(bd$f.806.0.0, levels=lvl.100301, labels=lbl.100301)
+bd$f.806.1.0 <- ordered(bd$f.806.1.0, levels=lvl.100301, labels=lbl.100301)
+bd$f.806.2.0 <- ordered(bd$f.806.2.0, levels=lvl.100301, labels=lbl.100301)
+bd$f.806.3.0 <- ordered(bd$f.806.3.0, levels=lvl.100301, labels=lbl.100301)
+bd$f.816.0.0 <- ordered(bd$f.816.0.0, levels=lvl.100301, labels=lbl.100301)
+bd$f.816.1.0 <- ordered(bd$f.816.1.0, levels=lvl.100301, labels=lbl.100301)
+bd$f.816.2.0 <- ordered(bd$f.816.2.0, levels=lvl.100301, labels=lbl.100301)
+bd$f.816.3.0 <- ordered(bd$f.816.3.0, levels=lvl.100301, labels=lbl.100301)
+bd$f.826.0.0 <- ordered(bd$f.826.0.0, levels=lvl.100301, labels=lbl.100301)
+bd$f.826.1.0 <- ordered(bd$f.826.1.0, levels=lvl.100301, labels=lbl.100301)
+bd$f.826.2.0 <- ordered(bd$f.826.2.0, levels=lvl.100301, labels=lbl.100301)
+bd$f.826.3.0 <- ordered(bd$f.826.3.0, levels=lvl.100301, labels=lbl.100301)
+lvl.100306 <- c(-3,-2,-1)
+lbl.100306 <- c("Prefer not to answer","Never went to school","Do not know")
+bd$f.3426.0.0 <- ordered(bd$f.3426.0.0, levels=lvl.100301, labels=lbl.100301)
+bd$f.3426.1.0 <- ordered(bd$f.3426.1.0, levels=lvl.100301, labels=lbl.100301)
+bd$f.3426.2.0 <- ordered(bd$f.3426.2.0, levels=lvl.100301, labels=lbl.100301)
+bd$f.3426.3.0 <- ordered(bd$f.3426.3.0, levels=lvl.100301, labels=lbl.100301)
+lvl.100305 <- c(-7,-3,1,2,3,4,5,6)
+lbl.100305 <- c("None of the above","Prefer not to answer","College or University degree","A levels/AS levels or equivalent","O levels/GCSEs or equivalent","CSEs or equivalent","NVQ or HND or HNC or equivalent","Other professional qualifications eg: nursing, teaching")
+bd$f.6138.0.0 <- ordered(bd$f.6138.0.0, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.0.1 <- ordered(bd$f.6138.0.1, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.0.2 <- ordered(bd$f.6138.0.2, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.0.3 <- ordered(bd$f.6138.0.3, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.0.4 <- ordered(bd$f.6138.0.4, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.0.5 <- ordered(bd$f.6138.0.5, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.1.0 <- ordered(bd$f.6138.1.0, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.1.1 <- ordered(bd$f.6138.1.1, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.1.2 <- ordered(bd$f.6138.1.2, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.1.3 <- ordered(bd$f.6138.1.3, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.1.4 <- ordered(bd$f.6138.1.4, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.1.5 <- ordered(bd$f.6138.1.5, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.2.0 <- ordered(bd$f.6138.2.0, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.2.1 <- ordered(bd$f.6138.2.1, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.2.2 <- ordered(bd$f.6138.2.2, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.2.3 <- ordered(bd$f.6138.2.3, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.2.4 <- ordered(bd$f.6138.2.4, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.2.5 <- ordered(bd$f.6138.2.5, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.3.0 <- ordered(bd$f.6138.3.0, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.3.1 <- ordered(bd$f.6138.3.1, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.3.2 <- ordered(bd$f.6138.3.2, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.3.3 <- ordered(bd$f.6138.3.3, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.3.4 <- ordered(bd$f.6138.3.4, levels=lvl.100305, labels=lbl.100305)
+bd$f.6138.3.5 <- ordered(bd$f.6138.3.5, levels=lvl.100305, labels=lbl.100305)
+lvl.100295 <- c(-7,-3,1,2,3,4,5,6,7)
+lbl.100295 <- c("None of the above","Prefer not to answer","In paid employment or self-employed","Retired","Looking after home and/or family","Unable to work because of sickness or disability","Unemployed","Doing unpaid or voluntary work","Full or part-time student")
+bd$f.6142.0.0 <- ordered(bd$f.6142.0.0, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.0.1 <- ordered(bd$f.6142.0.1, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.0.2 <- ordered(bd$f.6142.0.2, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.0.3 <- ordered(bd$f.6142.0.3, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.0.4 <- ordered(bd$f.6142.0.4, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.0.5 <- ordered(bd$f.6142.0.5, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.0.6 <- ordered(bd$f.6142.0.6, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.1.0 <- ordered(bd$f.6142.1.0, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.1.1 <- ordered(bd$f.6142.1.1, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.1.2 <- ordered(bd$f.6142.1.2, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.1.3 <- ordered(bd$f.6142.1.3, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.1.4 <- ordered(bd$f.6142.1.4, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.1.5 <- ordered(bd$f.6142.1.5, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.1.6 <- ordered(bd$f.6142.1.6, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.2.0 <- ordered(bd$f.6142.2.0, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.2.1 <- ordered(bd$f.6142.2.1, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.2.2 <- ordered(bd$f.6142.2.2, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.2.3 <- ordered(bd$f.6142.2.3, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.2.4 <- ordered(bd$f.6142.2.4, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.2.5 <- ordered(bd$f.6142.2.5, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.2.6 <- ordered(bd$f.6142.2.6, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.3.0 <- ordered(bd$f.6142.3.0, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.3.1 <- ordered(bd$f.6142.3.1, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.3.2 <- ordered(bd$f.6142.3.2, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.3.3 <- ordered(bd$f.6142.3.3, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.3.4 <- ordered(bd$f.6142.3.4, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.3.5 <- ordered(bd$f.6142.3.5, levels=lvl.100295, labels=lbl.100295)
+bd$f.6142.3.6 <- ordered(bd$f.6142.3.6, levels=lvl.100295, labels=lbl.100295)
+lvl.100299 <- c(-7,-3,1,2,3,4)
+lbl.100299 <- c("None of the above","Prefer not to answer","Car/motor vehicle","Walk","Public transport","Cycle")
+bd$f.6143.0.0 <- ordered(bd$f.6143.0.0, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.0.1 <- ordered(bd$f.6143.0.1, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.0.2 <- ordered(bd$f.6143.0.2, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.0.3 <- ordered(bd$f.6143.0.3, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.1.0 <- ordered(bd$f.6143.1.0, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.1.1 <- ordered(bd$f.6143.1.1, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.1.2 <- ordered(bd$f.6143.1.2, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.1.3 <- ordered(bd$f.6143.1.3, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.2.0 <- ordered(bd$f.6143.2.0, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.2.1 <- ordered(bd$f.6143.2.1, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.2.2 <- ordered(bd$f.6143.2.2, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.2.3 <- ordered(bd$f.6143.2.3, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.3.0 <- ordered(bd$f.6143.3.0, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.3.1 <- ordered(bd$f.6143.3.1, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.3.2 <- ordered(bd$f.6143.3.2, levels=lvl.100299, labels=lbl.100299)
+bd$f.6143.3.3 <- ordered(bd$f.6143.3.3, levels=lvl.100299, labels=lbl.100299)
+lvl.100658 <- c(-7,-3,1,2,3,4,5)
+lbl.100658 <- c("None of the above","Prefer not to answer","College or University degree","A levels/AS levels or equivalent","O levels/GCSEs or equivalent","CSEs or equivalent","NVQ or HND or HNC or equivalent")
+bd$f.10722.0.0 <- ordered(bd$f.10722.0.0, levels=lvl.100658, labels=lbl.100658)
+bd$f.10722.0.1 <- ordered(bd$f.10722.0.1, levels=lvl.100658, labels=lbl.100658)
+bd$f.10722.0.2 <- ordered(bd$f.10722.0.2, levels=lvl.100658, labels=lbl.100658)
+bd$f.10722.0.3 <- ordered(bd$f.10722.0.3, levels=lvl.100658, labels=lbl.100658)
+bd$f.10722.0.4 <- ordered(bd$f.10722.0.4, levels=lvl.100658, labels=lbl.100658)
+bd$f.20119.0.0 <- ordered(bd$f.20119.0.0, levels=lvl.100295, labels=lbl.100295)
+
+#rename bd as education
+education <- bd
+rm(bd)
+
+#	Qualifications 6138
+qualifications <- education$f.6138.0.0
+comment (qualifications)<-c("Datafield = 6138  ")
+
+#	Current employment status 6142
+employed <- education$f.6142.0.0
+comment (employed)<-c("Datafield = 6142  ")
+
+#	Job involves night shift work 3426
+night_shift <- education$f.3426.0.0
+comment (night_shift)<-c("Datafield = 3426  ")
+
+#	Job involves shift work 826
+shift_work <- education$f.826.0.0
+comment (shift_work)<-c("Datafield = 826  ")
+
+UKB_master <- cbind(UKB_master,qualifications,employed, night_shift, shift_work)
+
+rm(education)
+
 
 ## Mental health ######################################
 
@@ -596,90 +926,6 @@ comment (PEF)<-c("Datafield = 3064  ")
 UKB_master <- cbind(UKB_master,accel_mean,systolic,diastolic, pulse, body_fat, BMI, handgripL, handgripR, FEV, FVC, PEF)
 
 rm(physical_measures)
-
-## Geographic location #################
-
-#import data
-bd <- read.table(".\\ukb673864_Geographical_Location.tab", header=TRUE, sep="\t")
-
-#recode variables
-lvl.0170 <- c(-1)
-lbl.0170 <- c("Location could not be mapped")
-lvl.100299 <- c(-7,-3,1,2,3,4)
-lbl.100299 <- c("None of the above","Prefer not to answer","Car/motor vehicle","Walk","Public transport","Cycle")
-bd$f.6143.0.0 <- ordered(bd$f.6143.0.0, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.0.1 <- ordered(bd$f.6143.0.1, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.0.2 <- ordered(bd$f.6143.0.2, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.0.3 <- ordered(bd$f.6143.0.3, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.1.0 <- ordered(bd$f.6143.1.0, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.1.1 <- ordered(bd$f.6143.1.1, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.1.2 <- ordered(bd$f.6143.1.2, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.1.3 <- ordered(bd$f.6143.1.3, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.2.0 <- ordered(bd$f.6143.2.0, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.2.1 <- ordered(bd$f.6143.2.1, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.2.2 <- ordered(bd$f.6143.2.2, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.2.3 <- ordered(bd$f.6143.2.3, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.3.0 <- ordered(bd$f.6143.3.0, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.3.1 <- ordered(bd$f.6143.3.1, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.3.2 <- ordered(bd$f.6143.3.2, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.3.3 <- ordered(bd$f.6143.3.3, levels=lvl.100299, labels=lbl.100299)
-lvl.0091 <- c(1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18)
-lbl.0091 <- c("England/Wales - Urban - sparse","England/Wales - Town and Fringe - sparse","England/Wales - Village - sparse","England/Wales - Hamlet and Isolated dwelling - sparse","England/Wales - Urban - less sparse","England/Wales - Town and Fringe - less sparse","England/Wales - Village - less sparse","England/Wales - Hamlet and Isolated Dwelling - less sparse","Postcode not linkable","Scotland - Large Urban Area","Scotland - Other Urban Area","Scotland - Accessible Small Town","Scotland - Remote Small Town","Scotland - Very Remote Small Town","Scotland - Accessible Rural","Scotland - Remote Rural","Scotland - Very Remote Rural")
-bd$f.20118.0.0 <- ordered(bd$f.20118.0.0, levels=lvl.0091, labels=lbl.0091)
-lvl.1313 <- c(1904)
-lbl.1313 <- c("Date in or before calendar year of birth")
-bd$f.22700.0.0 <- as.Date(bd$f.22700.0.0)
-bd$f.22700.0.1 <- as.Date(bd$f.22700.0.1)
-bd$f.22700.0.2 <- as.Date(bd$f.22700.0.2)
-bd$f.22700.0.3 <- as.Date(bd$f.22700.0.3)
-bd$f.22700.0.4 <- as.Date(bd$f.22700.0.4)
-bd$f.22700.0.5 <- as.Date(bd$f.22700.0.5)
-bd$f.22700.0.6 <- as.Date(bd$f.22700.0.6)
-bd$f.22700.0.7 <- as.Date(bd$f.22700.0.7)
-bd$f.22700.0.8 <- as.Date(bd$f.22700.0.8)
-bd$f.22700.0.9 <- as.Date(bd$f.22700.0.9)
-bd$f.22700.0.10 <- as.Date(bd$f.22700.0.10)
-bd$f.22700.0.11 <- as.Date(bd$f.22700.0.11)
-bd$f.22700.0.12 <- as.Date(bd$f.22700.0.12)
-bd$f.22700.0.13 <- as.Date(bd$f.22700.0.13)
-bd$f.22700.0.14 <- as.Date(bd$f.22700.0.14)
-
-#rename bd as geographic
-geographic <- bd
-rm(bd)
-
-#import table of assessment centre latitudes
-Table_latitude_assesment_centres <- read.csv(".\\Table_latitude_assesment_centres.csv")
-
-#	Home area population density - urban or rural -20118
-urban <- geographic$f.20118.0.0
-comment(urban)<-c("Datafield = 20118.0.0")
-
-#assessment centre
-centre <- geographic$f.54.0.0
-comment(centre)<-c("Datafield = 54.0.0")
-
-#make latitude table for merge
-eid <- as.data.frame(geographic$f.eid)
-names(eid)<- "eid"
-centre <- as.data.frame(centre)
-eid_centre <- cbind(eid,centre)
-
-#merge eid_centre and latitude
-latitude_with_eid <- merge(eid_centre,Table_latitude_assesment_centres, by="centre")
-latitude_with_eid <- latitude_with_eid[order(latitude_with_eid$eid),] 
-
-UKB_master <- cbind(UKB_master,centre,urban)
-
-#merge final data frame to extract latitude and longitude and centre id
-UKB_master <- merge(UKB_master, latitude_with_eid[,c("eid","lat","long","short_name")], by="eid")
-
-rm(geographic)
-rm(centre)
-rm(eid)
-rm(latitude_with_eid)
-rm(Table_latitude_assesment_centres)
-rm(eid_centre)
 
 ## Self Report Medical  #############################################
 
@@ -1620,147 +1866,6 @@ UKB_master <- cbind(UKB_master,health_self_report)
 
 rm(Self.report.medical)
  
-## Education  #############################################
-
-#import data
-bd <- read.table(".\\ukb673864_Education_Employment.tab", header=TRUE, sep="\t")
-
-#recode data
-lvl.100290 <- c(-10,-3,-1)
-lbl.100290 <- c("Less than a year","Prefer not to answer","Do not know")
-lvl.100291 <- c(-3,-1)
-lbl.100291 <- c("Prefer not to answer","Do not know")
-lvl.100298 <- c(-10,-3,-1)
-lbl.100298 <- c("Less than once a week","Prefer not to answer","Do not know")
-lvl.100300 <- c(-10,-3,-1)
-lbl.100300 <- c("Less than one mile","Prefer not to answer","Do not know")
-lvl.100301 <- c(-3,-1,1,2,3,4)
-lbl.100301 <- c("Prefer not to answer","Do not know","Never/rarely","Sometimes","Usually","Always")
-bd$f.806.0.0 <- ordered(bd$f.806.0.0, levels=lvl.100301, labels=lbl.100301)
-bd$f.806.1.0 <- ordered(bd$f.806.1.0, levels=lvl.100301, labels=lbl.100301)
-bd$f.806.2.0 <- ordered(bd$f.806.2.0, levels=lvl.100301, labels=lbl.100301)
-bd$f.806.3.0 <- ordered(bd$f.806.3.0, levels=lvl.100301, labels=lbl.100301)
-bd$f.816.0.0 <- ordered(bd$f.816.0.0, levels=lvl.100301, labels=lbl.100301)
-bd$f.816.1.0 <- ordered(bd$f.816.1.0, levels=lvl.100301, labels=lbl.100301)
-bd$f.816.2.0 <- ordered(bd$f.816.2.0, levels=lvl.100301, labels=lbl.100301)
-bd$f.816.3.0 <- ordered(bd$f.816.3.0, levels=lvl.100301, labels=lbl.100301)
-bd$f.826.0.0 <- ordered(bd$f.826.0.0, levels=lvl.100301, labels=lbl.100301)
-bd$f.826.1.0 <- ordered(bd$f.826.1.0, levels=lvl.100301, labels=lbl.100301)
-bd$f.826.2.0 <- ordered(bd$f.826.2.0, levels=lvl.100301, labels=lbl.100301)
-bd$f.826.3.0 <- ordered(bd$f.826.3.0, levels=lvl.100301, labels=lbl.100301)
-lvl.100306 <- c(-3,-2,-1)
-lbl.100306 <- c("Prefer not to answer","Never went to school","Do not know")
-bd$f.3426.0.0 <- ordered(bd$f.3426.0.0, levels=lvl.100301, labels=lbl.100301)
-bd$f.3426.1.0 <- ordered(bd$f.3426.1.0, levels=lvl.100301, labels=lbl.100301)
-bd$f.3426.2.0 <- ordered(bd$f.3426.2.0, levels=lvl.100301, labels=lbl.100301)
-bd$f.3426.3.0 <- ordered(bd$f.3426.3.0, levels=lvl.100301, labels=lbl.100301)
-lvl.100305 <- c(-7,-3,1,2,3,4,5,6)
-lbl.100305 <- c("None of the above","Prefer not to answer","College or University degree","A levels/AS levels or equivalent","O levels/GCSEs or equivalent","CSEs or equivalent","NVQ or HND or HNC or equivalent","Other professional qualifications eg: nursing, teaching")
-bd$f.6138.0.0 <- ordered(bd$f.6138.0.0, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.0.1 <- ordered(bd$f.6138.0.1, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.0.2 <- ordered(bd$f.6138.0.2, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.0.3 <- ordered(bd$f.6138.0.3, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.0.4 <- ordered(bd$f.6138.0.4, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.0.5 <- ordered(bd$f.6138.0.5, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.1.0 <- ordered(bd$f.6138.1.0, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.1.1 <- ordered(bd$f.6138.1.1, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.1.2 <- ordered(bd$f.6138.1.2, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.1.3 <- ordered(bd$f.6138.1.3, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.1.4 <- ordered(bd$f.6138.1.4, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.1.5 <- ordered(bd$f.6138.1.5, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.2.0 <- ordered(bd$f.6138.2.0, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.2.1 <- ordered(bd$f.6138.2.1, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.2.2 <- ordered(bd$f.6138.2.2, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.2.3 <- ordered(bd$f.6138.2.3, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.2.4 <- ordered(bd$f.6138.2.4, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.2.5 <- ordered(bd$f.6138.2.5, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.3.0 <- ordered(bd$f.6138.3.0, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.3.1 <- ordered(bd$f.6138.3.1, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.3.2 <- ordered(bd$f.6138.3.2, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.3.3 <- ordered(bd$f.6138.3.3, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.3.4 <- ordered(bd$f.6138.3.4, levels=lvl.100305, labels=lbl.100305)
-bd$f.6138.3.5 <- ordered(bd$f.6138.3.5, levels=lvl.100305, labels=lbl.100305)
-lvl.100295 <- c(-7,-3,1,2,3,4,5,6,7)
-lbl.100295 <- c("None of the above","Prefer not to answer","In paid employment or self-employed","Retired","Looking after home and/or family","Unable to work because of sickness or disability","Unemployed","Doing unpaid or voluntary work","Full or part-time student")
-bd$f.6142.0.0 <- ordered(bd$f.6142.0.0, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.0.1 <- ordered(bd$f.6142.0.1, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.0.2 <- ordered(bd$f.6142.0.2, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.0.3 <- ordered(bd$f.6142.0.3, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.0.4 <- ordered(bd$f.6142.0.4, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.0.5 <- ordered(bd$f.6142.0.5, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.0.6 <- ordered(bd$f.6142.0.6, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.1.0 <- ordered(bd$f.6142.1.0, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.1.1 <- ordered(bd$f.6142.1.1, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.1.2 <- ordered(bd$f.6142.1.2, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.1.3 <- ordered(bd$f.6142.1.3, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.1.4 <- ordered(bd$f.6142.1.4, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.1.5 <- ordered(bd$f.6142.1.5, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.1.6 <- ordered(bd$f.6142.1.6, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.2.0 <- ordered(bd$f.6142.2.0, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.2.1 <- ordered(bd$f.6142.2.1, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.2.2 <- ordered(bd$f.6142.2.2, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.2.3 <- ordered(bd$f.6142.2.3, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.2.4 <- ordered(bd$f.6142.2.4, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.2.5 <- ordered(bd$f.6142.2.5, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.2.6 <- ordered(bd$f.6142.2.6, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.3.0 <- ordered(bd$f.6142.3.0, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.3.1 <- ordered(bd$f.6142.3.1, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.3.2 <- ordered(bd$f.6142.3.2, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.3.3 <- ordered(bd$f.6142.3.3, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.3.4 <- ordered(bd$f.6142.3.4, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.3.5 <- ordered(bd$f.6142.3.5, levels=lvl.100295, labels=lbl.100295)
-bd$f.6142.3.6 <- ordered(bd$f.6142.3.6, levels=lvl.100295, labels=lbl.100295)
-lvl.100299 <- c(-7,-3,1,2,3,4)
-lbl.100299 <- c("None of the above","Prefer not to answer","Car/motor vehicle","Walk","Public transport","Cycle")
-bd$f.6143.0.0 <- ordered(bd$f.6143.0.0, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.0.1 <- ordered(bd$f.6143.0.1, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.0.2 <- ordered(bd$f.6143.0.2, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.0.3 <- ordered(bd$f.6143.0.3, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.1.0 <- ordered(bd$f.6143.1.0, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.1.1 <- ordered(bd$f.6143.1.1, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.1.2 <- ordered(bd$f.6143.1.2, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.1.3 <- ordered(bd$f.6143.1.3, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.2.0 <- ordered(bd$f.6143.2.0, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.2.1 <- ordered(bd$f.6143.2.1, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.2.2 <- ordered(bd$f.6143.2.2, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.2.3 <- ordered(bd$f.6143.2.3, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.3.0 <- ordered(bd$f.6143.3.0, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.3.1 <- ordered(bd$f.6143.3.1, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.3.2 <- ordered(bd$f.6143.3.2, levels=lvl.100299, labels=lbl.100299)
-bd$f.6143.3.3 <- ordered(bd$f.6143.3.3, levels=lvl.100299, labels=lbl.100299)
-lvl.100658 <- c(-7,-3,1,2,3,4,5)
-lbl.100658 <- c("None of the above","Prefer not to answer","College or University degree","A levels/AS levels or equivalent","O levels/GCSEs or equivalent","CSEs or equivalent","NVQ or HND or HNC or equivalent")
-bd$f.10722.0.0 <- ordered(bd$f.10722.0.0, levels=lvl.100658, labels=lbl.100658)
-bd$f.10722.0.1 <- ordered(bd$f.10722.0.1, levels=lvl.100658, labels=lbl.100658)
-bd$f.10722.0.2 <- ordered(bd$f.10722.0.2, levels=lvl.100658, labels=lbl.100658)
-bd$f.10722.0.3 <- ordered(bd$f.10722.0.3, levels=lvl.100658, labels=lbl.100658)
-bd$f.10722.0.4 <- ordered(bd$f.10722.0.4, levels=lvl.100658, labels=lbl.100658)
-bd$f.20119.0.0 <- ordered(bd$f.20119.0.0, levels=lvl.100295, labels=lbl.100295)
-
-#rename bd as education
-education <- bd
-rm(bd)
-
-#	Qualifications 6138
-qualifications <- education$f.6138.0.0
-comment (qualifications)<-c("Datafield = 6138  ")
-
-#	Current employment status 6142
-employed <- education$f.6142.0.0
-comment (employed)<-c("Datafield = 6142  ")
-
-#	Job involves night shift work 3426
-night_shift <- education$f.3426.0.0
-comment (night_shift)<-c("Datafield = 3426  ")
-
-#	Job involves shift work 826
-shift_work <- education$f.826.0.0
-comment (shift_work)<-c("Datafield = 826  ")
-
-UKB_master <- cbind(UKB_master,qualifications,employed, night_shift, shift_work)
-
-rm(education)
- 
 ## Sleep and Alcohol  #############################################
 
 #import data
@@ -1851,111 +1956,10 @@ UKB_master <- cbind(UKB_master,alcohol, snoring, day_sleepiness, day_naps, chron
 
 rm(sleep_alcohol)
 
-## Early life  #############################################
-
-#import data
-bd <- read.table(".\\ukb673864_Early_Life.tab", header=TRUE, sep="\t")
-
-#recode data
-lvl.100258 <- c(1,2,9)
-lbl.100258 <- c("Yes - pounds and ounces","Yes - Kilograms","No")
-bd$f.120.0.0 <- ordered(bd$f.120.0.0, levels=lvl.100258, labels=lbl.100258)
-bd$f.120.1.0 <- ordered(bd$f.120.1.0, levels=lvl.100258, labels=lbl.100258)
-bd$f.120.2.0 <- ordered(bd$f.120.2.0, levels=lvl.100258, labels=lbl.100258)
-lvl.0170 <- c(-1)
-lbl.0170 <- c("Location could not be mapped")
-lvl.100420 <- c(-3,-1,1,2,3,4,5,6)
-lbl.100420 <- c("Prefer not to answer","Do not know","England","Wales","Scotland","Northern Ireland","Republic of Ireland","Elsewhere")
-bd$f.1647.0.0 <- ordered(bd$f.1647.0.0, levels=lvl.100420, labels=lbl.100420)
-bd$f.1647.1.0 <- ordered(bd$f.1647.1.0, levels=lvl.100420, labels=lbl.100420)
-bd$f.1647.2.0 <- ordered(bd$f.1647.2.0, levels=lvl.100420, labels=lbl.100420)
-lvl.100349 <- c(-3,-1,0,1)
-lbl.100349 <- c("Prefer not to answer","Do not know","No","Yes")
-bd$f.1677.0.0 <- ordered(bd$f.1677.0.0, levels=lvl.100349, labels=lbl.100349)
-bd$f.1677.1.0 <- ordered(bd$f.1677.1.0, levels=lvl.100349, labels=lbl.100349)
-bd$f.1677.2.0 <- ordered(bd$f.1677.2.0, levels=lvl.100349, labels=lbl.100349)
-lvl.100428 <- c(-3,-1,1,2,3)
-lbl.100428 <- c("Prefer not to answer","Do not know","Thinner","Plumper","About average")
-bd$f.1687.0.0 <- ordered(bd$f.1687.0.0, levels=lvl.100428, labels=lbl.100428)
-bd$f.1687.1.0 <- ordered(bd$f.1687.1.0, levels=lvl.100428, labels=lbl.100428)
-bd$f.1687.2.0 <- ordered(bd$f.1687.2.0, levels=lvl.100428, labels=lbl.100428)
-lvl.100429 <- c(-3,-1,1,2,3)
-lbl.100429 <- c("Prefer not to answer","Do not know","Shorter","Taller","About average")
-bd$f.1697.0.0 <- ordered(bd$f.1697.0.0, levels=lvl.100429, labels=lbl.100429)
-bd$f.1697.1.0 <- ordered(bd$f.1697.1.0, levels=lvl.100429, labels=lbl.100429)
-bd$f.1697.2.0 <- ordered(bd$f.1697.2.0, levels=lvl.100429, labels=lbl.100429)
-lvl.100430 <- c(-3,1,2,3)
-lbl.100430 <- c("Prefer not to answer","Right-handed","Left-handed","Use both right and left hands equally")
-bd$f.1707.0.0 <- ordered(bd$f.1707.0.0, levels=lvl.100430, labels=lbl.100430)
-bd$f.1707.1.0 <- ordered(bd$f.1707.1.0, levels=lvl.100430, labels=lbl.100430)
-bd$f.1707.2.0 <- ordered(bd$f.1707.2.0, levels=lvl.100430, labels=lbl.100430)
-bd$f.1767.0.0 <- ordered(bd$f.1767.0.0, levels=lvl.100349, labels=lbl.100349)
-bd$f.1767.1.0 <- ordered(bd$f.1767.1.0, levels=lvl.100349, labels=lbl.100349)
-bd$f.1767.2.0 <- ordered(bd$f.1767.2.0, levels=lvl.100349, labels=lbl.100349)
-bd$f.1767.3.0 <- ordered(bd$f.1767.3.0, levels=lvl.100349, labels=lbl.100349)
-bd$f.1777.0.0 <- ordered(bd$f.1777.0.0, levels=lvl.100349, labels=lbl.100349)
-bd$f.1777.1.0 <- ordered(bd$f.1777.1.0, levels=lvl.100349, labels=lbl.100349)
-bd$f.1777.2.0 <- ordered(bd$f.1777.2.0, levels=lvl.100349, labels=lbl.100349)
-bd$f.1787.0.0 <- ordered(bd$f.1787.0.0, levels=lvl.100349, labels=lbl.100349)
-bd$f.1787.1.0 <- ordered(bd$f.1787.1.0, levels=lvl.100349, labels=lbl.100349)
-bd$f.1787.2.0 <- ordered(bd$f.1787.2.0, levels=lvl.100349, labels=lbl.100349)
-
-#rename bd as early_life
-early_life <- bd
-rm(bd)
-
-#1767 Adopted as a child
-adopted <- early_life$f.1767.0.0
-comment (adopted)<-c("Datafield = 1767  ")
-
-#20022 Birth weight
-birth_weight  <- early_life$f.20022.0.0
-comment (birth_weight)<-c("Datafield = 20022  ")
-
-#120 Birth weight metric
-birth_weight_metric  <- early_life$f.120.0.0
-comment (birth_weight_metric)<-c("Datafield = 120  ")
-
-#1677 Breastfed as a baby	
-breastfed <- early_life$f.1677.0.0
-comment (breastfed)<-c("Datafield = 1677")
-
-#20115 Country of Birth (non-UK origin)
-country_birth_nonuk <- early_life$f.20115.0.0
-comment (country_birth_nonuk)<-c("Datafield = 20115")
-
-#1647 Country of birth (UK/elsewhere)
-country_birth_uk <- early_life$f.1647.0.0
-comment (country_birth_uk)<-c("Datafield = 1647")
-
-#1707 Handedness (chirality/laterality)
-handedness <- early_life$f.1707.0.0
-comment (handedness)<-c("Datafield = 1707")
-
-#1787 maternal smoking around birth
-maternal_smoking <- early_life$f.1787.0.0
-comment (maternal_smoking)<-c("Datafield = 1787")
-
-#130 Place of birth in UK - east co-ordinate
-place_birth_east <- early_life$f.130.0.0
-comment (place_birth_east)<-c("Datafield = 130")
-
-#129 Place of birth in UK - north co-ordinate
-place_birth_north <- early_life$f.129.0.0
-comment (place_birth_north)<-c("Datafield = 129")
-
-UKB_master <- cbind(UKB_master,adopted,birth_weight,birth_weight_metric,
-                    breastfed,country_birth_uk,country_birth_nonuk,handedness,
-                    maternal_smoking,place_birth_east,place_birth_north)
-
-rm(early_life)
-
-
-
 
 ### remove lvl lbl ######
 rm(list=ls(pattern="lvl"))
 rm(list=ls(pattern="lbl"))
 
-
+#save as R datafile 
 save(UKB_master,file="UKB_master.Rda")
