@@ -3,14 +3,16 @@
 #load libraries
 library(readr)
 library(tidyverse)
+library(dplyr)
 
 #load in tsv (edit for own path)
-metabolomics_df <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\Metabolomics\\metabolomics_A.tsv")
+metabolomics_df_A <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\Metabolomics\\metabolomics_A.tsv")
+metabolomics_df_C <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\Metabolomics\\metabolomics_C.tsv")
 
 #rename variables (segmented alphabeticaly for readability)
 
 #### 0-A ####
-metabolomics_df <- metabolomics_df %>% 
+metabolomics_df <- metabolomics_df_A %>% 
   rename('hydroxybut' = '23474-0.0',
          'acetate' = '23475-0.0',
          'acetoacetate' = '23476-0.0',
@@ -41,3 +43,9 @@ comment(metabolomics_df$avg_vldl) <- c("Datafield = 23431-0.0")
 
 
 #### C ####
+#remove additionally, wrongly-included vars
+metabolomics_df_C <- select(metabolomics_df_C, -c('23547-1.0', '23491-1.0', '23580-1.0'))
+
+#rename variables
+
+#add comments to variable to link with biobank datafield id 
