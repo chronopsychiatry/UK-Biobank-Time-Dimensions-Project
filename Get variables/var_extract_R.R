@@ -65,8 +65,8 @@ ethnic <- primary_demographics$f.21000.0.0
 comment(ethnic)<-c("Datafield = 21000.0.0")
 
 #disability
-#disability <- primary_demographics$f.2188.0.0
-#comment(disability)<-c("Datafield = 2188.0.0")
+disability <- primary_demographics$f.2188.0.0
+comment(disability)<-c("Datafield = 2188.0.0")
 
 #assess_date
 assess_date <- primary_demographics$f.53.0.0
@@ -77,7 +77,7 @@ comment(assess_date)<-c("Datafield = 53.0.0")
 #comment(assess_centre)<-c("Datafield = 54.0.0")
 
 #add variables to master dataframe
-UKB_master <- cbind(UKB_master,sex,year_born,month_born,assess_date,ethnic,age)
+UKB_master <- cbind(UKB_master,sex,year_born,month_born,assess_date,ethnic,age, disability)
 #UKB_master <- cbind(UKB_master,assess_centre,assess_date,sex,year_born,month_born,age,ethnic,disability)
 
 rm(primary_demographics)
@@ -408,6 +408,7 @@ comment (shift_work)<-c("Datafield = 826  ")
 UKB_master <- cbind(UKB_master,qualifications,employed, night_shift, shift_work)
 
 rm(education)
+
 
 
 ## Mental health ######################################
