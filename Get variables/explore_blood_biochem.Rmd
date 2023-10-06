@@ -1,0 +1,14 @@
+RMD to clean and explore blood biochemistry data
+```{r}
+#import libraries
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+```
+
+Plot all blood initially
+```{r}
+#drop eid for visualisation purposes
+blood_df <- select(blood_biochem_df, -eid)
+boxplot(blood_df, las=2, horizontal = FALSE)
+```
