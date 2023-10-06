@@ -4,14 +4,17 @@
 #import libraries
 library(tidyverse)
 library(dplyr)
+library(ggplot2)
 
 #find wd and load data
 load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\Core Datasets\\UKB_master.Rda")
 ```
 
-#### Exploring each variable independently to check for outliers and understand the data
+#### Exploring core demographic variables
+For UKB_master (all participants).
+The following code can be used a template for exploring further variables.
 
-#Age
+## Age
 
 Age is right-skewed, no outliers/errors
 
@@ -22,44 +25,108 @@ hist(UKB_master$age,
   main = "Histogram of age",
   breaks = sqrt(nrow(UKB_master))
 )
-print('age range:')
-print(range(UKB_master$age))
-
 ```
 
-#Ethnicity
+Age Range:
+```{r}
+range(UKB_master$age)
+```
+Mean age +- s.d.
+```{r}
+c(mean(UKB_master$age), sd(UKB_master$age))
+```
+Number of NAs:
+```{r}
+sum(is.na(UKB_master$age))
+```
 
+## Sex
+
+Sex is biased towards women (54%).
+
+```{r}
+#create sex count dataframe
+sex_df <- UKB_master %>%
+  group_by(sex) %>%
+  summarise(counts = n())
+
+#plot sex as barplot
+ggplot(sex_df, aes(x = sex, y = counts)) +
+  geom_bar(fill = "#0073C2FF", stat = "identity") +
+  geom_text(aes(label = counts), vjust = -0.3)
+```
+
+Number of NAs:
+```{r}
+sum(is.na(UKB_master$sex))
+```
+Percentage women:
+```{r}
+sex_df$counts[1]/sum(sex_df$counts)*100
+```
+Percentage men:
+```{r}
+sex_df$counts[2]/sum(sex_df$counts)*100
+```
+
+## Ethnicity
+
+Majority British ethnicity. 2778 not disclosed.
 
 ```{r}
 ethnicity_summary <- UKB_master %>%
     group_by(ethnic) %>%
-    summarise(Count = n()) 
+    summarise(counts = n()) 
+
+print(ethnicity_summary)
 
 #count number of NA 
-sum(is.na(UKB_master$ethnic))
+sum(is.na(UKB_master$ethnic), UKB_master$ethnic['Prefer not to answer'], UKB_master$ethnic['Do not know'])
 
-#find position of NA response
-#which(is.na(UKB_master$ethnic))
+ethnic_subset <- c('Prefer not to answer', 'NA', 'Do not know')
 
-#test barplot to visualise
-#ethnic_tab<- table(UKB_master$ethnic)
-#barplot(ethnic_tab)
 ```
 
-#Sex
+## Disability
+
+Majority ppts not disabled, 31% answered 'yes'.
 
 ```{r}
-ethnicity_summary <- UKB_master %>%
-    group_by(ethnic) %>%
-    summarise(Count = n()) 
+disability_summary <- UKB_master %>%
+    group_by(disability) %>%
+    summarise(counts = n()) 
 
-#count number of NA 
-sum(is.na(UKB_master$ethnic))
+print(disability_summary)
 
-#find position of NA response
-#which(is.na(UKB_master$ethnic))
 
-#test barplot to visualise
-#ethnic_tab<- table(UKB_master$ethnic)
-#barplot(ethnic_tab)
+#plot disability as barplot
+ggplot(disability_summary, aes(x = disability, y = counts)) +
+  geom_bar(fill = "#0073C2FF", stat = "identity") +
+  geom_text(aes(label = counts), vjust = -0.3)
+```
+
+Number of NAs:
+```{r}
+sum(is.na(UKB_master$disability))
+```
+Percentage disabled:
+```{r}
+disability_summary$counts[4]/sum(disability_summary$counts)*100
+```
+Percentage not disabled:
+```{r}
+disability_summary$counts[3]/sum(disability_summary$counts)*100
+```
+
+## Employment
+
+Majority ppts are employed.
+
+```{r}
+employment_summary <- UKB_master %>%
+    group_by(employed) %>%
+    summarise(counts = n()) 
+
+print(employment_summary)
+
 ```
