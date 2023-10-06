@@ -12,9 +12,9 @@ library(insol)
 
 #create table of relevant variables
 ph_vars <- data.frame(UKB_master$eid) 
-#date <- UKB_master$assess_date
-#lat <- UKB_master$lat
-#long <- UKB_master$long
+date <- UKB_master$assess_date
+lat <- UKB_master$lat
+long <- UKB_master$long
 ph_vars <- cbind(ph_vars,date,lat, long)
 ph_vars$julian_day <- as.numeric(NA)
 ph_vars$prev_julian_day <- as.numeric(NA)
