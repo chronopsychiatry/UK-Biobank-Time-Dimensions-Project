@@ -20,7 +20,8 @@ ph_vars$julian_day <- as.numeric(NA)
 ph_vars$prev_julian_day <- as.numeric(NA)
 ph_vars$daylength_min <- as.numeric(NA)
 ph_vars$prev_daylength_min <- as.numeric(NA)
-ph_vars$rate_of_change <- as.numeric(NA)
+ph_vars$rate_of_change_min <- as.numeric(NA)
+ph_vars$rate_of_change_percent <- as.numeric(NA)
 
 #change date format to POSIX so insol functions work
 ph_vars$date <- as.POSIXct(ph_vars$date,format="%Y-%m-%d")
@@ -50,8 +51,10 @@ for (i in 1:nrow(ph_vars)){
   ph_vars$prev_daylength_min[i] <- prev_dl
   
   # calculate photoperiod rate of change (minutes)
-  rate_of_change <- dl - prev_dl
-  ph_vars$rate_of_change[i] <- rate_of_change
+  rate_of_change_min <- dl - prev_dl
+  rate_of_change_percent <- rate_of_change_min/1440*100
+  ph_vars$rate_of_change_min[i] <- rate_of_change_min
+  ph_vars$rate_of_change_percent[i] <- rate_of_change_percent
 }
 
 
@@ -95,6 +98,22 @@ for (i in 1:nrow(small_ph_vars)){
   small_ph_vars$prev_daylength_min[i] <- prev_dl
   
   # calculate photoperiod rate of change (minutes) https://www.math.unl.edu/~bharbourne1/M106/projects/Proj1soln.html
-  rate_of_change <- dl - prev_dl
+  rate_of_change_min <- dl - prev_dl
+  rate_of_change_percent <- rate_of_change_min/1440*100
   small_ph_vars$rate_of_change[i] <- rate_of_change
 }
+
+
+#calculate length of time it takes for insol daylength package to run
+#create vars to run daylength function
+lat <- 	51.45689
+long <- -0.97374819
+julian_day <- 23279
+
+#calc
+start <- Sys.time()
+daylength_out <- daylength(row$lat, row$long, julian_day, tmz=0)
+run_time <- Sys.time() - start
+
+
+#
