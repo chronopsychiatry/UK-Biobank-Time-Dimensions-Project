@@ -3,6 +3,11 @@
 
 #note:  cbinding ataframes removes attributes of the original df. what can be done?!
 
+#install libraries
+library(tidyverse)
+library(dplyr)
+library(insol)
+
 ######### R extract #########
 #set cwd
 setwd("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\Core Datasets")
@@ -1956,6 +1961,58 @@ comment (alcohol)<-c("Datafield = 100580")
 UKB_master <- cbind(UKB_master,alcohol, snoring, day_sleepiness, day_naps, chronotype, sleep_duration, insomnia, getting_up)
 
 rm(sleep_alcohol)
+
+
+## Photoperiod Vars ####
+#note: function for photoperiod var function takes ~16 minutes
+#create table of relevant variables
+ph_vars <- data.frame(UKB_master$eid) 
+date <- UKB_master$assess_date
+lat <- UKB_master$lat
+long <- UKB_master$long
+ph_vars <- cbind(ph_vars,date,lat, long)
+ph_vars$julian_day <- as.numeric(NA)
+ph_vars$prev_julian_day <- as.numeric(NA)
+ph_vars$daylength_min <- as.numeric(NA)
+ph_vars$prev_daylength_min <- as.numeric(NA)
+ph_vars$rate_of_change_min <- as.numeric(NA)
+ph_vars$rate_of_change_percent <- as.numeric(NA)
+
+#change date format to POSIX so insol functions work
+ph_vars$date <- as.POSIXct(ph_vars$date,format="%Y-%m-%d")
+
+#for loop to calculate rate of change for each date
+for (i in 1:nrow(ph_vars)){
+  row <- ph_vars[i,]
+  
+  #convert assess_date to julian day format
+  julian_day <- JD(row$date, inverse=FALSE)
+  #print(row$date)
+  #row$julian_day <- julian_day
+  #print(row)
+  ph_vars$julian_day[i] <- julian_day
+  
+  #identify n-1 and join into table
+  prev_julian_day <- JD(row$date, inverse=FALSE)-1
+  ph_vars$prev_julian_day[i] <- prev_julian_day
+  
+  #use insol package to calculate photoperiod for assessment date and n-1
+  daylength_out <- daylength(row$lat, row$long, julian_day, tmz=0)
+  dl <- as.numeric(daylength_out[1,3])*60
+  ph_vars$daylength_min[i] <- dl
+  
+  prev_daylength <- daylength(row$lat, row$long, prev_julian_day, tmz=0)
+  prev_dl <- as.numeric(prev_daylength[1,3])*60
+  ph_vars$prev_daylength_min[i] <- prev_dl
+  
+  # calculate photoperiod rate of change (minutes)
+  rate_of_change_min <- dl - prev_dl
+  rate_of_change_percent <- rate_of_change_min/1440*100
+  ph_vars$rate_of_change_min[i] <- rate_of_change_min
+  ph_vars$rate_of_change_percent[i] <- rate_of_change_percent
+}
+
+UKB_master <- cbind(UKB_master,ph_vars)
 
 
 ### remove lvl lbl ######
