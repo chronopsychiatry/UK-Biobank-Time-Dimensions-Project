@@ -2021,3 +2021,102 @@ rm(list=ls(pattern="lbl"))
 
 #save as R datafile 
 save(UKB_master,file="UKB_master.Rda")
+
+
+## data collection timing  #############################################
+
+data_timing <- read.csv("./ukb673864_data_timing.csv")
+
+# 53 date of attending assessment centre
+assess_date <- as.Date(data_timing$X53.0.0)
+comment (assess_date)<-c("Datafield = 53")
+
+# month of attending assessment centre
+month <- as.integer(format(assess_date, "%m"))              # Extract month
+comment (month)<-c("derived from Datafield = 53")
+
+# year of attending assessment centre 
+year <- as.integer(format(assess_date, "%Y"))
+comment (year)<-c("derived from Datafield = 53")
+
+# 3166 datetime of day of blood sampling at assessment centre
+BS_date <- as.Date(data_timing$X3166.0.0)
+comment (BS_date)<-c("Datafield = 3166")
+
+# time of blood sample
+BS_time <- format(BS_date, "hh:mm:ss")
+comment (BS_time)<-c("derived from Datafield = 3166")
+
+# month of blood sample
+BS_month <- as.integer(format(BS_date, "M"))
+comment (BS_month)<-c("derived from Datafield = 3166")
+
+# 21834	Biometrics sign-off timestamp
+end_biometrics <- as.Date(data_timing$X21834.0.0)
+comment (end_biometrics)<-c("Datafield = 21834")
+
+# 21871	Cardiac monitor sign-off timestamp
+#assess_date <- data_timing$X53.0.0 <- as.Date(data_timing$X53.0.0)
+#comment (assess_date)<-c("Datafield = 53")
+
+# 21865	Carotid ultrasound sign-off timestamp
+#assess_date <- data_timing$X53.0.0 <- as.Date(data_timing$X53.0.0)
+#comment (assess_date)<-c("Datafield = 53")
+
+# 21851	Conclusion sign-off timestamp
+end_signoff <- as.Date(data_timing$X21851.0.0)
+comment (end_signoff)<-c("Datafield = 21851")
+
+# 21821	Consent sign-off timestamp
+end_consent <- as.Date(data_timing$X21821.0.0)
+comment (end_consent)<-c("Datafield = 21821")
+
+# 21864	DXA assessment sign-off timestamp
+end_DXA <- as.Date(data_timing$X21864.0.0)
+comment (end_DXA)<-c("Datafield = 21864")
+
+# 21866	ECG at rest sign-off timestamp
+end_ECG <- as.Date(data_timing$X21866.0.0)
+comment (end_ECG)<-c("Datafield = 21866")
+
+# 21838	ECG during exercise sign-off timestamp
+end_ECG_exercise <- as.Date(data_timing$X21838.0.0)
+comment (end_ECG_exercise)<-c("Datafield = 21838")
+
+# 21836	Eye measures sign-off timestamp
+end_eye <- as.Date(data_timing$X21836)
+comment (end_eye)<-c("Datafield = 21836")
+
+# 21811	Reception sign-off timestamp
+end_reception <- as.Date(data_timing$X21811.0.0)
+comment (end_reception)<-c("Datafield = 21811")
+
+# 21842	Sample collection sign-off timestamp
+end_sample <- as.Date(data_timing$X21842.0.0)
+comment (end_sample)<-c("Datafield = 21842")
+
+# 21825	Touchscreen cognitive sign-off timestamp
+end_touchscreen_cog <- as.Date(data_timing$X21825.0.0)
+comment (assess_date)<-c("Datafield = 21825")
+
+# 21822	Touchscreen sign-off timestamp
+end_touchscreen <- as.Date(data_timing$X21822.0.0)
+comment (end_touchscreen)<-c("Datafield = 21822")
+
+# 21841	Urine collection sign-off timestamp
+end_urine <- as.Date(data_timing$X21841.0.0)
+comment (end_urine)<-c("Datafield = 21841")
+
+# 21831	Verbal interview sign-off timestamp
+end_interview <- as.Date(data_timing$X21831.0.0)
+comment (end_interview)<-c("Datafield = 21831")
+
+# add to master
+UKB_master <- cbind(UKB_master, assess_date,month, year, BS_date, BS_time, BS_month, end_biometrics, end_signoff, end_consent, end_DXA, end_ECG, end_ECG_exercise, end_eye,end_reception,end_sample,  end_touchscreen_cog, end_touchscreen, end_urine, end_interview)
+
+# change name of eid
+names(UKB_master[1]) <- "eid"
+
+
+
+
