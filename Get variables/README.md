@@ -40,7 +40,7 @@ The 'Get Variables' folder contains all the code needed to get you started with 
 
    [Extract metabolomics variables (R script)](get_metabolomics.R)
 
-   **Additional accelerometer-derived sleep data variables (Jones et al.)**
+   **Accelerometer-derived sleep data variables (Jones et al.)**
 
    This is code to process the activity monitor derived measures of sleep timing returned by Jones et al., calculated using GGIR. See https://biobank.ndph.ox.ac.uk/showcase/dset.cgi?id=1862 and https://pubmed.ncbi.nlm.nih.gov/30696823.
    
