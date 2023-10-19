@@ -2,7 +2,7 @@
 
 The 'Get Variables' folder contains all the code needed to get you started with exploring time dimensions in UK Biobank data.
 
-1. Extracting 'core' variables
+### **1. Extracting 'core' variables**
    
    We have identified a set of core variables from the Biobank dataset which we think are essential to any time dimensions analysis project. These include variables such as demographics and geographic location.
 
@@ -12,7 +12,7 @@ The 'Get Variables' folder contains all the code needed to get you started with 
 
    [Extract lifetime shiftwork metrics (R script)](extract_SW_metrics.R)
 
-2. Calculating time & season variables
+### **2. Calculating time & season variables**
    
    Using date and location variables from the Biobank dataset, we have created the following code to calculate variables relating to time and seasons.
 
@@ -22,9 +22,9 @@ The 'Get Variables' folder contains all the code needed to get you started with 
 
    [Calculate photoperiod rate of change (R script)](extract_photoperiod_roc.R)
 
-   [Extract assessment centre weather (R Markdown script)](Get_weather_data.Rmd)
+   [Extract assessment centre weather (R Markdown script)](Get_weather_data.Rmd) - This is code that extracts Met Office weather data (monthly mean temperature) for the assessment centre visit
    
-3. Extract relevant Biobank variables
+### **3. Extract relevant Biobank variables**
    
    The following R scripts can be used to extract and wrangle variables which are relevant for different time dimensions projects.
 
@@ -40,7 +40,9 @@ The 'Get Variables' folder contains all the code needed to get you started with 
 
    [Extract metabolomics variables (R script)](get_metabolomics.R)
 
-   **Additional sleep data variables (Jones)**
+   **Additional accelerometer-derived sleep data variables (Jones et al.)**
+
+   This is code to process the activity monitor derived measures of sleep timing returned by Jones et al., calculated using GGIR. See https://biobank.ndph.ox.ac.uk/showcase/dset.cgi?id=1862 and https://pubmed.ncbi.nlm.nih.gov/30696823.
    
    [Extract sleep variables (R script)](jones_sleep_data.R)  
    
