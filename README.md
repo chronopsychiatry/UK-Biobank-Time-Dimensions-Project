@@ -1,15 +1,28 @@
-# biobank-time-dimensions
-Exploring Time Dimensions of Human Health and Wellbeing
+# Rhythms of Life: Exploring the Time Dimensions of Human Health and Wellbeing
 
-### [Process Jones et al., Returned Sleep Data from Accelerometers ](https://github.com/chronopsychiatry/biobank-time-dimensions/blob/main/Get%20variables/jones_sleep_data)
-This is code to process the activity monitor derived measures of sleep timing returned by Jones et al., calculated using GGIR  
-See   https://biobank.ndph.ox.ac.uk/showcase/dset.cgi?id=1862
-and    https://pubmed.ncbi.nlm.nih.gov/30696823/  
+The **Rhythms of Life** project is a Maynooth University-led research project investigating biological rhythms in the UK Biobank cohort.
 
+Key contacts for the project are: [insert details]
 
+This repository contains all the information and code required to:
+
+      1. Enable researchers to get started with analysing time dimensions within the UK Biobank data
       
-### [Get Monthly Mean Temperature at Assessment Centre Visit ](https://github.com/chronopsychiatry/biobank-time-dimensions/blob/main/Get%20variables/Get%20weather%20data.Rmd)   
-This is code that extracts Met Office weather data for the assessment centre visit
+      2. Replicate analyses from publications
+      
+      3. Foster an open and transparent research environment within the project team
 
+The repository is structured into folders as follows:
 
+### Get Variables
 
+This folder contains all the code, spreadsheets and data dictionaries required to extract and interpret key variables such as demographics, geographical ifnormation, photoperiod metrics and weather. Code to extract additional optional variables such as metabolomics and blood biochemistry data is also available.
+
+!Note: Add in data cleaning scripts/rmd 
+
+### Projects
+
+The 'Projects' folder contains code for the individual sub-projects of the wider **Rhythms of Life** project. These include:
+
+* [BD-Metabolomics](BD-Metabolomics) - exploring metabolic profile seasonal variation in bipolar disorder 
+      
