@@ -26,15 +26,18 @@ The 'Get Variables' folder contains all the code needed to get you started with 
    The following R scripts can be used to extract and wrangle variables which are relevant for different time dimensions projects.
 
    ** Blood biochemistry variables**
+   
    [Blood biochemistry variables data dictionary (XLSX file)](blood_biochemistry_data_dict.xlsx)
 
    [Extract blood biochemistry variables (R script)](get_blood_biochem.R)
 
    ** Metabolomics variables**
+   
    [Metabolomics variables data dictionary (XLSX file)](metabolomics_data_dict.xlsx)
 
    [Extract metabolomics variables (R script)](get_metabolomics.R)
 
    ** Additional sleep data variables (Jones)**
+   
    [Extract sleep variables (R script)](jones_sleep_data.R)  
    
