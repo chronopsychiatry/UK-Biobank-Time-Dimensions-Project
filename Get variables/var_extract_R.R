@@ -1,5 +1,6 @@
 #script to extract variables of interest from R-format UK Biobank data
 # script authors: Cathy Wyse & Amber Roguski
+# last updated: 19.10.23 agpr141
 
 #note:  cbinding dataframes removes attributes of the original df. what can be done?!
 
