@@ -12,8 +12,6 @@ The 'Get Variables' folder contains all the code needed to get you started with 
    
    * [Extract core variables from .tab files (R script)](var_extract_R.R)
 
-   * [Extract lifetime shiftwork metrics (R script)](extract_SW_metrics.R)
-
 ### **2. Calculating time & season variables**
    
    Using date and location variables from the Biobank dataset, we have created the following code to calculate variables relating to time and seasons.
@@ -55,6 +53,6 @@ The 'Get Variables' folder contains all the code needed to get you started with 
    
    This is code to extract metrics on shiftwork jobs throughout lifetime taken from online survey completed by 120k UK Biobank participants in 2015: https://biobank.ndph.ox.ac.uk/ukb/label.cgi?id=130  
    
-   * [Shiftwork variables data dictionary (XLSX file)](shiftwork_data_dict.R)
+   * [Shiftwork variables data dictionary (XLSX file)](shiftwork_data_dict.xlsx)
    
    * [Extract shiftwork variables (R script)](extract_SW_metrics.R)   
