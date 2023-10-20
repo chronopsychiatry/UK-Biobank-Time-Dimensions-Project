@@ -2,33 +2,38 @@
 
 The 'Get Variables' folder contains all the code needed to get you started with exploring time dimensions in UK Biobank data.
 
-### **1. Extracting 'core' variables**
+### **1. Create a core dataset**
    
-   We have identified a set of core variables from the Biobank dataset which we think are essential to any time dimensions analysis project. These include variables such as demographics and geographic location.
+   We have identified a set of core variables from the Biobank dataset which we think are essential to any time dimensions analysis project. These include Biobank variables such as demographics and geographic location,       and derived variables such as weather and photoperiod length.
 
+   **Downloading data**
+   
    * [Core variables field list for data fetching from basket 4055647(.txt file)](field_list.txt)
+     > Use this field_list.txt file to download core variables and r encodings using 'ukbconv ukb673864.enc_ukb r -eencoding.dat -ifield_list.txt' command
 
    * [Core variables field list for data fetching from basket 4066697(.txt file)](need to insert)
 
+   **Understanding the core variables**
    * [Core variables data dictionary (XLSX file)](core_var_data_dict.xlsx)
-   
+     > This data dictionary details all of the core Biobank & derived variables in the dataset
+
+   **Create a core dataset called 'UKB_master' to use in your project**
    * [Extract core variables from .tab files (R script)](var_extract_R.R)
+     > This script includes the following code/files already. You do not need to do anything apart from download them:
+     >    * [Biobank assessment centre latitudes (CSV file)](Table_latitude_assessment_centres.csv)
+     >    * [Calculate photoperiod rate of change (R script)](extract_photoperiod_roc.R)
 
-### **2. Calculating time & season variables**
-   
-   Using date and location variables from the Biobank dataset, we have created the following code to calculate variables relating to time and seasons.
 
-   * [Biobank assessment centre latitudes (CSV file)](Table_latitude_assessment_centres.csv)
-
-   * [Biobank assessment centre historical weather (XLSX file)](weather_ukb_270923.xlsx)
-
-   * [Calculate photoperiod rate of change (R script)](extract_photoperiod_roc.R)
-
-   * [Extract assessment centre weather (R Markdown script)](Get_weather_data.Rmd) - This is code that extracts Met Office weather data (monthly mean temperature) for the assessment centre visit
-   
-### **3. Extract relevant Biobank variables**
+### **2. Extract relevant Biobank variables**
    
    The following R scripts can be used to extract and wrangle variables which are relevant for different time dimensions projects.
+   
+   **Weather variables**
+   This code extracts Met Office weather data (monthly mean temperature) for the assessment centre visit
+   
+   * [Biobank assessment centre historical weather (XLSX file)](weather_ukb_270923.xlsx)
+
+   * [Extract assessment centre weather (R Markdown script)](Get_weather_data.Rmd)
 
    **Blood biochemistry variables**
    
