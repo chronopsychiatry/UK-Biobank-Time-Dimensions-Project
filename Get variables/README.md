@@ -55,6 +55,6 @@ The 'Get Variables' folder contains all the code needed to get you started with 
    
    This is code to extract metrics on shiftwork jobs throughout lifetime taken from online survey completed by 120k UK Biobank participants in 2015: https://biobank.ndph.ox.ac.uk/ukb/label.cgi?id=130  
    
-   * [Shiftwork variables data dictionary (XLSX file)](shiftwork_data_dict.R)
+   * [Shiftwork variables data dictionary (XLSX file)](shiftwork_data_dict.xlsx)
    
    * [Extract shiftwork variables (R script)](extract_SW_metrics.R)   
