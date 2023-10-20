@@ -6,6 +6,8 @@ The 'Get Variables' folder contains all the code needed to get you started with 
    
    We have identified a set of core variables from the Biobank dataset which we think are essential to any time dimensions analysis project. These include variables such as demographics and geographic location.
 
+   * [Core variables field list for data fetching (.txt file)](field_list.txt)
+
    * [Core variables data dictionary (XLSX file)](core_var_data_dict.xlsx)
    
    * [Extract core variables from .tab files (R script)](var_extract_R.R)
