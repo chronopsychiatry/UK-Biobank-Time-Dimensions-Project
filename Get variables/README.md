@@ -29,6 +29,7 @@ The 'Get Variables' folder contains all the code needed to get you started with 
    The following R scripts can be used to extract and wrangle variables which are relevant for different time dimensions projects.
    
    **Weather variables**
+   
    This code extracts Met Office weather data (monthly mean temperature) for the assessment centre visit
    
    * [Biobank assessment centre historical weather (XLSX file)](weather_ukb_270923.xlsx)
@@ -36,7 +37,7 @@ The 'Get Variables' folder contains all the code needed to get you started with 
    * [Extract assessment centre weather (R Markdown script)](Get_weather_data.Rmd)
 
    **Blood biochemistry variables**
-   
+
    * [Blood biochemistry variables data dictionary (XLSX file)](blood_biochemistry_data_dict.xlsx)
 
    * [Extract blood biochemistry variables (R script)](get_blood_biochem.R)
