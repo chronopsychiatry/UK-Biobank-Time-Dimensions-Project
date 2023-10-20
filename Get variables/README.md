@@ -42,7 +42,17 @@ The 'Get Variables' folder contains all the code needed to get you started with 
 
    **Accelerometer-derived sleep data variables (Jones et al.)**
 
-   This is code to process the activity monitor derived measures of sleep timing returned by Jones et al., calculated using GGIR. See https://biobank.ndph.ox.ac.uk/showcase/dset.cgi?id=1862 and https://pubmed.ncbi.nlm.nih.gov/30696823.
+   This is code to process the activity monitor derived measures of sleep timing returned by Jones et al., calculated using GGIR. See https://biobank.ndph.ox.ac.uk/showcase/dset.cgi?id=1862 and 
+   https://pubmed.ncbi.nlm.nih.gov/30696823.  
    
-   * [Extract sleep variables (R script)](jones_sleep_data.R)  
+   * [Sleep variables data dictionary (XLSX file)](sleep_data_dict.xlsx)
+     
+   * [Extract sleep variables (R script)](jones_sleep_data.R)
+      
+   **Lifetime shiftwork variables**  
    
+   This is code to extract metrics on shiftwork jobs throughout lifetime taken from online survey completed by 120k UK Biobank participants in 2015: https://biobank.ndph.ox.ac.uk/ukb/label.cgi?id=130  
+   
+   * [Shiftwork variables data dictionary (XLSX file)](shiftwork_data_dict.R)
+   
+   * [Extract shiftwork variables (R script)](extract_SW_metrics.R)   
