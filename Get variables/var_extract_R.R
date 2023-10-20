@@ -1,46 +1,20 @@
 #script to extract variables of interest from R-format UK Biobank data
 # script authors: Cathy Wyse & Amber Roguski
-# last updated: 19.10.23 agpr141
-
-#note:  cbinding dataframes removes attributes of the original df. what can be done?!
+# last updated: 20.10.23 agpr141
 
 #install libraries
 library(tidyverse)
 library(dplyr)
 library(insol)
 
-######### R extract & data prep #########
-#set cwd
-setwd("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\Data")
+### R extract & data prep #########
+#set cwd to folder you want to do your analysis in
+setwd("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics")
 
-#import data
-bd <- read.table(".\\ukb673864_core_vars.tab", header=TRUE, sep="\t")
+#load in core Biobank dataset from folder (change path to match your own, make sure the '_core.r' file has correct path also)
+source("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\core dataset\\ukb673864_core.r")
 
-#recode variables
-lvl.0009 <- c(0,1)
-lbl.0009 <- c("Female","Male")
-bd$f.31.0.0 <- ordered(bd$f.31.0.0, levels=lvl.0009, labels=lbl.0009)
-lvl.0008 <- c(1,2,3,4,5,6,7,8,9,10,11,12)
-lbl.0008 <- c("January","February","March","April","May","June","July","August","September","October","November","December")
-bd$f.52.0.0 <- ordered(bd$f.52.0.0, levels=lvl.0008, labels=lbl.0008)
-bd$f.53.0.0 <- as.Date(bd$f.53.0.0)
-bd$f.53.1.0 <- as.Date(bd$f.53.1.0)
-bd$f.53.2.0 <- as.Date(bd$f.53.2.0)
-bd$f.53.3.0 <- as.Date(bd$f.53.3.0)
-lvl.100349 <- c(-3,-1,0,1)
-lbl.100349 <- c("Prefer not to answer","Do not know","No","Yes")
-bd$f.2188.0.0 <- ordered(bd$f.2188.0.0, levels=lvl.100349, labels=lbl.100349)
-bd$f.2188.1.0 <- ordered(bd$f.2188.1.0, levels=lvl.100349, labels=lbl.100349)
-bd$f.2188.2.0 <- ordered(bd$f.2188.2.0, levels=lvl.100349, labels=lbl.100349)
-bd$f.2188.3.0 <- ordered(bd$f.2188.3.0, levels=lvl.100349, labels=lbl.100349)
-lvl.1001 <- c(-3,-1,1,2,3,4,5,6,1001,1002,1003,2001,2002,2003,2004,3001,3002,3003,3004,4001,4002,4003)
-lbl.1001 <- c("Prefer not to answer","Do not know","White","Mixed","Asian or Asian British","Black or Black British","Chinese","Other ethnic group","British","Irish","Any other white background","White and Black Caribbean","White and Black African","White and Asian","Any other mixed background","Indian","Pakistani","Bangladeshi","Any other Asian background","Caribbean","African","Any other Black background")
-bd$f.21000.0.0 <- ordered(bd$f.21000.0.0, levels=lvl.1001, labels=lbl.1001)
-bd$f.21000.1.0 <- ordered(bd$f.21000.1.0, levels=lvl.1001, labels=lbl.1001)
-bd$f.21000.2.0 <- ordered(bd$f.21000.2.0, levels=lvl.1001, labels=lbl.1001)
-bd$f.21000.3.0 <- ordered(bd$f.21000.3.0, levels=lvl.1001, labels=lbl.1001)
-
-#rename bd as core_vars
+#rename default 'bd' dataframe as core_vars
 core_vars <- bd
 rm(bd)
 
@@ -74,12 +48,8 @@ comment(ethnicity)<-c("Datafield = 21000.0.0")
 #add variables to master dataframe
 UKB_master <- cbind(UKB_master, sex, age, year_born, month_born, ethnicity)
 
-#remove variables no longer needed outside of dataframe
-rm(sex)
-rm(age)
-rm(year_born)
-rm(month_born)
-rm(ethnicity)
+#remove environment variables no longer needed outside of dataframe
+rm(sex, age, year_born, month_born, ethnicity)
 
 ## Assessment Centre ####################
 
@@ -94,8 +64,8 @@ comment(assess_centre)<-c("Datafield = 54.0.0")
 #add variables to master dataframe
 UKB_master <- cbind(UKB_master, assess_date, assess_centre)
 
-#remove variables no longer needed outside of dataframe
-rm(assess_date)
+#remove environment variables no longer needed outside of dataframe
+rm(assess_date, assess_centre)
 
 ## Geographic location #################
 
@@ -105,12 +75,28 @@ Table_latitude_assesment_centres <- read.csv(".\\Table_latitude_assesment_centre
 #make latitude table for merge
 eid <- as.data.frame(core_vars$f.eid)
 names(eid)<- "eid"
-centre <- as.data.frame(assess_centre)
+centre <- as.integer(core_vars$f.54.0.0)
+centre <- as.data.frame(centre)
 eid_centre <- cbind(eid,centre)
 
 #merge eid_centre and latitude
 latitude_with_eid <- merge(eid_centre,Table_latitude_assesment_centres, by="centre")
 latitude_with_eid <- latitude_with_eid[order(latitude_with_eid$eid),] 
+
+#	Assessment centre name (derived field)
+assess_name <- latitude_with_eid$long
+comment(assess_name)<-c("derived field")
+
+#	Assessment centre latitude (derived field)
+latitude_assess <- latitude_with_eid$lat
+comment(latitude_assess)<-c("derived field")
+
+#	Assessment centre longitude (derived field)
+longitude_assess <- latitude_with_eid$long
+comment(longitude_assess)<-c("derived field")
+
+#merge final data frame to extract latitude and longitude and centre id
+UKB_master <- cbind(UKB_master, assess_name, latitude_assess, longitude_assess)
 
 #	Home area population density - urban or rural (20118)
 urban <- core_vars$f.20118.0.0
@@ -128,22 +114,13 @@ comment(deprivation_index_scotland )<-c("Datafield = 26427.0.0")
 deprivation_index_wales <- core_vars$f.26426.0.0
 comment(deprivation_index_wales )<-c("Datafield = 26426.0.0")
 
-UKB_master <- cbind(UKB_master,centre, urban, deprivation_index_england, deprivation_index_scotland, deprivation_index_wales)
+#add variables to master dataframe
+UKB_master <- cbind(UKB_master, urban, deprivation_index_england, deprivation_index_scotland, deprivation_index_wales)
 
-#merge final data frame to extract latitude and longitude and centre id
-UKB_master <- merge(UKB_master, latitude_with_eid[,c("eid","lat","long","short_name")], by="eid")
-
-#remove variables no longer needed outside of dataframe
-rm(geographic)
-rm(centre)
-rm(eid)
-rm(latitude_with_eid)
-rm(Table_latitude_assesment_centres)
-rm(eid_centre)
-rm(assess_centre)
-rm(deprivation_index_england)
-rm(deprivation_index_scotland)
-rm(deprivation_index_wales)
+#remove environment variables no longer needed outside of dataframe
+rm(centre, eid, latitude_with_eid, Table_latitude_assesment_centres, assess_name,
+   latitude_assess, longitude_assess, eid_centre, deprivation_index_england, 
+   deprivation_index_scotland, deprivation_index_wales, urban)
 
 ## Education  #############################################
 
@@ -171,12 +148,13 @@ comment (night_shift)<-c("Datafield = 3426")
 shift_work <- core_vars$f.826.0.0
 comment (shift_work)<-c("Datafield = 826")
 
-#	Job code a visit (132)
-job_code <- core_vars$f.132.0.0
-comment (job_code)<-c("Datafield = 132")
+#add variables to master dataframe
+UKB_master <- cbind(UKB_master, age_completed_education, qualifications, employed, 
+                    employed_corr, night_shift, shift_work)
 
-UKB_master <- cbind(UKB_master, age_completed_education, qualifications, employed, employed_corr, night_shift, shift_work, job_code)
-
+#remove environment variables no longer needed outside of dataframe
+rm(age_completed_education, qualifications, employed, employed_corr, night_shift,
+   shift_work)
 
 ## Early life  #############################################
 
@@ -212,15 +190,14 @@ comment (handedness)<-c("Datafield = 1707")
 maternal_smoking <- core_vars$f.1787.0.0
 comment (maternal_smoking)<-c("Datafield = 1787")
 
+#add variables to master dataframe
 UKB_master <- cbind(UKB_master, adopted, birth_weight, birth_weight_metric,
                     breastfed, country_birth_uk, country_birth_nonuk, handedness,
                     maternal_smoking)
 
-
-
-#disability
-disability <- core_vars$f.2188.0.0
-comment(disability)<-c("Datafield = 2188.0.0")
+#remove environment variables no longer needed outside of dataframe
+rm(adopted, birth_weight, birth_weight_metric, breastfed, country_birth_uk,
+   country_birth_nonuk, maternal_smoking, handedness)
 
 ## Health  #############################################
 
@@ -260,9 +237,14 @@ comment (depress_psych)<-c("Datafield = 2100")
 depress_gp <- core_vars$f.2090.0.0
 comment (depress_gp)<-c("Datafield = 2090")
 
+#add variables to master dataframe
 UKB_master <- cbind(UKB_master, smoking_status, alcohol_intake, health_self_report,
                     medication_number, medication_code, disability_allowance, disability_self_report,
                     depress_psych, depress_gp)
+
+#remove environment variables no longer needed outside of dataframe
+rm(smoking_status, alcohol_intake, health_self_report, medication_number, 
+   medication_code, disability_allowance, disability_self_report, depress_gp, depress_psych)
 
 ## Seasonal  #############################################
 
@@ -271,10 +253,14 @@ time_outdoors_summer <- core_vars$f.1050.0.0
 comment (time_outdoors_summer)<-c("Datafield = 1050")
 
 #time spent outdoors in summer (1060)
-time_outdoors_winter <- core_vars$f.10650.0.0
+time_outdoors_winter <- core_vars$f.1060.0.0
 comment (time_outdoors_winter)<-c("Datafield = 1060")
 
+#add variables to master dataframe
 UKB_master <- cbind(UKB_master, time_outdoors_summer, time_outdoors_winter)
+
+#remove environment variables no longer needed outside of dataframe
+rm(time_outdoors_summer, time_outdoors_winter)
 
 ## Sleep #############################################
 
@@ -310,8 +296,13 @@ comment (day_sleepiness)<-c("Datafield = 1220")
 alcohol_yesterday <- core_vars$f.100580.0.0
 comment (alcohol_yesterday)<-c("Datafield = 100580")
 
+#add variables to master dataframe
 UKB_master <- cbind(UKB_master, sleep_duration, getting_up, chronotype, day_naps, insomnia,
                     snoring, day_sleepiness, alcohol_yesterday)
+
+#remove environment variables no longer needed outside of dataframe
+rm(sleep_duration, getting_up, chronotype, day_naps, day_sleepiness, insomnia,
+   snoring, alcohol_yesterday)
 
 ## Physical Measures #############
 
@@ -335,44 +326,48 @@ comment(pulse)<-c("Datafield = X102.0.0")
 body_fat <- core_vars$f.23099.0.0
 comment (body_fat)<-c("Datafield = 23099.0.0")
 
-#BMR (23105)
-BMR <- core_vars$f.23105.0.0
-comment (BMR)<-c("Datafield = 23105.0.0")
-
 #BMI (21001)
 BMI <- core_vars$f.21001.0.0
 comment (BMI)<-c("Datafield = 21001.0.0")
 
 #hand grip left (46)
 handgrip_l <- core_vars$f.46.0.0
-comment (handgripL)<-c("Datafield = 46")
+comment (handgrip_l)<-c("Datafield = 46")
 
 #hand grip right (47)
 handgrip_r <- core_vars$f.47.0.0
-comment (handgripR)<-c("Datafield = 47")
+comment (handgrip_r)<-c("Datafield = 47")
 
 #FEV (3063)
 FEV <- core_vars$f.3063.0.0
 comment (FEV)<-c("Datafield = 3063")
 
 #FVV (3062)
-FVC <- v$f.3062.0.0
+FVC <- core_vars$f.3062.0.0
 comment (FVC)<-c("Datafield = 3062")
 
 #PEF (3064)
 PEF <- core_vars$f.3064.0.0
 comment (PEF)<-c("Datafield = 3064")
 
+#add variables to master dataframe
 UKB_master <- cbind(UKB_master,accel_mean, systolic, diastolic, pulse, body_fat,
-                    BMI, BMR, handgripL, handgripR, FEV, FVC, PEF)
+                    BMI, handgrip_l, handgrip_r, FEV, FVC, PEF)
+
+#remove environment variables no longer needed outside of dataframe
+rm(accel_mean, systolic, diastolic, pulse, body_fat, BMI, handgrip_l, handgrip_r,
+   FEV, FVC, PEF)
 
 ## Photoperiod Vars ####
-#note: function for photoperiod var function takes ~16 minutes
+
+#note!!!!!!!!!!: function to calculate photoperiod variables using below forloop
+#can take up to 1.5hours to run
+
 #create table of relevant variables
 ph_vars <- data.frame(UKB_master$eid) 
 date <- UKB_master$assess_date
-lat <- UKB_master$lat
-long <- UKB_master$long
+lat <- UKB_master$latitude_assess
+long <- UKB_master$longitude_assess
 ph_vars <- cbind(ph_vars,date,lat, long)
 ph_vars$julian_day <- as.numeric(NA)
 ph_vars$prev_julian_day <- as.numeric(NA)
@@ -415,113 +410,150 @@ for (i in 1:nrow(ph_vars)){
   ph_vars$rate_of_change_percent[i] <- rate_of_change_percent
 }
 
-UKB_master <- cbind(UKB_master,ph_vars)
+#julian day (derived)
+julian_day <- ph_vars$julian_day
+comment (julian_day)<-c("derived field")
 
+#previous julian day (derived)
+prev_julian_day <- ph_vars$prev_julian_day
+comment (prev_julian_day)<-c("derived field")
 
+#daylength in minutes (derived)
+daylength_min <- ph_vars$daylength_min
+comment (daylength_min)<-c("derived field")
 
-## data collection timing  #############################################
+#previous daylength in minutes (derived)
+prev_daylength_min <- ph_vars$prev_daylength_min
+comment (prev_daylength_min)<-c("derived field")
+
+#photoperiod rate of change in minutes (derived)
+photoperiod_roc_min <- ph_vars$rate_of_change_min
+comment (photoperiod_roc_min)<-c("derived field")
+
+#photoperiod rate of change in percent (derived)
+photoperiod_roc_percent <- ph_vars$rate_of_change_percent
+comment (photoperiod_roc_percent)<-c("derived field")
+
+#add variables to master dataframe
+UKB_master <- cbind(UKB_master,julian_day, prev_julian_day, daylength_min,
+                    prev_daylength_min, photoperiod_roc_min, photoperiod_roc_percent)
+
+#remove environment variables no longer needed outside of dataframe
+rm(date, daylength_min, dl, i, julian_day, lat, long, photoperiod_roc_min, photoperiod_roc_percent,
+   prev_daylength, prev_dl, prev_julian_day, prev_daylength_min, rate_of_change_min, 
+   rate_of_change_percent, row, daylength_out, ph_vars)
+
+## Data collection timing  #############################################
 
 data_timing <- read.csv("./ukb673864_data_timing.csv")
 
-# 53 date of attending assessment centre
-assess_date <- as.Date(data_timing$X53.0.0)
-comment (assess_date)<-c("Datafield = 53")
+#date of attending assessment centre (53)
+assess_date <- UKB_master$assess_date
 
-# month of attending assessment centre
-month <- as.integer(format(assess_date, "%m"))              # Extract month
+#month of attending assessment centre
+month <- as.integer(format(assess_date, "%m"))    # Extract month
 comment (month)<-c("derived from Datafield = 53")
 
-# year of attending assessment centre 
+#year of attending assessment centre 
 year <- as.integer(format(assess_date, "%Y"))
 comment (year)<-c("derived from Datafield = 53")
 
-# 3166 datetime of day of blood sampling at assessment centre
+#datetime of day of blood sampling at assessment centre (3166)
 BS_date <- as.Date(data_timing$X3166.0.0)
 comment (BS_date)<-c("Datafield = 3166")
 
-# time of blood sample
+#time of blood sample
 BS_time <- format(BS_date, "hh:mm:ss")
 comment (BS_time)<-c("derived from Datafield = 3166")
 
-# month of blood sample
+#month of blood sample
 BS_month <- as.integer(format(BS_date, "M"))
 comment (BS_month)<-c("derived from Datafield = 3166")
 
-# 21834	Biometrics sign-off timestamp
+#Biometrics sign-off timestamp (21834)
 end_biometrics <- as.Date(data_timing$X21834.0.0)
 comment (end_biometrics)<-c("Datafield = 21834")
 
-# 21871	Cardiac monitor sign-off timestamp
+#Cardiac monitor sign-off timestamp (21871)
 #assess_date <- data_timing$X53.0.0 <- as.Date(data_timing$X53.0.0)
 #comment (assess_date)<-c("Datafield = 53")
 
-# 21865	Carotid ultrasound sign-off timestamp
+#Carotid ultrasound sign-off timestamp (21865)
 #assess_date <- data_timing$X53.0.0 <- as.Date(data_timing$X53.0.0)
 #comment (assess_date)<-c("Datafield = 53")
 
-# 21851	Conclusion sign-off timestamp
+#Conclusion sign-off timestamp (21851)
 end_signoff <- as.Date(data_timing$X21851.0.0)
 comment (end_signoff)<-c("Datafield = 21851")
 
-# 21821	Consent sign-off timestamp
+#Consent sign-off timestamp (21821)
 end_consent <- as.Date(data_timing$X21821.0.0)
 comment (end_consent)<-c("Datafield = 21821")
 
-# 21864	DXA assessment sign-off timestamp
+#DXA assessment sign-off timestamp (21864)
 end_DXA <- as.Date(data_timing$X21864.0.0)
 comment (end_DXA)<-c("Datafield = 21864")
 
-# 21866	ECG at rest sign-off timestamp
+#ECG at rest sign-off timestamp (21866)
 end_ECG <- as.Date(data_timing$X21866.0.0)
 comment (end_ECG)<-c("Datafield = 21866")
 
-# 21838	ECG during exercise sign-off timestamp
+#ECG during exercise sign-off timestamp (21838)
 end_ECG_exercise <- as.Date(data_timing$X21838.0.0)
 comment (end_ECG_exercise)<-c("Datafield = 21838")
 
-# 21836	Eye measures sign-off timestamp
+#Eye measures sign-off timestamp (21836)
 end_eye <- as.Date(data_timing$X21836)
 comment (end_eye)<-c("Datafield = 21836")
 
-# 21811	Reception sign-off timestamp
+#Reception sign-off timestamp (21811)
 end_reception <- as.Date(data_timing$X21811.0.0)
 comment (end_reception)<-c("Datafield = 21811")
 
-# 21842	Sample collection sign-off timestamp
+#Sample collection sign-off timestamp (21842)
 end_sample <- as.Date(data_timing$X21842.0.0)
 comment (end_sample)<-c("Datafield = 21842")
 
-# 21825	Touchscreen cognitive sign-off timestamp
+#Touchscreen cognitive sign-off timestamp (21825)
 end_touchscreen_cog <- as.Date(data_timing$X21825.0.0)
 comment (assess_date)<-c("Datafield = 21825")
 
-# 21822	Touchscreen sign-off timestamp
+#Touchscreen sign-off timestamp (21822)
 end_touchscreen <- as.Date(data_timing$X21822.0.0)
 comment (end_touchscreen)<-c("Datafield = 21822")
 
-# 21841	Urine collection sign-off timestamp
+#Urine collection sign-off timestamp (21841)
 end_urine <- as.Date(data_timing$X21841.0.0)
 comment (end_urine)<-c("Datafield = 21841")
 
-# 21831	Verbal interview sign-off timestamp
+#Verbal interview sign-off timestamp (21831)
 end_interview <- as.Date(data_timing$X21831.0.0)
 comment (end_interview)<-c("Datafield = 21831")
 
-# add to master
-UKB_master <- cbind(UKB_master, assess_date,month, year, BS_date, BS_time, BS_month, end_biometrics, end_signoff, end_consent, end_DXA, end_ECG, end_ECG_exercise, end_eye,end_reception,end_sample,  end_touchscreen_cog, end_touchscreen, end_urine, end_interview)
+#add variables to master dataframe
+UKB_master <- cbind(UKB_master, assess_date,month, year, BS_date, BS_time, 
+                    BS_month, end_biometrics, end_signoff, end_consent, end_DXA, 
+                    end_ECG, end_ECG_exercise, end_eye,end_reception,end_sample,  
+                    end_touchscreen_cog, end_touchscreen, end_urine, end_interview)
+
+
+#remove environment variables no longer needed outside of dataframe
+rm(UKB_master, assess_date,month, year, BS_date, BS_time, 
+   BS_month, end_biometrics, end_signoff, end_consent, end_DXA, 
+   end_ECG, end_ECG_exercise, end_eye,end_reception,end_sample,  
+   end_touchscreen_cog, end_touchscreen, end_urine, end_interview)
 
 # change name of eid
 names(UKB_master[1]) <- "eid"
 
+### Save core variables 'UKB_master' as R datafile ######
+save(UKB_master,file="UKB_master.Rda")
 
-
-
-
-
-### remove lvl lbl ######
+#remove lvl lbl  for clean environment
 rm(list=ls(pattern="lvl"))
 rm(list=ls(pattern="lbl"))
 
-#save as R datafile 
-save(UKB_master,file="UKB_master.Rda")
+
+
+
 
