@@ -16,7 +16,7 @@ The repository is structured into folders as follows:
 
 ### Get Variables
 
-This folder contains all the code, spreadsheets and data dictionaries required to extract and interpret key variables such as demographics, geographical ifnormation, photoperiod metrics and weather. Code to extract additional optional variables such as metabolomics and blood biochemistry data is also available.
+This folder contains all the code, spreadsheets and data dictionaries required to extract and interpret key variables such as demographics, geographical information, photoperiod metrics and weather. Code to extract additional optional variables such as metabolomics and blood biochemistry data is also available.
 
 !Note: Add in data cleaning scripts/rmd 
 
