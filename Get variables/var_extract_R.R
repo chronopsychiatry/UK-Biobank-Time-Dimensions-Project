@@ -8,6 +8,7 @@ library(dplyr)
 library(insol)
 library(pillar)
 library(readxl)
+library(hms)
 
 ### R extract & data prep #########
 #set cwd to folder you want to do your analysis in
@@ -470,64 +471,64 @@ comment(assess_month)<-c("derived from Datafield = 53")
 assess_year <- as.integer(format(assess_date, "%Y"))
 comment(assess_year)<-c("derived from Datafield = 53")
 
-#Biometrics sign-off timestamp (21834)
-end_biometrics <- as.Date(datetime_vars$f.21834.0.0)
+#Biometrics sign-off date & time (21834)
+end_biometrics <- as.POSIXct(datetime_vars$f.21834.0.0)
 comment(end_biometrics)<-c("Datafield = 21834")
 
 #Cardiac monitor sign-off timestamp (21871)
-#end_cardiac <- datetime_vars$f.21871.0.0 <- as.Date(datetime_vars$f.21871.0.0)
-#comment (end_cardiac)<-c("Datafield = 21871")
+end_cardiac <- as.POSIXct(datetime_vars$f.21871.2.0)
+comment (end_cardiac)<-c("Datafield = 21871")
 
 #Carotid ultrasound sign-off timestamp (21865)
-#end_carotid <- datetime_vars$f.21865.0.0 <- as.Date(datetime_vars$f.21865.0.0)
-#comment (end_carotid)<-c("Datafield = 21865")
+end_carotid <- as.POSIXct(datetime_vars$f.21865.2.0)
+comment (end_carotid)<-c("Datafield = 21865")
 
-#Conclusion sign-off timestamp (21851)
-end_signoff <- as.Date(datetime_vars$f.21851.0.0)
+#Conclusion sign-off date & time (21851)
+end_signoff <- as.POSIXct(datetime_vars$f.21851.0.0)
 comment (end_signoff)<-c("Datafield = 21851")
 
-#Consent sign-off timestamp (21821)
-end_consent <- as.Date(datetime_vars$f.21821.0.0)
+#Consent sign-off date & time (21821)
+end_consent <- as.POSIXct(datetime_vars$f.21821.0.0)
 comment (end_consent)<-c("Datafield = 21821")
 
-#DXA assessment sign-off timestamp (21864)
-end_DXA <- as.Date(datetime_vars$f.21864.2.0)
+#DXA assessment sign-off date & time (21864)
+end_DXA <- as.POSIXct(datetime_vars$f.21864.2.0)
 comment (end_DXA)<-c("Datafield = 21864")
 
-#ECG at rest sign-off timestamp (21866)
-end_ECG <- as.Date(datetime_vars$f.21866.2.0)
+#ECG at rest sign-off date & time (21866)
+end_ECG <- as.POSIXct(datetime_vars$f.21866.2.0)
 comment (end_ECG)<-c("Datafield = 21866")
 
-#ECG during exercise sign-off timestamp (21838)
-end_ECG_exercise <- as.Date(datetime_vars$f.21838.1.0)
+#ECG during exercise sign-off date & time (21838)
+end_ECG_exercise <- as.POSIXct(datetime_vars$f.21838.1.0)
 comment (end_ECG_exercise)<-c("Datafield = 21838")
 
-#Eye measures sign-off timestamp (21836)
-end_eye <- as.Date(datetime_vars$f.21836.0.0)
+#Eye measures sign-off date & time (21836)
+end_eye <- as.POSIXct(datetime_vars$f.21836.0.0)
 comment (end_eye)<-c("Datafield = 21836")
 
-#Reception sign-off timestamp (21811)
-end_reception <- as.Date(datetime_vars$f.21811.0.0)
+#Reception sign-off date & time (21811)
+end_reception <- as.POSIXct(datetime_vars$f.21811.0.0)
 comment (end_reception)<-c("Datafield = 21811")
 
-#Sample collection sign-off timestamp (21842)
-end_sample <- as.Date(datetime_vars$f.21842.0.0)
+#Sample collection sign-off date & time (21842)
+end_sample <- as.POSIXct(datetime_vars$f.21842.0.0)
 comment (end_sample)<-c("Datafield = 21842")
 
-#Touchscreen cognitive sign-off timestamp (21825)
-end_touchscreen_cog <- as.Date(datetime_vars$f.21825.2.0)
-comment (assess_date)<-c("Datafield = 21825")
+#Touchscreen cognitive sign-off date & time (21825)
+end_touchscreen_cog <- as.POSIXct(datetime_vars$f.21825.2.0)
+comment (end_touchscreen_cog)<-c("Datafield = 21825")
 
-#Touchscreen sign-off timestamp (21822)
-end_touchscreen <- as.Date(datetime_vars$f.21822.0.0)
+#Touchscreen sign-off date & time (21822)
+end_touchscreen <- as.POSIXct(datetime_vars$f.21822.0.0)
 comment (end_touchscreen)<-c("Datafield = 21822")
 
-#Urine collection sign-off timestamp (21841)
-end_urine <- as.Date(datetime_vars$f.21841.0.0)
+#Urine collection sign-off date & time (21841)
+end_urine <- as.POSIXct(datetime_vars$f.21841.0.0)
 comment (end_urine)<-c("Datafield = 21841")
 
-#Verbal interview sign-off timestamp (21831)
-end_interview <- as.Date(datetime_vars$f.21831.0.0)
+#Verbal interview sign-off date & time (21831)
+end_interview <- as.POSIXct(datetime_vars$f.21831.0.0)
 comment (end_interview)<-c("Datafield = 21831")
 
 # pull out blood sample timings info 
@@ -538,26 +539,31 @@ BS_date <- as.Date(bs_vars$'3166-0.0')
 comment (BS_date)<-c("Datafield = 3166")
 
 #time of blood sample
-BS_time <- format(BS_date, "hh:mm:ss")
+BS_time <- as.ITime(bs_vars$'3166-0.0')
 comment (BS_time)<-c("derived from Datafield = 3166")
 
 #month of blood sample
-BS_month <- as.integer(format(BS_date, "M"))
+BS_month <- as.integer(format(bs_vars$'3166-0.0', "%m"))
 comment (BS_month)<-c("derived from Datafield = 3166")
 
 #add variables to master dataframe
-UKB_master <- cbind(UKB_master, assess_month, assess_year, end_biometrics, end_signoff, end_consent, end_DXA, 
-                    end_ECG, end_ECG_exercise, end_eye,end_reception,end_sample,  
-                    end_touchscreen_cog, end_touchscreen, end_urine, end_interview,
+UKB_master <- cbind(UKB_master, assess_month, assess_year, end_biometrics, end_signoff, 
+                    end_consent, end_carotid, end_cardiac, end_DXA, 
+                    end_ECG, end_ECG_exercise, 
+                    end_eye, end_reception, end_sample,  
+                    end_touchscreen_cog, end_touchscreen, 
+                    end_urine, end_interview,
                     BS_date, BS_time, BS_month)
-
+UKB_master <- UKB_master %>% 
+  rename('BS_time' = 'V1')
 
 #remove environment variables no longer needed outside of dataframe
 rm(assess_month, assess_year, assess_date, BS_date, BS_time, 
    BS_month, end_biometrics, end_signoff, end_consent, end_DXA, 
    end_ECG, end_ECG_exercise, end_eye,end_reception,end_sample,  
    end_touchscreen_cog, end_touchscreen, end_urine, end_interview, bs_vars,
-   core_vars, datetime_vars)
+   core_vars, datetime_vars, BS_time, BS_date, BS_month)
+
 
 
 ## Assessment Centre Weather #############################################
@@ -571,11 +577,10 @@ colnames(weather_stations) <- c("station","assess_centre")
 
 #merge weather stations and centre
 UKB_master <- merge(UKB_master,weather_stations, by="assess_centre")
-UKB_master <- UKB_master %>% 
-  rename('station' = 'station.y')
 
 #merge dataframes based on year and month and centre
-UKB_master2 <- merge(UKB_master, temp_table, by = c("assess_year", "station", "assess_month"), all.x = TRUE)
+UKB_master <- merge(UKB_master, temp_table, by = c("assess_year", "station", "assess_month"), all.x = TRUE)
+
 
 ### Save core variables 'UKB_master' as R datafile ######
 save(UKB_master,file="UKB_master.Rda")
@@ -583,10 +588,6 @@ save(UKB_master,file="UKB_master.Rda")
 #remove lvl lbl  for clean environment
 rm(list=ls(pattern="lvl"))
 rm(list=ls(pattern="lbl"))
-
-
-
-
 
 
 
@@ -620,7 +621,7 @@ comment(UKB_master$country_birth_nonuk)<-c("Datafield = 20115")
 comment(UKB_master$country_birth_uk)<-c("Datafield = 1647")
 comment(UKB_master$handedness)<-c("Datafield = 1707")
 comment(UKB_master$maternal_smoking)<-c("Datafield = 1787")
-comment(UKB_mastersmoking_status)<-c("Datafield = 20116")
+comment(UKB_master$smoking_status)<-c("Datafield = 20116")
 comment(UKB_master$smoking_status)<-c("Datafield = 20116")
 comment(UKB_master$alcohol_intake)<-c("Datafield = 1558")
 comment(UKB_master$health_self_report)<-c("Datafield = 2178")
