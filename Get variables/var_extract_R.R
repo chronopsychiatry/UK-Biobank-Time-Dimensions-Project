@@ -568,8 +568,6 @@ rm(assess_month, assess_year, assess_date, BS_date, BS_time,
 
 ## Assessment Centre Weather #############################################
 
-# not behaving as expected currently
-
 # extract weather info
 temp_table <- read_excel("./Weather/weather_ukb_270923.xlsx", sheet = "monthly temp")
 weather_stations <- read_excel("./Weather/weather_ukb_270923.xlsx", sheet = "ukb centres - weather stations")
