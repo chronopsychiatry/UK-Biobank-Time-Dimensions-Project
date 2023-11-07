@@ -1,0 +1,106 @@
+# Exploring rhythms of season and photoperiod
+
+```{r}
+#install libraries
+library(tidyverse)
+library(dplyr)
+library(insol)
+```
+
+Generate an exemplar year (2023)
+
+```{r}
+date <- seq(as.Date("2022/1/1"), as.Date("2023/1/1"), "day")
+
+#change date format to POSIX so insol functions work
+date <- as.POSIXct(date,format="%Y-%m-%d")
+date <- data.frame(date)
+```
+
+Calculate photoperiod length for each day
+```{r}
+#use Edinburgh location
+lat <- 55.9533
+long <- -3.188267
+
+#create df for julian day extraction
+ph_vars <- cbind(date,lat, long)
+
+#initialise variables for julian day and ROC calcs
+ph_vars$julian_day <- as.numeric(NA)
+ph_vars$prev_julian_day <- as.numeric(NA)
+ph_vars$sunrise <- as.numeric(NA)
+ph_vars$sunset <- as.numeric(NA)
+ph_vars$daylength_min <- as.numeric(NA)
+ph_vars$prev_daylength_min <- as.numeric(NA)
+ph_vars$rate_of_change <- as.numeric(NA)
+
+
+for (i in 1:nrow(ph_vars)){
+  row <- ph_vars[i,]
+  
+  #convert assess_date to julian day format
+  julian_day <- JD(row$date, inverse=FALSE)
+  #print(row$date)
+  #row$julian_day <- julian_day
+  #print(row)
+  ph_vars$julian_day[i] <- julian_day
+  
+  #identify n-1 and join into table
+  prev_julian_day <- JD(row$date, inverse=FALSE)-1
+  ph_vars$prev_julian_day[i] <- prev_julian_day
+  
+  #use insol package to calculate photoperiod for assessment date and n-1
+  daylength_out <- daylength(row$lat, row$long, julian_day, tmz=0)
+  #dl <- as.numeric(daylength_out[1,3])*60
+  dl <- as.numeric(daylength_out[1,3])
+  sr <- as.numeric(daylength_out[1,1])
+  ss <- as.numeric(daylength_out[1,2])
+  ph_vars$sunrise[i] <- sr
+  ph_vars$sunset[i] <- ss
+  ph_vars$daylength_min[i] <- dl
+
+  
+  prev_daylength <- daylength(row$lat, row$long, prev_julian_day, tmz=0)
+  #prev_dl <- as.numeric(prev_daylength[1,3])*60
+  prev_dl <- as.numeric(prev_daylength[1,3])
+  ph_vars$prev_daylength_min[i] <- prev_dl
+  
+  # calculate photoperiod rate of change (minutes)
+  rate_of_change <- dl - prev_dl
+  ph_vars$rate_of_change[i] <- rate_of_change
+}
+```
+
+plot photoperiod length
+```{r}
+ggplot(ph_vars, aes(x=date, y=daylength_min)) + 
+    geom_point()
+```
+
+plot rate of change
+```{r}
+ggplot(ph_vars, aes(x=date, y=rate_of_change)) + 
+    geom_point()
+```
+
+merge ROC and photoperiod length to visualise
+```{r}
+
+par(mar=c(5,5,5,5)+0.1, las=1)
+
+plot.new()
+plot.window(xlim=range(x=ph_vars$date), ylim=range(y1=ph_vars$daylength_min))
+points(ph_vars$date, ph_vars$daylength_min, col="black", pch=19)
+axis(1, labels=TRUE)
+axis(2, col.axis="black")
+box()
+
+plot.window(xlim=range(x=ph_vars$date), ylim=range(y2=ph_vars$rate_of_change))
+points(ph_vars$date, ph_vars$rate_of_change, col="blue", pch=19)
+axis(4, col.axis="blue")
+
+title("seasonal rhythms", adj=0)
+mtext("Photoperiod rate of change", side = 4, las=3, line=3, col="blue")
+mtext("Photoperiod length (hours)", side = 2, las=3, line=3, col="black")
+```
