@@ -118,8 +118,8 @@ The participants with a diagnosis of MS are taken from UKB variables 131042 and 
 |50	|Self-report only|
 |51	|Self-report and other source(s)|
 
-R code for extracting eid of MS participants is here [here](Projects/Lifetime-Shiftwork/get_MS_var to add to github.R) 
-
+R code for extracting eid of MS participants is [here](Projects/Lifetime-Shiftwork/get_MS_var-to-add-to-github.R) 
+It might be necessary to exclude shiftwork data after diagnosis of MS?  It wouldn't matter if people did shiftwork after diagnosis only?
 
        
 
