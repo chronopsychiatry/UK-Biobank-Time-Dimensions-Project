@@ -24,7 +24,7 @@ Two for loops iterate over each job for each eid to make a table that summarises
 
 
 ## 1.  Occupations             
-Occupation coding of job type 4-digit SOC2000 coding UKB df22617.  This coding was used to create a factor variable.  Because some people had more than one job at each year, the final variable (per age bracket) table stores job occupation as a vector (            
+Occupation coding of job type 4-digit SOC2000 coding UKB df22617.  This coding was used to create a factor variable.  Because some people had more than one job at each year, the final variable (per age bracket) table stores job occupation as a vector            
               
 Major groups used to make a factor variable (job_occupation)
                
