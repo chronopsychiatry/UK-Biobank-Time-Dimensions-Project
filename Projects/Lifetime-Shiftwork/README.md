@@ -93,3 +93,34 @@ The final shiftwork variables were
 |bracket_mixSW_per_work   |  proportion of work years that was mix shiftwork - this will normalise to the hours of work|
 
 We still haven't adjusted for people that didn't work many hours compared to those with long hours - the percentage of shiftwork could be very flawed?  Don't want to compare someone with 50% shiftwork and 15 hours per week to someone with 30 hours and 60 hours per week.
+
+## 5. MS Participants
+The participants with a diagnosis of MS are taken from UKB variables 131042 and 131043
+
+|Data Field 131042        |Date G35 first reported (multiple sclerosis)                                                           |
+|-------------------------|---------------------------------------------------------------------|
+|1900-01-01	              |Code has no event date|
+|1901-01-01	|Code has event date before participant's date of birth|
+|1902-02-02	|Code has event date matching participant's date of birth|
+|1903-03-03	|Code has event date after participant's date of birth and falls in the same calendar year as date of birth|
+|1909-09-09	|Code has event date in the future and is presumed to be a place-holder or other system default|
+|2037-07-07	|Code has event date in the future and is presumed to be a place-holder or other system default|
+
+
+|Data Field 131043        |Source of report of G35 (multiple sclerosis)                                                          |
+|-------------------------|---------------------------------------------------------------------|
+|20	|Death register only|
+|21	|Death register and other source(s)|
+|30	|Primary care only|
+|31	|Primary care and other source(s)|
+|40	|Hospital admissions data only|
+|41	|Hospital admissions data and other source(s)|
+|50	|Self-report only|
+|51	|Self-report and other source(s)|
+
+R code for extracting eid of MS participants is here [here](Projects/Lifetime-Shiftwork/get_MS_var to add to github.R) 
+
+
+       
+
+        
