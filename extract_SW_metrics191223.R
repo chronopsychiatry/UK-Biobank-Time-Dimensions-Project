@@ -2,6 +2,7 @@ library(dplyr)
 library(RColorBrewer)
 library(viridis)
 library("ggsci")
+library(data.table)
 
 # Start measuring time
 #timing <- system.time({
@@ -141,7 +142,7 @@ for (row in 1:num_eids) {         #this loop extracts the data for each job for 
               if (is.na(hr_wk_num) && is.na(hr_wk_cat)) {
                 hr_wk_num <- 35
               }
-              
+               
               #hours per year for this job
               hr_yr <- hr_wk_num * 52
               
@@ -264,10 +265,16 @@ i=0 #counter
 shiftwork <- data.frame()
 
 #this loops through all the jobs within each age bracket for each participant and extracts the job code for the shiftwork jobs 
-for(t in life_jobtable) { #note t is the table of jobs for each participant
+
+filelist <- "C:/Users/Admin/Documents/jobtable_docu"
+
+filelist <- list.files(path = "C:/Users/Admin/Documents/practise", pattern = "\\.csv$", full.names = TRUE)
+
+#quick open each csv
+for(file in filelist) { #note filelist of ts, where t is the table of jobs for each participant
  # start a counter
       i=i+1
-      
+      t <- fread(file)
   #if t is empty end loop
       if (nrow(t) == 0) {
         print("Dataframe is empty. goto next")
@@ -290,7 +297,7 @@ for(t in life_jobtable) { #note t is the table of jobs for each participant
       
       # make a df out of each table of job histories for each age bracket
       t <-data.frame(t)
-      colnames(t) <- c("year_seq", "work_type", "dose_NS", "hr_yr","job_occupation" ,"job_number","age")
+      colnames(t) <- c("Number","year_seq", "work_type", "dose_NS", "hr_yr","job_occupation" ,"job_number","age")
       
       # Use the subset function to select rows within the specified range defining the brackets
       subset_df <- subset(t, t$age >= start_age & t$age <= end_age)
@@ -323,8 +330,7 @@ for(t in life_jobtable) { #note t is the table of jobs for each participant
         }
       
       # get data into a vector to rbind to main dataframe
-      eid <- names(life_jobtable)[i]
-      eid <- substr(eid, nchar(eid) - 6, nchar(eid))
+      eid <- as.numeric(gsub("\\D", "", file))
       
       #add the information for this age bracket to the big dataframe
       
