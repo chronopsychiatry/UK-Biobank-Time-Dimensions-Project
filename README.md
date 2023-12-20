@@ -2,7 +2,7 @@
 
 The **Rhythms of Life** project is a Maynooth University-led research project investigating biological rhythms in the UK Biobank cohort.
 
-Key contacts for the project are: [insert details]
+Key contacts for the project are: Cathy Wyse & Amber Roguski
 
 This repository contains all the information and code required to:
 
@@ -23,5 +23,6 @@ This folder contains all the code, spreadsheets and data dictionaries required t
 
 The 'Projects' folder contains code for the individual sub-projects of the wider **Rhythms of Life** project. These include:
 
-* [BD-Metabolomics](Projects/BD-Metabolomics) - exploring metabolic profile seasonal variation in bipolar disorder 
+* [BD-Metabolomics](Projects/BD-Metabolomics) - exploring metabolic profile seasonal variation in bipolar disorder
+* [Lifetime-Shiftwork](Projects/Lifetime-Shiftwork) - exploring the effects of early-career shiftwork on health
       
