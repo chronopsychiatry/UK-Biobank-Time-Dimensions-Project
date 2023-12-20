@@ -23,5 +23,5 @@ This folder contains all the code, spreadsheets and data dictionaries required t
 
 The 'Projects' folder contains code for the individual sub-projects of the wider **Rhythms of Life** project. These include:
 
-* [BD-Metabolomics](BD-Metabolomics) - exploring metabolic profile seasonal variation in bipolar disorder 
+* [BD-Metabolomics](Projects/BD-Metabolomics) - exploring metabolic profile seasonal variation in bipolar disorder 
       
