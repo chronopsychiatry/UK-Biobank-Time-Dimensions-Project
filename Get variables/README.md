@@ -6,7 +6,7 @@ The 'Get Variables' folder contains all the code needed to get you started with 
    
    **Downloading data**
    The Rhythms of Life project has access to the following data:
-   * [Core dataset](Create%20Core%20Dataset/Data%20Dictionaries/Core%20Dataset%20Data%20Dictionary%20ukb673864.html)
+   * [Core dataset](Create%20Core%20Dataset/Basket%20Data%20Dictionaries/Core%20Dataset%20Data%20Dictionary%20ukb673864.html)
    * [Return 1862 from Jones et al. (2019)](insert data dict)
      > These are accelerometer-derived measures of sleep timing
    * [Additional shift-work variables](insert data dict)
