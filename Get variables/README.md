@@ -35,35 +35,35 @@ The 'Get Variables' folder contains all the code needed to get you started with 
    
    This code extracts Met Office weather data (monthly mean temperature) for the assessment centre visit
    
-   * [Biobank assessment centre historical weather (XLSX file)](Extract%20Additional%20Variables/weather_ukb_270923.xlsx)
+   * [Biobank assessment centre historical weather (XLSX file)](Extract%20Additional%20Variables/Weather/weather_ukb_270923.xlsx)
 
-   * [Extract assessment centre weather (R Markdown script)](Extract%20Additional%20Variables/Get_weather_data.Rmd)
+   * [Extract assessment centre weather (R Markdown script)](Extract%20Additional%20Variables/Weather/Get_weather_data.Rmd)
 
    **Blood biochemistry variables**
 
-   * [Blood biochemistry variables data dictionary (XLSX file)](Extract%20Additional%20Variables/blood_biochemistry_data_dict.xlsx)
+   * [Blood biochemistry variables data dictionary (XLSX file)](Extract%20Additional%20Variables/Blood%20Biochemistry/blood_biochemistry_data_dict.xlsx)
 
-   * [Extract blood biochemistry variables (R script)](Extract%20Additional%20Variables/get_blood_biochem.R)
+   * [Extract blood biochemistry variables (R script)](Extract%20Additional%20Variables/Blood%20Biochemistry/get_blood_biochem.R)
 
    **Metabolomics variables**
    
-   * [Metabolomics variables data dictionary (XLSX file)](Extract%20Additional%20Variables/metabolomics_data_dict.xlsx)
+   * [Metabolomics variables data dictionary (XLSX file)](Extract%20Additional%20Variables/Metabolomics/metabolomics_data_dict.xlsx)
 
-   * [Extract metabolomics variables (R script)](Extract%20Additional%20Variables/get_metabolomics.R)
+   * [Extract metabolomics variables (R script)](Extract%20Additional%20Variables/Metabolomics/get_metabolomics.R)
 
    **Accelerometer-derived sleep data variables (Jones et al.)**
 
    This is code to process the activity monitor derived measures of sleep timing returned by Jones et al., calculated using GGIR. See https://biobank.ndph.ox.ac.uk/showcase/dset.cgi?id=1862 and 
    https://pubmed.ncbi.nlm.nih.gov/30696823.  
    
-   * [Sleep variables data dictionary (XLSX file)](Extract%20Additional%20Variables/sleep_data_dict.xlsx)
+   * [Sleep variables data dictionary (XLSX file)](Extract%20Additional%20Variables/Jones%20Sleep/sleep_data_dict.xlsx)
      
-   * [Extract sleep variables (R script)](Extract%20Additional%20Variables/jones_sleep_data.R)
+   * [Extract sleep variables (R script)](Extract%20Additional%20Variables/Jones%20Sleep/jones_sleep_data.R)
       
    **Lifetime shiftwork variables**  
    
    This is code to extract metrics on shiftwork jobs throughout lifetime taken from online survey completed by 120k UK Biobank participants in 2015: https://biobank.ndph.ox.ac.uk/ukb/label.cgi?id=130  
    
-   * [Shiftwork variables data dictionary (XLSX file)](Extract%20Additional%20Variables/shiftwork_data_dict.xlsx)
+   * [Shiftwork variables data dictionary (XLSX file)](Extract%20Additional%20Variables/Lifetime%20Shiftwork/shiftwork_data_dict.xlsx)
    
-   * [Extract shiftwork variables (R script)](Extract%20Additional%20Variables/extract_SW_metrics.R)   
+   * [Extract shiftwork variables (R script)](Extract%20Additional%20Variables/Lifetime%20Shiftwork/extract_SW_metrics.R)   
