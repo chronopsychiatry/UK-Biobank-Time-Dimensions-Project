@@ -18,9 +18,9 @@ The 'Get Variables' folder contains all the code needed to get you started with 
    Now you have the data, you want to pull out the variables of interest to your research question.
    
    We have identified a set of core variables from the Biobank dataset which we think are essential to any time dimensions analysis project. These include Biobank variables such as demographics and geographic location,       and derived variables such as weather and photoperiod length. You can use this core variables dataset as a starting place for your own analysis project.
-   * [Core variables data dictionary (XLSX file)](core_var_data_dict.xlsx)
+   * [Core variables data dictionary (XLSX file)](Create Core Dataset/core_var_data_dict.xlsx)
      > This data dictionary details all of the core Biobank & derived variables in the dataset
-   * [Extract core variables from .tab files (R script)](var_extract_R.R)
+   * [Extract core variables from .tab files (R script)](Create Core Dataset/var_extract_R.R)
      > This script will creat a core dataset called 'UKB_master' which you can save & use complete your analysis
      > This script includes the following code/files already. You do not need to do anything apart from download them:
      >    * [Biobank assessment centre latitudes (CSV file)](Table_latitude_assessment_centres.csv)
