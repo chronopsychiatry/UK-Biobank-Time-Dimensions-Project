@@ -10,7 +10,7 @@ https://biobank.ndph.ox.ac.uk/showcase/label.cgi?id=130
 
 
 The R code is [here](Projects/Lifetime-Shiftwork/extract_SW_metrics241123.R)
-Two for loops iterate over each job for each eid to make a table that summarises job history for each person.  These tables were stored in a list (life_jobtable).  Because some people had two jobs per year, the data are expressed as hours per year.  No person had more than 39 jobs in their lifetime.  The life_jobtable is a list of dataframes of all jobs history for all eids and another loop summarised type of shiftwork, occupation, hours per year and dose exposure to nightshift at each age bracket.  The age_brackets were:
+Two for loops iterate over each job for each eid to make a table that summarises job history for each person.  These tables were stored in a folder of csv files.  Because some people had two jobs per year, the data are expressed as hours per year.  No person had more than 39 jobs in their lifetime.  The life_jobtable csv is a list of all jobs history for all eids and another loop fast-read these files and summarised type of shiftwork, occupation, hours per year and dose exposure to nightshift at each age bracket.  The age_brackets were:
 15-20
 21-25
 26-30
