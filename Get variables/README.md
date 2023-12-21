@@ -7,8 +7,7 @@ The 'Get Variables' folder contains all the code needed to get you started with 
    **Downloading data**
    The Rhythms of Life project has access to the following data:
    * [Core dataset](Create%20Core%20Dataset/Basket%20Data%20Dictionaries/Core%20Dataset%20Data%20Dictionary%20ukb673864.html)
-   * [Return 1862 from Jones et al. (2019)](insert data dict)
-     > These are accelerometer-derived measures of sleep timing
+   * [Return 1862 from Jones et al. (2019)](https://github.com/chronopsychiatry/biobank-time-dimensions/blob/e25d84957dd46780070b169a447c69041ccf4401/Get%20variables/Extract%20Additional%20Variables/Jones%20Sleep/jones_sleep_data))   These are accelerometer-derived measures of sleep timing
    * [Additional shift-work variables](insert data dict)
    * [Additional work variables](insert data dict)
 
