@@ -4,9 +4,6 @@ library(viridis)
 library("ggsci")
 library(data.table)
 
-# Start measuring time
-#timing <- system.time({
-
 #import shiftwork data ukb675080
 bd <- read.table("C:\\Users\\Admin\\OneDrive - Maynooth University\\UK Biobank Shiftwork\\helper\\ukb675080.tab", header=TRUE, sep="\t")
 
@@ -19,10 +16,9 @@ script_path2 <- file.path(getwd(), "helper", "ukb675080.r")
 # Run the script
 source(script_path2)
 
-
+#get data for practising
 x<-t(bd[200,])
 x <- life_jobtable$SW1000326
-# 
 x <- shiftwork
 x <- t(bds)
 write.csv(x,file="SW1000326b")
@@ -32,7 +28,7 @@ bd[595,1]
 # get_these <- c(189, 576, 200, 595) 
 #one random 130
 
-bds<-bd[c(1:393760),]
+#bds<-bd[c(1:393760),]
 #SW = bd$f.22620.0.0[189]
 #days = bd$f.22630.0.0[189]
 #mix = bd$f.22640.0.0[576]
@@ -266,8 +262,9 @@ shiftwork <- data.frame()
 
 #this loops through all the jobs within each age bracket for each participant and extracts the job code for the shiftwork jobs 
 
-filelist <- "C:/Users/Admin/Documents/jobtable_docu"
+filelist <- 
 
+filelist <- list.files(path = "C:/Users/Admin/Documents/jobtable_docu/missing", pattern = "\\.csv$", full.names = TRUE)
 filelist <- list.files(path = "C:/Users/Admin/Documents/practise", pattern = "\\.csv$", full.names = TRUE)
 
 #quick open each csv
@@ -275,8 +272,9 @@ for(file in filelist) { #note filelist of ts, where t is the table of jobs for e
  # start a counter
       i=i+1
       t <- fread(file)
-  #if t is empty end loop
-      if (nrow(t) == 0) {
+  #if dob is zero end loop
+  
+      if (all(is.na(t))) {
         print("Dataframe is empty. goto next")
         next  # This will go to next
       }
@@ -353,6 +351,7 @@ for(file in filelist) { #note filelist of ts, where t is the table of jobs for e
       
 }   
       
+write.csv(shiftwork, file="shiftwork.csv")
 # the only thing of interest is the type of shiftwork at different age brackets.  The actual type of shiftwork at an individual level is probably not useful - would be under powered to detect any association with MS.  In the shiftwork dataframe, bracket_SW_type records the job type of each SW job for that age bracket for that person. Next loop though the shiftwork data frames to summarise the types of shiftwork done at each age bracket
  
 # The variables could be:
@@ -362,8 +361,6 @@ for(file in filelist) { #note filelist of ts, where t is the table of jobs for e
 #   (4) Hours of nightshift 15-20
 #   (5) Was a shiftworker 15-20
 #   (6) Years of shiftwork per year of work 15-20
-
-
 
 
 #################################################################################################################################################################
@@ -381,8 +378,8 @@ SW_type_by_agebracket <- (prop.table(table( factor(shiftwork$bracket_SW_type),sh
 SW_occupation_by_agebracket <- replace(SW_type_by_agebracket, is.na(SW_type_by_agebracket), 0)
 labels <- c("Admin" , "Assoc_prof", "Element" , "Machine" ,"Prof","Service","Trades" )
 col = brewer.pal(length(labels), "Set3")
-col <- viridis(length(labels), option = "G", begin = 0, end = 0.8, direction = -1 )
-col <- scale_color_jco()
+col <- viridis(length(labels), option = "G", begin = 0, end = 0.8, direction = 1 )
+
 
 barplot(SW_type_by_agebracket, col = col,
         main = "Bar Plot by Category", xlab = labels, ylab = "Values")
@@ -398,7 +395,7 @@ SW_type_by_agebracket <- replace(SW_type_by_agebracket, is.na(SW_type_by_agebrac
 labels <- c("Admin" , "Assoc_prof", "Element" , "Machine" ,"Prof","Service","Trades" )
 col = brewer.pal(length(labels), "Set3")
 col <- viridis(length(labels), option = "G", begin = .4, end = 1, direction = 1 )
-col <- scale_color_jco()
+
 
 barplot(SW_type_by_agebracket, col = col,
         main = "Bar Plot by Category", xlab = labels, ylab = "Values")
@@ -419,13 +416,14 @@ shiftwork <- shiftwork %>%
 
 # Use table to get frequencies of shiftwork occupations by age bracket
 SW_type_by_agebracket <- (prop.table(table( factor(shiftwork$SW_summary),shiftwork$agebracket), margin=2))
-labels2 <- c("Night" , "Day", "Mixed")
+
 col <- viridis(length(labels2), option = "G", begin = 0, end = 0.8, direction = -1 )
-#col <- scale_color_jco()
+col <- c("#003C67FF", "#EFC000FF", "#CD534CFF")
+labels2 <- c("Night" , "Day", "Mixed")
 
 barplot(SW_type_by_agebracket, col = col,
-        main = "Bar Plot by Category", xlab = labels, ylab = "Values")
-legend("topright", legend = labels, fill = col)
+        xlab = "Age Bracket", ylab = "Percentage of all Shiftworkers")
+legend( "top", x = 3, y=1.1, ncol = 3, legend = labels2, fill = col, border = "white")  # Adjust the x and y coordinates
 
 #use table to get the frequencies of all shiftwork by age
 #
@@ -446,14 +444,14 @@ shiftwork <- shiftwork %>%
 shiftwork$SW_YN <- factor(shiftwork$SW_YN)
 shiftwork$agebracket <- factor(shiftwork$agebracket)
 shiftwork_clean <- as.data.frame(c(shiftwork$agebracket, shiftwork$SW_YN))
-table(shiftwork_clean$)
-SW_agebracket <- table(factor(shiftwork_cleaned$SW_YN), factor(shiftwork_cleaned$agebracket), margin=2)
-labels3 <- c("Not a Shiftworker" , "Shiftworker", "Not Working")
+
+SW_agebracket <- prop.table(table(shiftwork$SW_YN,shiftwork$agebracket), margin=2)
+labels3 <- c("Non Shift Worker" , "Not Working", "Shift Worker" )
 col <- viridis(length(labels3), option = "G", begin = 0, end = 0.8, direction = -1 )
 
-barplot(shiftwork$SW_YN, col = col,
-        main = "Bar Plot by Category", xlab = labels3, ylab = "Values")
-legend("topright", legend = labels, fill = col)
+barplot(SW_agebracket, col = col,
+        main = "Bar Plot by Category", xlab = "Age Bracket", ylab = "Percentage of all Participants")
+legend("topright", legend = labels3, fill = col)
 
 #==========================================================================================================================================================
 
