@@ -1,3 +1,6 @@
+library(psych)
+
+
 # process MS data
 
 MS_UKB <- read.delim("./MS_UKB.tsv")
@@ -26,24 +29,23 @@ comment(MS_UKB$MS_year) <-"Data field 131042"
 
 #add to UKB Master
 UKB_master <- merge(UKB_master,MS_UKB, by="eid")
+
+#MS_year is the year of diagnosis
 UKB_master$MS_year <- as.integer(UKB_master$MS_year)
 
-#MS_age is the age of diagnosis
-UKB_master$MS_age <- UKB_master$MS_year - UKB_master$age
+#MS_age is the age at diagnosis
+UKB_master$MS_age <- UKB_master$MS_year - UKB_master$year_born
 
+#check if anyone was diagnosed before age 20
+remove1 <- UKB_master$eid[!is.na(UKB_master$MS_age) & UKB_master$MS_age < 20]
 
+#check if anyone was diagnosed before birth
+remove2 <- UKB_master$eid[!is.na(UKB_master$MS_year) & UKB_master$MS_year < UKB_master$year_born]
 
-#need to exclude cases after online work study?
+#eids to remove
+UKB_master <- subset(UKB_master, !(eid %in% remove1 | eid %in% remove2))
 
+# decide not to exclude cases after online work study?
 # #need to exclude data after diagnosis of MS
-# data$Measurement_Date <= diagnosis_date #rows of data collected after diagnosis are disregarded
-# 
-# #this is the model
-# model <- glmer(MS_Risk ~ work_type + age_of_exposure + dose_of_night_shift + (1|Individual_ID), 
-#                data = data, 
-#                family = binomial(link = "logit"))
 
-#Table one stratified by MS and night, day and mix and non-shift
-#table two regression table SW and MS risk.
-
-
+# data$Measurement_Date <= diagnosis_date #rows of data collected after diagnosis are disregarded - this will take them out of the study altogether?  Not sure how to match controls shiftwork before and after diagnosis?
