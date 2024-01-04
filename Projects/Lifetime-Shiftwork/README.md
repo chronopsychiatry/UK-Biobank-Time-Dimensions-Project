@@ -94,7 +94,8 @@ The final shiftwork variables were
 
 We still haven't adjusted for people that didn't work many hours compared to those with long hours - the percentage of shiftwork could be very flawed?  Don't want to compare someone with 50% shiftwork and 15 hours per week to someone with 30 hours and 60 hours per week.
 
-## 5. MS Participants
+## 5. Participants that Developed Neurodegenerative Disease  - MS, PD or Dementia (all-cause)
+### Multiple Sclerosis
 The participants with a diagnosis of MS are taken from UKB variables 131042 and 131043
 
 |Data Field 131042        |Date G35 first reported (multiple sclerosis)                                                           |
@@ -118,9 +119,46 @@ The participants with a diagnosis of MS are taken from UKB variables 131042 and 
 |50	|Self-report only|
 |51	|Self-report and other source(s)|
 
-R code for extracting eid of MS participants is [here](Projects/Lifetime-Shiftwork/get_MS_var-to-add-to-github.R) 
-It might be necessary to exclude shiftwork data after diagnosis of MS?  It wouldn't matter if people did shiftwork after diagnosis only?
+### Parkinson's Disease
+The participants with a diagnosis of PD are taken from UKB variables 42030 and 42031
 
+|Data Field 42030        |Date of all cause parkinsonism report                                                          |
+|-------------------------|---------------------------------------------------------------------|
+| 1900-01-01            |Date is unknown|
+
+|Data Field 42031        |Source of all cause parkinsonism report                                                          |
+|-------------------------|---------------------------------------------------------------------|
+| 0|	        Self-reported only|
+| 1	|        Hospital admission|
+| 2	 |       Death only|
+| 11	|      Hospital primary|
+| 12	 |     Death primary|
+| 21	  |    Hospital secondary|
+| 22	   |   Death contributory|
+
+### Dementia
+The participants with a diagnosis of Dementia  are taken from UKB variables 42018 and 42019
+
+|Data Field 42018        |Date of all cause dementia report                                                          |
+|-------------------------|---------------------------------------------------------------------|
+| 1900-01-01            |Date is unknown|
+
+|Data Field 42019        |Source of all cause dementia report                                                          |
+|-------------------------|---------------------------------------------------------------------|
+| 0|	        Self-reported only|
+| 1	|        Hospital admission|
+| 2	 |       Death only|
+| 11	|      Hospital primary|
+| 12	 |     Death primary|
+| 21	  |    Hospital secondary|
+| 22	   |   Death contributory|
+
+
+
+R code is [here](Projects/Lifetime-Shiftwork/get_MS_var-to-add-to-github.R) 
+Particiants that had a diagnosis before age 20 were excluded
+It might be necessary to exclude shiftwork data after diagnosis of MS?  It wouldn't matter if people did shiftwork after diagnosis only?
+Unknown or uncertain diagnosis dates are not excluded, but not possible to know if they were diagnosed before 20
        
 
         
