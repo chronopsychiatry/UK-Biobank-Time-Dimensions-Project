@@ -161,4 +161,18 @@ It might be necessary to exclude shiftwork data after diagnosis of MS?  It would
 Unknown or uncertain diagnosis dates are not excluded, but not possible to know if they were diagnosed before 20
        
 
-        
+## 6. Derivation of Lifetime Smoking Record
+The dates that participants started and stopped (in the case of prior smokers) were used to calculate a logistic variale by year of age for smoking status.  This was then used to assess if someone smoked within each age bracket.  This has a limitation that gaps in smoking over the lifetime are not included.
+
+"Prefer not to Answer" and "Don't Know" were recoded to NA  
+
+The datafields used are: 
+|                |                      |
+|----------------|---------------------|
+|smoking status |Data field = 20116.0.0|
+|past smoking |Data field = 1249.0.0|
+|age started smoking | Data field = 2867.0.0|
+|current smoking |Data field = 1239.0.0|
+|early_life_smoking|derived variable smoking between 15-20yo|
+|age_stop_smoking| Data field = 2897.0.0|
+
