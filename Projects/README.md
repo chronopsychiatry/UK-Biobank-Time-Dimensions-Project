@@ -10,4 +10,4 @@ The folder contains all the code for individual **Rhythms of Life** projects.
 
 * [Chronotype](Chronotype) - investigating assocations between chronotype and diurnal variability in physiological and behavioural parameters
 
-* [Inflammation_CR](Inflammation_CR) - exploring associations between SEP, circadian disruption, inflammation and the risk of NCD
+* [Inflammation Circadian Rhythms](Inflammation_CR) - exploring associations between SEP, circadian disruption, inflammation and the risk of NCD
