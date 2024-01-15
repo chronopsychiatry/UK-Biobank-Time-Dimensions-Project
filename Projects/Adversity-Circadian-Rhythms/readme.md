@@ -13,7 +13,7 @@ This folder contains the following documents:
 
    This folder contains papers relevant for this project
    
-3. [Biobank Questionnaires](https://github.com/chronopsychiatry/biobank-time-dimensions/blob/main/Projects/Adversity-Circadian-Rhythms/Biobank%20Questionnaires)
+3. [Biobank Variable Supporting Documents](https://github.com/chronopsychiatry/biobank-time-dimensions/blob/main/Projects/Adversity-Circadian-Rhythms/Biobank%20Variable%20Supporting%20Documents)
 
    This folder contains papers and documents which provide further information on variables of interest used within this project
    
