@@ -5,7 +5,7 @@ Key contacts for the project are: Amber Roguski & Ezrie Samuel & Raahat Manrai
 
 This folder contains the following documents:
 
-1. [MScR Planning and Assessment Documents](link)
+1. [MScR Planning and Assessment Documents](https://github.com/chronopsychiatry/biobank-time-dimensions/blob/main/Projects/Adversity-Circadian-Rhythms/MScR%20Planning%20and%20Assessment%20Documents)
 
    This folder contains the MScR programme handbook, timeline documents and project overview
    
