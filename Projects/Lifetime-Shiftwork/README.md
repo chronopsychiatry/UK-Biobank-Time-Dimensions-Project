@@ -156,9 +156,7 @@ The participants with a diagnosis of Dementia  are taken from UKB variables 4201
 
 
 R code is [here](Projects/Lifetime-Shiftwork/get_MS_var-to-add-to-github.R) 
-Particiants that had a diagnosis before age 20 were excluded
-It might be necessary to exclude shiftwork data after diagnosis of MS?  It wouldn't matter if people did shiftwork after diagnosis only?
-Unknown or uncertain diagnosis dates are not excluded, but not possible to know if they were diagnosed before 20
+Particiants that had a diagnosis before age 20 were excluded.  Unknown or uncertain diagnosis dates are not excluded, but not possible to know if they were diagnosed before 20
        
 
 ## 6. Derivation of Lifetime Smoking Record
