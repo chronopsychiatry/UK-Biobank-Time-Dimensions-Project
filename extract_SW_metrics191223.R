@@ -1,11 +1,13 @@
 library(dplyr)
 library(RColorBrewer)
 library(viridis)
-library("ggsci")
+library(ggsci)
 library(data.table)
 
 #import shiftwork data ukb675080
 bd <- read.table("C:\\Users\\Admin\\OneDrive - Maynooth University\\UK Biobank Shiftwork\\helper\\ukb675080.tab", header=TRUE, sep="\t")
+
+bds <- bd
 
 ### R extract & data prep #########
 setwd("C:/Users/Admin/OneDrive - Maynooth University/UK Biobank Shiftwork")
@@ -17,18 +19,19 @@ script_path2 <- file.path(getwd(), "helper", "ukb675080.r")
 source(script_path2)
 
 #get data for practising
-x<-t(bd[200,])
-x <- life_jobtable$SW1000326
-x <- shiftwork
-x <- t(bds)
-write.csv(x,file="SW1000326b")
-bd[595,1]
+#x <-t(bd[200,])
+# x <- shiftwork
+# x <- t(bds)
+# write.csv(x,file="SW1000326b")
+# bd[595,1]
 
 ###  find some that were mix, day and night shift
 # get_these <- c(189, 576, 200, 595) 
 #one random 130
 
 #bds<-bd[c(1:393760),]
+bds<-bd[c(1:50000),]
+
 #SW = bd$f.22620.0.0[189]
 #days = bd$f.22630.0.0[189]
 #mix = bd$f.22640.0.0[576]
@@ -46,13 +49,14 @@ life_jobtable_agebrackets <- list()
 #dataframe to store final results
 shiftwork<-data.frame()
 
-setwd("C:/Users/Admin/Documents/jobtable_docu")
+setwd("C:/Users/Admin/Documents/jobtable_docu") # for local storage of csv
 
 # Generate and name data frames with iteration numbers
 for (row in 1:num_eids) {         #this loop extracts the data for each job for one row (eid)
  
       #make timeline dataframes for results for each eid (cleared when 1-39 jobs finished)
       timeline_eid <- data.frame()
+      
       row_data <- bds[row,]  # Extract data from the current row
       
       if (is.na(row_data[2])) { #check if there is data in the born col, if not the eid was not in the work survey
@@ -65,7 +69,6 @@ for (row in 1:num_eids) {         #this loop extracts the data for each job for 
             
               # get all the data for each job for this eid
               
-        
               #  coding of job type 4-digit SOC2000 coding df 22617
               #   
               # Major groups used to make a factor variable
@@ -81,7 +84,6 @@ for (row in 1:num_eids) {         #this loop extracts the data for each job for 
               # 8       Machine       Process, Plant and Machine Operatives
               # 9       Element       Elementary Occupations
               
-             
         
               SOC2000_major <- row_data[[paste("f.22617.0.", i, sep = "")]] #Job code - historical
               SOC2000_major <- substring(SOC2000_major,1,1)
@@ -100,7 +102,6 @@ for (row in 1:num_eids) {         #this loop extracts the data for each job for 
               finish <- ifelse(finish==-313, 2015,finish)
               #value -313 (Ongoing when data entered) change to 2015
               
-              #born <- bd[[paste("f.22200.0.", i, sep = "")]] #this doesn't work?
               born <- row_data[,2]
               eid <- row_data$f.eid
               
@@ -113,13 +114,11 @@ for (row in 1:num_eids) {         #this loop extracts the data for each job for 
               # -3040	30 to 40 hours
               # 4000	Over 40 hours
               
-              
               #how many hours per week (numeric)
               hr_wk_num <- row_data[[paste("f.22605.0.", i, sep = "")]]        
               if (is.null(hr_wk_num)) {
                 hr_wk_num <- NA
               }
-              
               
               # Replace the numeric variable based on conditions - here we are inputing missing data.  This involves assuming the midpoint of each category
               if (is.na(hr_wk_num) && !is.na(hr_wk_cat)) {
@@ -134,7 +133,7 @@ for (row in 1:num_eids) {         #this loop extracts the data for each job for 
                 }
               }             
               
-             #if both numeric and categorical hours per week are NA, then assume 35h.  All eids in this loop are jobs based on years start and finish.  Gaps are not               included so it is safe to recode all the NAs.  Only people that 
+             #if both numeric and categorical hours per week are NA, then assume 35h.  All eids in this loop are jobs based on years start and finish.  Gaps are not               included so it is safe to recode all the NAs.  
               if (is.na(hr_wk_num) && is.na(hr_wk_cat)) {
                 hr_wk_num <- 35
               }
@@ -177,7 +176,6 @@ for (row in 1:num_eids) {         #this loop extracts the data for each job for 
                                                             )        )      )    )))
               #get the percent shiftwork per year for this job.  1 means the full year was spent in shiftwork or 0.5 less than one year.  year/night_yr is the                    percent when not all job was shiftwork. night_yr is the number of years out of total years in this job that were shiftwork.  This is risky, what if                 someone worked one year of shiftwork for the first year of a 10 year post?  Safer to re-code a job with less than 40% SW as not SW and more than 40%                as SW.  
               
-              
               #check percent_SW - if this is < 0.4 then recode to not SW, if > 0.4 then recode to SW.  Now there are only shiftworkers and not shiftworkers.
               percent_SW <- years/years #default is total SW
               percent_yr_SW <- ifelse(SW_type == "notSW", 100,
@@ -186,7 +184,6 @@ for (row in 1:num_eids) {         #this loop extracts the data for each job for 
                                              ifelse(mix=="Shift pattern was worked for some (but not all) of job", mix_yr/years,
                                                    percent_SW))))
               SW_type <- ifelse (percent_yr_SW < 0.4,"notSW", SW_type)
-              
               
               #get dose of shiftwork in hours of night shift per year for this job
               NS_hrs_yr_night <- night_NS_per_m * night_NS_length * 12 
@@ -218,39 +215,19 @@ for (row in 1:num_eids) {         #this loop extracts the data for each job for 
       # now all job information has been recovered rename with eid
       newname <- paste("SW",eid, sep="")
       
-      # Group the data by age year and summarize the data
-        # timeline_eid_sum <- timeline_eid %>%
-        # group_by(age) %>%
-        # summarize(
-        #   work_type = paste(work_type, collapse = ", "), # Concatenate work_type values
-        #   dose_NS_yr = sum(dose_NS), # Sum the NS hours for all jobs
-        #   hr_yr = sum(hr_yr), # Sum the hrs per year for all jobs
-        #   job_occupation = paste(job_occupation, collapse = ", "), # Concatenate work_type values
-        # ) %>%
-        # ungroup()
       timeline_eid <- data.frame(timeline_eid)
       assign(newname, timeline_eid)
       
-      
       # Save as CSV file
-      write.csv(timeline_eid, file = paste0(newname, ".csv"))
+      fwrite(timeline_eid, file = paste0(newname, ".csv"))
       
-      
-      # add each data table with a list of lifetime shiftwork to a list
-      #life_jobtable[[newname]] <- get(newname)
       print(eid)
       
       rm(list = ls()[grepl("SW", ls())])
       
       }
 
-#timing check
-#})
-# Print the timing results
-#print(timing)
-
-
-#the life_jobtable is a list of dataframes of all jobs history for all eids.  The next step is to summarise this information for each age bracket and over the lifespan for each participant
+#The next step is to summarise this information for each age bracket and over the lifespan for each participant
 
 
 

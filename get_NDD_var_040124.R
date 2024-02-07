@@ -6,9 +6,7 @@ library(dplyr)
 # decide not to exclude cases after online work study?
 # need to exclude data after diagnosis of MS
 
-# data$Measurement_Date <= diagnosis_date #rows of data collected after diagnosis are disregarded - this will take them out of the study altogether?  Not sure how to match controls shiftwork before and after diagnosis?
-
-# set SW variables after diagnosis to missing? 
+# data$Measurement_Date <= diagnosis_date 
 
 ##############################################################################################
 # Multiple Sclerosis
@@ -32,6 +30,14 @@ MS_UKB$MS_source <- factor(MS_UKB$X131043.0.0, levels=lvl.131043, labels=lbl.131
 
 MS_UKB$MS_year <-as.integer(substring(MS_UKB$X131042.0.0,1,4)) #	Date G35 first reported (multiple sclerosis)
 #MS_year is the year of diagnosis
+#
+# Coding	    Meaning
+# 1900-01-01	Code has no event date
+# 1901-01-01	Code has event date before participant's date of birth
+# 1902-02-02	Code has event date matching participant's date of birth
+# 1903-03-03	Code has event date after participant's date of birth and falls in the same calendar year as                  date of birth
+# 1909-09-09	Code has event date in the future and is presumed to be a place-holder or other system default
+# 2037-07-07	Code has event date in the future and is presumed to be a place-holder or other system default
 
 comment(MS_UKB$MS_source) <- "Data field 131043"
 comment(MS_UKB$MS_year) <-"Data field 131042"
@@ -40,7 +46,6 @@ comment(MS_UKB$MS_year) <-"Data field 131042"
 #MS_year is the year of diagnosis
 
 MS_UKB$MS_source <- ifelse(!is.na(MS_UKB$MS_source), 1, 0)
-
 
 ##############################################################################################
 # Parkinsons Disease
@@ -122,19 +127,13 @@ PD_dementia$dementia_YN <- ifelse(!is.na(PD_dementia$dementia_source), 1, 0)
 table(PD_dementia$dementia_YN)
 table(PD_dementia$dementia_source)
 
-
-
-
-
 ##############################################################################################
 # Motor neurone disease
 ##############################################################################################
 
 mnd <- read.delim("./mnd.tsv")
 
-PD_dementia$mnd_year <- as.integer(substring(mnd$X42028.0.0,1,4)) #Date of motor neurone disease report-> year
-comment(PD_dementia$mnd_year) <- "Data field 42028"
-
+mnd$mnd_year <- as.integer(substring(mnd$X42028.0.0,1,4)) #Date of motor neurone disease report-> year
 comment(mnd$mnd_year) <- "Data field 42028"
 # Coding	Meaning
 # 1900-01-01	Date is unknown
@@ -160,9 +159,6 @@ mnd$mnd_source <- factor(mnd$mnd_source,
 mnd$mnd_YN <- ifelse(!is.na(mnd$mnd_source), 1, 0)
 table(mnd$mnd_YN)
 
-
-
-
 #########################################################################################################
 # merge to UKB Master and remove diagnosis before 20
 #########################################################################################################
@@ -179,10 +175,10 @@ UKB_master$dementia_age <- UKB_master$dementia_year - UKB_master$year_born
 
 #check if anyone was diagnosed between age 15-20
 remove1 <- UKB_master$eid[!is.na(UKB_master$MS_age) & UKB_master$MS_age < 20 & UKB_master$MS_age >15]
-remove2 <- UKB_master$eid[!is.na(UKB_master$PD_age) & UKB_master$PD_age < 20]& UKB_master$PD_age >15]
-remove3 <- UKB_master$eid[!is.na(UKB_master$dementia_age) & UKB_master$dementia_age < 20]& UKB_master$dementia_age > 15]
+remove2 <- UKB_master$eid[!is.na(UKB_master$PD_age) & UKB_master$PD_age < 20 & UKB_master$PD_age >15]
+remove3 <- UKB_master$eid[!is.na(UKB_master$dementia_age) & UKB_master$dementia_age < 20 & UKB_master$dementia_age > 15]
 
-#check if anyone was diagnosed before birth - don't do this, unknown diagnosis dates are before birth
+#check if anyone was diagnosed before birth - don't do this, unknown diagnosis dates are before birth.  Unknown or uncertain diagnosis dates are not excluded, but not possible to know if they were diagnosed before 20
 
 #eids to remove
 UKB_master <- subset(UKB_master, !(eid %in% remove1 | eid %in% remove2 | eid %in% remove3))
