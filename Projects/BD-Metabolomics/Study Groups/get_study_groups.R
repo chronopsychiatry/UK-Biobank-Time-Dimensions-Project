@@ -21,10 +21,10 @@ library(dplyr)
 library(readr)
 
 # set cwd
-setwd("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics")
+setwd("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data")
 
 # load in UKB_master
-load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics\\ukb_master.Rda")
+load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\ukb_master.Rda")
 
 # make new df which i will now work with
 bdmet_df <- ukb_master
@@ -462,6 +462,18 @@ bipolar_group <- dplyr::filter(bplr_group, grepl('Bipolar I Disorder|Bipolar II 
 save(control_group,file="control_group_bdmet.Rda")
 save(bipolar_group,file="bipolar_group_bdmet.Rda")
 
+# Combine both group dataframes into one for future analysis purposes ####
+#add new column to both with study group
+control_nc <- control_group %>%
+  mutate(Group = 'control')
+bipolar_nc <- bipolar_group %>%
+  mutate(Group = 'bipolar')
+
+#join 2 dataframes
+bdmet_df <- rbind(control_nc,bipolar_nc)
+#save
+save(bdmet_df,file="bdmet_df.Rda")
+
 ### Code for amendments/data revisiting to the above data ####
 # load in existing R data sets linked to this work
 load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics\\excluded_icd.Rda")
@@ -475,21 +487,21 @@ load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\S
 #                           Bipolar I Disorder", no_dm_2$`Bipolar and major depression status | Instance 0`),]
 
 # check overlap between self-reported bipolar and ICD-10 bipolar
-bipolar_returned <- as.numeric(NA)
+#bipolar_returned <- as.numeric(NA)
 
-for (i in 1:nrow(control_excl)){
-  row <- control_excl$'Bipolar and major depression status | Instance 0'[i]
-  bipolar_returned[i] <- grepl("Bipolar II Disorder|Bipolar I Disorder", row)
-}
+#for (i in 1:nrow(control_excl)){
+#  row <- control_excl$'Bipolar and major depression status | Instance 0'[i]
+#  bipolar_returned[i] <- grepl("Bipolar II Disorder|Bipolar I Disorder", row)
+#}
 
-bipolar_ret_cases = sum(bipolar_returned, na.rm=TRUE)
+#bipolar_ret_cases = sum(bipolar_returned, na.rm=TRUE)
 
 # load in clinical/medical history vars (GP data, V2/V3 read codes)
 #clinical_vars <- readr::read_tsv("./normative mets/data_clinical_vars.tsv")
 
 ### Exclude based on BMI #
-control_no_ob  <-  no_dm_2[no_dm_2$BMI<30,]  #exclude people with BMI>30 (obese)
-control_no_uw <- control_no_ob[control_no_ob$BMI>18.5,]  #exclude people with BMI<18.5 (underweight)
+#control_no_ob  <-  no_dm_2[no_dm_2$BMI<30,]  #exclude people with BMI>30 (obese)
+#control_no_uw <- control_no_ob[control_no_ob$BMI>18.5,]  #exclude people with BMI<18.5 (underweight)
 
 ### Exclude based on blood biochem #
 
