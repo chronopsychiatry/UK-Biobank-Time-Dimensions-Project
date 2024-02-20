@@ -1,0 +1,31 @@
+ICD10 reference codes: https://icd.who.int/browse10/2019/en
+
+Starting # of biobank participants = 502354
+- remove 50247 self-reported shift workers = 452107
+- remove 24051 people with self-reported diabetes = 428056
+- remove 26925 people with probable single/recurrent major depression (Pell/Smith criteria) = 401131
+
+CONTROL GROUP (n=309765)
+- remove 90649 people with ICD10 medical history of:
+    - Schizophrenia, schizotypal and delusional disorders (F20 - F28)
+    - Mood (affective) disorders (INCLUDING BIPOLAR DISORDER) (F30 - F39)
+    - Eating disorders (any) (F50)
+    - Diabetes (Any) (E10 - E14)
+    - Metabolic disorders (any) (E70 - E80, excluding E73 lactose intolerence)
+    - Disorders of sleep-wake schedule (G47.2/F51.2)
+    = 310482
+- remove 717 people with probable bipolar disorder (Pell/Smith criteria) = 309765
+
+BIPOLAR GROUP (n=1176)
+- remove 90129 people with ICD10 medical history of:
+    - Schizophrenia, schizotypal and delusional disorders (F20 - F28)
+    - Mood (affective) disorders (EXCLUDING MANIA & BIPOLAR DISORDER) (F32 - F39)
+    - Eating disorders (any) (F50)
+    - Diabetes (Any) (E10 - E14)
+    - Metabolic disorders (any) (E70 - E80, excluding E73 lactose intolerence)
+    - Disorders of sleep-wake schedule (G47.2/F51.2)
+    = 310482
+- keep people who either:
+    - have ICD10 medical history of bipolar disorder (F31)
+    - have 'Bipolar I Disorder' or 'Bipolar II Disorder' designation (from Pell/Smith criteria)
+    =1176
