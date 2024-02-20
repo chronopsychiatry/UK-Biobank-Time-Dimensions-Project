@@ -7,11 +7,13 @@ library(dplyr)
 library(ggplot2)
 
 #find wd and load data
-load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\Core Datasets\\UKB_master.Rda")
+load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\bipolar_group_bdmet.Rda")
+load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\control_group_bdmet.Rda")
+load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\bdmet_df.Rda")
 ```
 
 #### Exploring core demographic variables
-For UKB_master (all participants).
+For both groups (Control, bipolar disorder).
 The following code can be used a template for exploring further variables.
 
 ## Age
@@ -20,7 +22,7 @@ Age is right-skewed, no outliers/errors
 
 ```{r}
 #age
-hist(UKB_master$age,
+hist(control_group$age,
   xlab = "age",
   main = "Histogram of age",
   breaks = sqrt(nrow(UKB_master))
