@@ -87,4 +87,8 @@ metabolites <- blood_biochem_df[c("eid", "alanine_at","albumin","apolipo_a", "ap
 bdmet_blood <- merge(bdmet_df,metabolites, by="eid")
 bdmet_blood_dt <- merge(bdmet_blood,blood_datetime, by="eid")
 
-# 
+#save as new dataframe
+analysis_df <- bdmet_blood_dt
+save(analysis_df,file="analysis_df.Rda")
+
+
