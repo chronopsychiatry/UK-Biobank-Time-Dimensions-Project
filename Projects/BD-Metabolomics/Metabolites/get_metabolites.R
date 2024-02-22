@@ -1,12 +1,20 @@
 # script to load blood biochemistry data
+# output file: analysis_df
 
 #load libraries
 library(readr)
 library(tidyverse)
 
+# set cwd
+setwd("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data")
+
+# load in existing prticipant df
+load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\bdmet_df.Rda")
+
 #load in tsv (edit for own path)
 blood_biochem_df <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\blood_biochemistry.tsv")
 blood_datetime <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\blood_datetime_3166_participant.tsv")
+
 
 #rename tsv variable columns
 blood_biochem_df <- blood_biochem_df %>% 
@@ -86,6 +94,9 @@ metabolites <- blood_biochem_df[c("eid", "alanine_at","albumin","apolipo_a", "ap
 # merge with existing bdmet_df
 bdmet_blood <- merge(bdmet_df,metabolites, by="eid")
 bdmet_blood_dt <- merge(bdmet_blood,blood_datetime, by="eid")
+
+bdmet_blood_dt <- bdmet_blood_dt %>% 
+  rename('blood sample datetime' = '3166-0.0')
 
 #save as new dataframe
 analysis_df <- bdmet_blood_dt
