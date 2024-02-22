@@ -5,7 +5,8 @@ library(readr)
 library(tidyverse)
 
 #load in tsv (edit for own path)
-blood_biochem_df <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\Data fetching\\blood_biochemistry.tsv")
+blood_biochem_df <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\blood_biochemistry.tsv")
+blood_datetime <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\blood_datetime_3166_participant.tsv")
 
 #rename tsv variable columns
 blood_biochem_df <- blood_biochem_df %>% 
@@ -73,3 +74,17 @@ comment(blood_biochem_df$triglycerides) <- c("Datafield = 30870-0.0")
 comment(blood_biochem_df$urate) <- c("Datafield = 30880-0.0")
 comment(blood_biochem_df$urea) <- c("Datafield = 30670-0.0")
 comment(blood_biochem_df$vit_d) <- c("Datafield = 30890-0.0")
+
+
+# exclude markers that are not of interest to us
+metabolites <- blood_biochem_df[c("eid", "alanine_at","albumin","apolipo_a", "apolipo_b", "crp", "cholesterol",
+                  "creatinine", "cystatin_c", "dir_bilirubin", "gamma_gmt", "glucose",
+                  "g_haem", "hdl_chol", "ldl_direct", "lipoprotein_a", "phosphate", "rheum_factor",
+                  "tot_bilirubin", "triglycerides", "vit_d")]
+
+
+# merge with existing bdmet_df
+bdmet_blood <- merge(bdmet_df,metabolites, by="eid")
+bdmet_blood_dt <- merge(bdmet_blood,blood_datetime, by="eid")
+
+# 
