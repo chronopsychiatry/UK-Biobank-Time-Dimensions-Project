@@ -476,8 +476,8 @@ save(bdmet_df,file="bdmet_df.Rda")
 
 ### Code for amendments/data revisiting to the above data ####
 # load in existing R data sets linked to this work
-load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics\\excluded_icd.Rda")
-load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics\\excluded_numbers.Rda")
+load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\excluded_icd.Rda")
+load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\excluded_numbers.Rda")
 
 ### random other bits of code ####
 #remove people with self-reported bipolar/major dep?
