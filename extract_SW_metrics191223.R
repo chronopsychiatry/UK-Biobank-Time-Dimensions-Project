@@ -7,7 +7,6 @@ library(data.table)
 #import shiftwork data ukb675080
 bd <- read.table("C:\\Users\\Admin\\OneDrive - Maynooth University\\UK Biobank Shiftwork\\helper\\ukb675080.tab", header=TRUE, sep="\t")
 
-bds <- bd
 
 ### R extract & data prep #########
 setwd("C:/Users/Admin/OneDrive - Maynooth University/UK Biobank Shiftwork")
@@ -17,6 +16,9 @@ script_path2 <- file.path(getwd(), "helper", "ukb675080.r")
 
 # Run the script
 source(script_path2)
+
+bds <- bd[bd$f.eid %in% geteid, ]
+
 
 #get data for practising
 #x <-t(bd[200,])
@@ -30,7 +32,7 @@ source(script_path2)
 #one random 130
 
 #bds<-bd[c(1:393760),]
-bds<-bd[c(1:50000),]
+#bds<-bd[c(1:50000),]
 
 #SW = bd$f.22620.0.0[189]
 #days = bd$f.22630.0.0[189]
@@ -50,6 +52,7 @@ life_jobtable_agebrackets <- list()
 shiftwork<-data.frame()
 
 setwd("C:/Users/Admin/Documents/jobtable_docu") # for local storage of csv
+setwd("C:/Users/Admin/Documents/test") # for local storage of csv
 
 # Generate and name data frames with iteration numbers
 for (row in 1:num_eids) {         #this loop extracts the data for each job for one row (eid)
@@ -133,7 +136,7 @@ for (row in 1:num_eids) {         #this loop extracts the data for each job for 
                 }
               }             
               
-             #if both numeric and categorical hours per week are NA, then assume 35h.  All eids in this loop are jobs based on years start and finish.  Gaps are not               included so it is safe to recode all the NAs.  
+             #if both numeric and categorical hours per week are NA, then assume 35h.  All eids in this loop are jobs based on years start and finish.  Gaps are not included so it is safe to recode all the NAs.  
               if (is.na(hr_wk_num) && is.na(hr_wk_cat)) {
                 hr_wk_num <- 35
               }
@@ -198,6 +201,7 @@ for (row in 1:num_eids) {         #this loop extracts the data for each job for 
               timeline$hr_yr <- hr_yr
               timeline$job_occupation <- job_occupation
               timeline$job_number <- job_number
+              timeline$SW_YN <- SW_YN
       
               
               #it is not possible to know when the shiftwork happened within the years worked on a job when the total years were not all   shiftwork
@@ -234,30 +238,29 @@ for (row in 1:num_eids) {         #this loop extracts the data for each job for 
 ###########  table to summarise type of shiftwork, years done and dose exposure to NSW at each age bracket  ###################
 
 age_brackets <- c("15-20", "21-25", "26-30","31-35","36-40", "41-45", "46-50","51-55","56-60","61-65")
-i=0 #counter
+i=100000 #counter
+
 shiftwork <- data.frame()
 
 #this loops through all the jobs within each age bracket for each participant and extracts the job code for the shiftwork jobs 
 
-filelist <- 
+filelist <- list.files(path = "C:/Users/Admin/Documents/jobtable_docu", pattern = "\\.csv$", full.names = TRUE)
 
-filelist <- list.files(path = "C:/Users/Admin/Documents/jobtable_docu/missing", pattern = "\\.csv$", full.names = TRUE)
-filelist <- list.files(path = "C:/Users/Admin/Documents/practise", pattern = "\\.csv$", full.names = TRUE)
+filelist <- filelist[c(100001:120271)]
 
 #quick open each csv
 for(file in filelist) { #note filelist of ts, where t is the table of jobs for each participant
  # start a counter
       i=i+1
       t <- fread(file)
-  #if dob is zero end loop
-  
-      if (all(is.na(t))) {
+  #if end loop
+        if (all(is.na(t))) {
         print("Dataframe is empty. goto next")
-        next  # This will go to next
+        next  # This will go to next file
       }
       
   # print debugging information
-  print(paste("Processing participant:", eid, "in age bracket:", agebracket))
+  #print(paste("Processing participant:", "in age bracket:", agebracket))
     
    for(agebracket in age_brackets) {
      
@@ -265,23 +268,23 @@ for(file in filelist) { #note filelist of ts, where t is the table of jobs for e
       start_age <- as.numeric(substring(agebracket,1,2))
       end_age <- as.numeric(substring(agebracket,4,5))
       
-      #exit the loop if the participant has not yet reached the age bracket
-      if (is.na(row_data[2])) { #check if the participant is not there is data in the born col, if not the eid was not in the work survey
-        next  # end the loop next participant
-      }
+      # #exit the loop if the participant has not yet reached the age bracket
+        #if t$age < start_age
+       # next  # end the loop next participant
+      #}
       
       # make a df out of each table of job histories for each age bracket
       t <-data.frame(t)
-      colnames(t) <- c("Number","year_seq", "work_type", "dose_NS", "hr_yr","job_occupation" ,"job_number","age")
+      colnames(t) <- c("year_seq", "work_type", "dose_NS", "hr_yr","job_occupation" ,"job_number","SW_YN","age")
       
       # Use the subset function to select rows within the specified range defining the brackets
       subset_df <- subset(t, t$age >= start_age & t$age <= end_age)
-      
+    
       # Calculate the sum of the hours worked column within the specified range.  If NA, then they were not working
-      bracket_total_hr <- sum(subset_df$hr_yr,na.rm = TRUE)
-      bracket_total_hr_daySW <- sum(subset(subset_df, work_type=="daySW")$hr_yr)
-      bracket_total_hr_nightSW <- sum(subset(subset_df, work_type=="nightSW")$hr_yr)
-      bracket_total_hr_mixSW <- sum(subset(subset_df, work_type=="mixSW")$hr_yr)
+      bracket_total_hr <- sum(as.numeric((subset_df$hr_yr),na.rm = TRUE))
+      bracket_total_hr_daySW <- sum(as.numeric(subset(subset_df, work_type=="daySW")$hr_yr))
+      bracket_total_hr_nightSW <- sum(as.numeric(subset(subset_df, work_type=="nightSW")$hr_yr))
+      bracket_total_hr_mixSW <- sum(as.numeric(subset(subset_df, work_type=="mixSW")$hr_yr))
       bracket_total_hr_SW <- (bracket_total_hr_daySW + bracket_total_hr_nightSW +  bracket_total_hr_mixSW)
       
       #shiftwork per year of work in each bracket
@@ -290,19 +293,28 @@ for(file in filelist) { #note filelist of ts, where t is the table of jobs for e
       bracket_daySW_per_work <- (bracket_total_hr_daySW)/(bracket_total_hr)      
       bracket_mixSW_per_work <- (bracket_total_hr_mixSW)/(bracket_total_hr)      
       
-      # find the jobs that were shiftwork during this bracket.  There may have been two kinds of jobs, and a mix of SW/NonSW
+      #bracket SW_YN = any SW in that bracket
+      bracket_SW_YN <- ifelse(any(subset_df$SW_YN == "yes", na.rm = TRUE), 1, 0)
+      
+      # find the type of shiftwork done in the age bracket
       SW_job_codes <- subset(subset_df, work_type=="daySW" | work_type=="mixSW" | work_type=="nightSW")
-     
-      #if the participant is a shiftworker extract the type of shiftwork, otherwise return NA
-        if (nrow(SW_job_codes) > 0) {
-           #for each age bracket return the professions that have a shiftwork category, this can be a vector there could be > 1
-           occupation <- table(SW_job_codes$job_occupation)
-          
-           # Get the column names where values are greater than 0
-           bracket_SW_type <- unique(SW_job_codes$job_occupation)
+      unique_values <- unique(SW_job_codes$work_type)
+      
+        if (length(unique_values) > 0) {  # Check if unique_values is not empty
+          bracket_SW_type <- sort(paste(unique_values, collapse = ", "))
+            } else {
+              bracket_SW_type <- NA
+            }
+      
+      # find the occupations that were shiftwork during this bracket.  There may have been two kinds of jobs, and a mix of SW/NonSW
+      unique_values <- unique(SW_job_codes$job_occupation)
+      bracket_SW_occupation <- paste(unique_values, collapse = ", ")
+      
+        if (length(unique_values) > 0) {# Check if unique_values is not empty
+          bracket_SW_occupation <- sort(paste(unique_values, collapse = ", "))
           } else {
-          bracket_SW_type <- NA
-        }
+            bracket_SW_type <- NA
+            }
       
       # get data into a vector to rbind to main dataframe
       eid <- as.numeric(gsub("\\D", "", file))
@@ -315,20 +327,26 @@ for(file in filelist) { #note filelist of ts, where t is the table of jobs for e
                             bracket_total_hr_nightSW,
                             bracket_total_hr_mixSW,
                             bracket_SW_type,
-                            #bracket_SW_occup, 
+                            bracket_SW_occupation, 
                             bracket_SW_per_work, 
                             bracket_nightSW_per_work, 
                             bracket_daySW_per_work,       
-                            bracket_mixSW_per_work 
+                            bracket_mixSW_per_work,
+                            bracket_SW_YN
                             )
       
       shiftwork <- rbind(shiftwork, newdata)
       
    }
+}    
+   
       
-}   
-      
-write.csv(shiftwork, file="shiftwork.csv")
+write.csv(shiftwork, file="shiftwork250225.csv")
+shiftwork <- rbind(shiftwork230224, shiftwork250224, shiftwork260225)
+
+table(shiftwork$bracket_SW_occupation)
+
+
 # the only thing of interest is the type of shiftwork at different age brackets.  The actual type of shiftwork at an individual level is probably not useful - would be under powered to detect any association with MS.  In the shiftwork dataframe, bracket_SW_type records the job type of each SW job for that age bracket for that person. Next loop though the shiftwork data frames to summarise the types of shiftwork done at each age bracket
  
 # The variables could be:
@@ -465,12 +483,23 @@ axis(2, at = c(0,0.2,0.4,0.6,0.8,1),las = 1, cex.axis = .8, labels = c("0","20%"
 par(mar = par("mar"))
 dev.off()
 
-
-#  make barplot for sw over life in men and women
-shiftwork$SW_YN,shiftwork$agebracket
-
-merge(shiftwork, UKB
-      
+###--------------------------  find missing  ---------------------------------------------------------------
       
 
+
+#find missing eids       should be 121,248 participants that had data in born col
+eid_true <- bd$f.eid[!is.na(bd$f.22200.0.0)] #121248 this is correct but 977 have missing data only true value is 120271 
+
+check_filelist <- list.files(getwd()) #120271
+eid_files <- as.integer(substr(check_filelist, 3, 9)) #121271
+# 121248-120271 977 files missing from filelist
+
+eid_true <- as.integer(eid_true)
+eid_files <- as.integer(eid_files)
+
+# Values in eid_true that are not in eid_files
+values_not_in_eid_files <- as.integer(setdiff(eid_true, eid_files))
+
+#get rows of bd where eid == values not in eid files
+filtered_rows <- bd[bd$f.eid %in% values_not_in_eid_files, ]
 
