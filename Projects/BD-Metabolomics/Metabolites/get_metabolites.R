@@ -8,8 +8,10 @@ library(tidyverse)
 # set cwd
 setwd("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data")
 
-# load in existing prticipant df
+# load in existing participant df
 load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\bdmet_df.Rda")
+
+#extract blood biochemistry variables
 
 #load in tsv (edit for own path)
 blood_biochem_df <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\blood_biochemistry.tsv")
@@ -103,3 +105,16 @@ analysis_df <- bdmet_blood_dt
 save(analysis_df,file="analysis_df.Rda")
 
 
+#extract NMR variables
+# start with variables of interest to bipolar
+# glycine, alanine, valine, acetate, docosahexaenoic acid, HDL, n-acetyl-glycoprotein, tyrosine, glutamine
+
+#load in tsvs of interest
+NMR_df_1 <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\Metabolomics\\metabolomics_A.tsv")
+
+NMR_df_1 <- NMR_df_1 %>% 
+  rename('alanine' = '23460-0.0',
+         'acetate' = '23475-0.0')
+nmr_metabolites <- NMR_df_1[c("eid", "acetate", "alanine")]
+
+analysis_df <- merge(analysis_df,nmr_metabolites, by="eid")

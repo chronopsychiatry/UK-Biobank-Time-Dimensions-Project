@@ -49,3 +49,4 @@ metabolomics_df_C <- select(metabolomics_df_C, -c('23547-1.0', '23491-1.0', '235
 #rename variables
 
 #add comments to variable to link with biobank datafield id 
+rm(cbt_analyse)
