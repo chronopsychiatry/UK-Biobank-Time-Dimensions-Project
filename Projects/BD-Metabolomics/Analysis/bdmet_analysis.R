@@ -13,7 +13,7 @@ load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\S
 # ANALYSE: AMINO ACIDS ####
 #amino acid df
 aa_df <- data.frame(as.numeric(NA))
-#Schizophrenia, schizotypal and delusional disorders
+ 
 aa_df$aa <- as.numeric(NA)
 aa_df$group <- as.numeric(NA)
 aa_df$month <- as.numeric(NA)
