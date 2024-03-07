@@ -1,0 +1,301 @@
+---
+title: "Biometric Tests"
+output:
+  html_document: default
+  pdf_document: default
+date: "2024-02-27"
+---
+
+## Load packages
+  
+lubridate is used to convert hour, min, seconds (hms) to seconds
+```{r}
+library(lubridate)
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+```
+
+### Read in data and convert times to decimal hours
+```{r}
+data <- read.table("//wsl.localhost/Ubuntu/home/lfahey/ukb_concept/grip_chrono.tab", header=T, fill = TRUE)
+mins <- lubridate::hms(data$time)
+data$biometrics_seconds <- period_to_seconds(mins)
+data$hours <- data$biometrics_seconds / 3600
+```
+
+# Plot time ranges
+
+```{r}
+# Read in file
+biomet <- read.table("//wsl.localhost/Ubuntu/home/lfahey/ukb_concept/biometrics_stats.txt", header=T, fill = TRUE)
+
+# Make barplot
+barplot(biomet$NumberParticipants, names=biomet$TimeRange, xlab = "Hours", ylab = "Number of participants", main = "Times participants completed biometric tests")
+```
+### Get data ready to plot average measures for each time bins for different chronotypes
+1. Create seperate data frames for four different chronotypes
+2. For each df, create 12 time bins, with the same number of samples in each bin
+3. Get the average measure value for each time bin
+4. Add chronotype as an extra column to each df
+5. Bind all 4 dfs by rows
+
+```{r}
+### Add time bins col to data
+data$time_bins <- ntile(data$hours, 12)
+
+# Understanding created time bins
+one <- data[data$time_bins == 1,]
+two <- data[data$time_bins == 2,]
+three <- data[data$time_bins == 3,]
+four <- data[data$time_bins == 4,]
+five <- data[data$time_bins == 5,]
+six <- data[data$time_bins == 6,]
+seven <- data[data$time_bins == 7,]
+eight <- data[data$time_bins == 8,]
+nine <- data[data$time_bins == 9,]
+ten <- data[data$time_bins == 10,]
+eleven <- data[data$time_bins == 11,]
+twelve <- data[data$time_bins == 12,]
+
+min(twelve$hours)
+max(twelve$hours)
+max(eleven$hours)
+min(eleven$hours)
+
+
+# Def Evening
+
+def_owl <- data[data$chrono == 4,]
+
+#def_owl$time_bins <- ntile(def_owl$hours, 12)
+mean_grip_per_bin_right <- aggregate(right ~ time_bins, data = def_owl, FUN = mean)
+mean_grip_per_bin_left <- aggregate(left ~ time_bins, data = def_owl, FUN = mean)
+mean_grip_def_owls <- cbind(mean_grip_per_bin_right, mean_grip_per_bin_left)
+mean_grip_def_owls$chronotype <- "DefinetlyEvening"
+
+# Look
+head(def_owl)
+head(def_owl[def_owl$time_bins ==1,])
+
+# More Evening
+more_owl <- data[data$chrono == 3,]
+
+#more_owl$time_bins <- ntile(more_owl$hours, 12)
+mean_grip_per_bin_right <- aggregate(right ~ time_bins, data = more_owl, FUN = mean)
+mean_grip_per_bin_left <- aggregate(left ~ time_bins, data = more_owl, FUN = mean)
+mean_grip_more_owls <- cbind(mean_grip_per_bin_right, mean_grip_per_bin_left)
+mean_grip_more_owls$chronotype <- "MoreEvening"
+
+# More Morning
+more_lark <- data[data$chrono == 2,]
+
+#more_lark$time_bins <- ntile(more_lark$hours, 12)
+mean_grip_per_bin_right <- aggregate(right ~ time_bins, data = more_lark, FUN = mean)
+mean_grip_per_bin_left <- aggregate(left ~ time_bins, data = more_lark, FUN = mean)
+mean_grip_more_larks <- cbind(mean_grip_per_bin_right, mean_grip_per_bin_left)
+mean_grip_more_larks$chronotype <- "MoreMorning"
+
+# Def Morning
+def_lark <- data[data$chrono == 1,]
+
+#def_lark$time_bins <- ntile(def_lark$hours, 12)
+mean_grip_per_bin_right <- aggregate(right ~ time_bins, data = def_lark, FUN = mean)
+mean_grip_per_bin_left <- aggregate(left ~ time_bins, data = def_lark, FUN = mean)
+mean_grip_def_larks <- cbind(mean_grip_per_bin_right, mean_grip_per_bin_left)
+mean_grip_def_larks$chronotype <- "DefinetlyMorning"
+
+
+
+mean_grip_chronotype <- rbind(mean_grip_def_larks, mean_grip_more_larks, mean_grip_def_owls, mean_grip_more_owls)
+mean_grip_chronotype$chronotype <- gsub("Definetly", "Definitely", mean_grip_chronotype$chronotype)
+mean_grip_chronotype <- mean_grip_chronotype[,c("time_bins", "right", "left", "chronotype")]
+
+head(mean_grip_chronotype)
+
+```
+
+
+#### Plot 
+
+Get acrophase (top y-value (grip-strength measure for each time bin, for each chronotype))
+
+```{r}
+mean_grip_def_larks[which.max(mean_grip_def_larks$right), ]
+mean_grip_more_larks[which.max(mean_grip_more_larks$right), ]
+mean_grip_more_owls[which.max(mean_grip_more_owls$right), ]
+mean_grip_def_owls[which.max(mean_grip_def_owls$right), ]
+```
+
+
+```{r}
+right <- ggplot(data = mean_grip_chronotype, aes(x = time_bins, y = right, colour = chronotype)) +
+  geom_line() +
+  geom_point(aes(size = ifelse(time_bins == 1, 1, 0.5)), show.legend = FALSE) +
+  scale_size_continuous(range = c(1, 5)) +  # Adjust the range of sizes as needed
+  labs(x = "Time Bins", y = "Right Grip Strength") +
+  ggtitle("Mean Right Grip Strength by Chronotype") +
+  theme_minimal()
+
+right
+
+#grid.arrange(
+#  right,
+#  left,
+#  ncol=2,
+#  nrow=1)
+
+```
+
+```{r}
+left <- ggplot(data = mean_grip_chronotype, aes(x = time_bins, y = left, colour = chronotype)) +
+  geom_line() +
+  geom_point(aes(size = ifelse(time_bins == 1, 1, 0.5)), show.legend = FALSE) +
+  scale_size_continuous(range = c(1, 5)) +  # Adjust the range of sizes as needed
+  labs(x = "Time Bins", y = "Right Grip Strength") +
+  ggtitle("Mean Left Grip Strength by Chronotype") +
+  theme_minimal()
+
+left
+```
+
+
+```
+```{r}
+data <- read.table("//wsl.localhost/Ubuntu/home/lfahey/ukb_concept/bp_times_chrono.tab", header=T, fill = TRUE)
+mins <- lubridate::hms(data$time)
+data$biometrics_seconds <- period_to_seconds(mins)
+data$hours <- data$biometrics_seconds / 3600
+```
+
+```{r}
+### Add time bins col to data
+data$time_bins <- ntile(data$hours, 12)
+
+# Understanding created time bins
+one <- data[data$time_bins == 1,]
+two <- data[data$time_bins == 2,]
+three <- data[data$time_bins == 3,]
+four <- data[data$time_bins == 4,]
+five <- data[data$time_bins == 5,]
+six <- data[data$time_bins == 6,]
+seven <- data[data$time_bins == 7,]
+eight <- data[data$time_bins == 8,]
+nine <- data[data$time_bins == 9,]
+ten <- data[data$time_bins == 10,]
+eleven <- data[data$time_bins == 11,]
+twelve <- data[data$time_bins == 12,]
+
+min(twelve$hours)
+max(twelve$hours)
+max(eleven$hours)
+min(eleven$hours)
+
+
+# Def Evening
+
+def_owl <- data[data$chrono == 4,]
+
+#def_owl$time_bins <- ntile(def_owl$hours, 12)
+mean_grip_per_bin_f.4079.0.0 <- aggregate(f.4079.0.0 ~ time_bins, data = def_owl, FUN = mean)
+mean_grip_per_bin_f.102.0.0 <- aggregate(f.102.0.0 ~ time_bins, data = def_owl, FUN = mean)
+mean_grip_per_bin_f.4080.0.0 <- aggregate(f.4080.0.0 ~ time_bins, data = def_owl, FUN = mean)
+mean_grip_def_owls <- cbind(mean_grip_per_bin_f.4079.0.0, mean_grip_per_bin_f.102.0.0, mean_grip_per_bin_f.4080.0.0)
+mean_grip_def_owls$chronotype <- "DefinetlyEvening"
+
+# Look
+head(def_owl)
+head(def_owl[def_owl$time_bins ==1,])
+
+# More Evening
+more_owl <- data[data$chrono == 3,]
+
+#more_owl$time_bins <- ntile(more_owl$hours, 12)
+mean_grip_per_bin_f.4079.0.0 <- aggregate(f.4079.0.0 ~ time_bins, data = more_owl, FUN = mean)
+mean_grip_per_bin_f.102.0.0 <- aggregate(f.102.0.0 ~ time_bins, data = more_owl, FUN = mean)
+mean_grip_per_bin_f.4080.0.0 <- aggregate(f.4080.0.0 ~ time_bins, data = more_owl, FUN = mean)
+mean_grip_more_owls <- cbind(mean_grip_per_bin_f.4079.0.0, mean_grip_per_bin_f.102.0.0, mean_grip_per_bin_f.4080.0.0)
+mean_grip_more_owls$chronotype <- "MoreEvening"
+
+# More Morning
+more_lark <- data[data$chrono == 2,]
+
+#more_lark$time_bins <- ntile(more_lark$hours, 12)
+mean_grip_per_bin_f.4079.0.0 <- aggregate(f.4079.0.0 ~ time_bins, data = more_lark, FUN = mean)
+mean_grip_per_bin_f.102.0.0 <- aggregate(f.102.0.0 ~ time_bins, data = more_lark, FUN = mean)
+mean_grip_per_bin_f.4080.0.0 <- aggregate(f.4080.0.0 ~ time_bins, data = more_lark, FUN = mean)
+mean_grip_more_larks <- cbind(mean_grip_per_bin_f.4079.0.0, mean_grip_per_bin_f.102.0.0, mean_grip_per_bin_f.4080.0.0)
+mean_grip_more_larks$chronotype <- "MoreMorning"
+
+# Def Morning
+def_lark <- data[data$chrono == 1,]
+
+#def_lark$time_bins <- ntile(def_lark$hours, 12)
+mean_grip_per_bin_f.4079.0.0 <- aggregate(f.4079.0.0 ~ time_bins, data = def_lark, FUN = mean)
+mean_grip_per_bin_f.102.0.0 <- aggregate(f.102.0.0 ~ time_bins, data = def_lark, FUN = mean)
+mean_grip_per_bin_f.4080.0.0 <- aggregate(f.4080.0.0 ~ time_bins, data = def_lark, FUN = mean)
+mean_grip_def_larks <- cbind(mean_grip_per_bin_f.4079.0.0, mean_grip_per_bin_f.102.0.0, mean_grip_per_bin_f.4080.0.0)
+mean_grip_def_larks$chronotype <- "DefinetlyMorning"
+
+
+
+mean_grip_chronotype <- rbind(mean_grip_def_larks, mean_grip_more_larks, mean_grip_def_owls, mean_grip_more_owls)
+mean_grip_chronotype$chronotype <- gsub("Definetly", "Definitely", mean_grip_chronotype$chronotype)
+mean_grip_chronotype <- mean_grip_chronotype[,c("time_bins", "f.4079.0.0", "f.102.0.0", "f.4080.0.0", "chronotype")]
+
+head(mean_grip_chronotype)
+
+```
+
+
+#### Plot 
+
+Get acrophase (top y-value (grip-strength measure for each time bin, for each chronotype))
+
+```{r}
+mean_grip_def_larks[which.max(mean_grip_def_larks$f.4079.0.0), ]
+mean_grip_more_larks[which.max(mean_grip_more_larks$f.4079.0.0), ]
+mean_grip_more_owls[which.max(mean_grip_more_owls$f.4079.0.0), ]
+mean_grip_def_owls[which.max(mean_grip_def_owls$f.4079.0.0), ]
+```
+
+```{r}
+left <- ggplot(data = mean_grip_chronotype, aes(x = time_bins, y = f.4079.0.0, colour = chronotype)) +
+  geom_line() +
+  geom_point() +
+  #scale_size_continuous(range = c(1, 5)) +  # Adjust the range of sizes as needed
+  labs(x = "Time Bins", y = "Diastolic blood pressure") +
+  ggtitle("Diastolic blood pressure by chronotype (mmHg)") +
+  theme_minimal()
+
+left
+```
+
+```{r}
+
+right <- ggplot(data = mean_grip_chronotype, aes(x = time_bins, y = f.4080.0.0, colour = chronotype)) +
+  geom_line() +
+  geom_point() +
+  #scale_size_continuous(range = c(1, 5)) +  # Adjust the range of sizes as needed
+  labs(x = "Time Bins", y = "Systolic blood pressure") +
+  ggtitle("Systolic blood pressure by chronotype") +
+  theme_minimal()
+
+right
+```
+```{r}
+
+right <- ggplot(data = mean_grip_chronotype, aes(x = time_bins, y = f.102.0.0, colour = chronotype)) +
+  geom_line() +
+  geom_point() +
+  #scale_size_continuous(range = c(1, 5)) +  # Adjust the range of sizes as needed
+  labs(x = "Time Bins", y = "Pulse rate") +
+  ggtitle("Pulse rate by chronotype") +
+  theme_minimal()
+
+right
+```
+
+
+
+
