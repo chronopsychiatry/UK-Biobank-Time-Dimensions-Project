@@ -8,4 +8,8 @@ Researchers from MU, the raw dataset is on the acorn server, UKB folder, UKB9949
 ### Extract timing variables from the raw dataset
 Code to do this from the terminal using bash is supplied in Time_Variables/extract_time_variables.sh and a summary of these variables is provided in the Time_Variables/Timing_Variables.xlsx excel table.
 
+### Initial plotting of UKB variables versus time
+Code to do this is in Biometric_tests.Rmd
+
+
 
