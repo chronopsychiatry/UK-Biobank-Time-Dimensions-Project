@@ -10,6 +10,12 @@ library(ggplot2)
 # load participant dataframe for analysis
 load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\Metabolite Analyses\\analysis_met.Rda")
 
+# initial descriptive analyses
+alanine_df <- analysis_met %>%
+  group_by(Group) %>%
+  summarise(mean = mean(alanine.x, na.rm=TRUE), SD = sd(alanine.x, na.rm=TRUE), N = length(alanine.x))
+
+
 # ANALYSE: AMINO ACIDS ####
 #amino acid df
 aa_df <- data.frame(as.numeric(NA))
@@ -115,51 +121,85 @@ ggplot(tyrosine_df, aes(assess_month, mean, color=Group))+
 
 #box plot all participants
 ggplot(analysis_met, aes(x=factor(assess_month), y=tyrosine))+
-  geom_boxplot()+is 
+  geom_boxplot()+
   ggtitle("Tyrosine Annual Profile")+
   scale_x_continuous("assess_month", labels = as.character(creatinine_df$assess_month), breaks = creatinine_df$assess_month)
 
-  #cosinor analysis mof glycated haemoglobin in all participants ####
-  #remove nas from g_haem column
-  ghaem_df <- analysis_met %>%  filter(!is.na(g_haem))
-  ghaem_df<- ghaem_df %>%  filter(!g_haem>200)
+
+# analyses for g_haem hypothesis ####
+ghaem_df <- analysis_met %>%  filter(!is.na(g_haem))
+ghaem_df<- ghaem_df %>%  filter(!g_haem>200)
+
+
+# summary statistics - mean&sd for continuous variables:
+demo_mean_df <- ghaem_df %>%
+  group_by(Group) %>%
+  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales'),
+               mean, na.rm=TRUE)
+
+demo_sd_df <- ghaem_df %>%
+  group_by(Group) %>%
+  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales'),
+               sd, na.rm=TRUE)
+
+#counts for discrete variables:
+demo_sex_df <- ghaem_df %>%
+  group_by(Group) %>%
+  #mutate(sex = factor(sex)) %>% 
+  count(sex)
+demo_ethnicity_df <- ghaem_df %>%
+  group_by(Group) %>%
+  #mutate(sex = factor(sex)) %>% 
+  count(ethnicity)
+demo_disabled_df <- ghaem_df %>%
+  group_by(Group) %>%
+  #mutate(sex = factor(sex)) %>% 
+  count(disability_self_report)                
+
+
+#cosinor analysis mof glycated haemoglobin in all participants ####
+#remove nas from g_haem column
+ghaem_df <- analysis_met %>%  filter(!is.na(g_haem))
+ghaem_df<- ghaem_df %>%  filter(!g_haem>200)
+
+# do cosinor on daily data  
+ghaem_daily_cosinor = cosinor(g_haem~1, date='assess_date', data=ghaem_df, type='daily')
+summary(ghaem_daily_cosinor)
+seasrescheck(ghaem_daily_cosinor$residuals) # check the residuals
+plot(ghaem_daily_cosinor)
+
+# do cosinor on monthly data
+ghaem_df$assess_month <- as.numeric(as.character(ghaem_df$assess_month))
+ghaem_monthly_cosinor = cosinor(g_haem~1, date='assess_month', data=ghaem_df, type='monthly')
+summary(ghaem_monthly_cosinor)
+seasrescheck(ghaem_monthly_cosinor$residuals) # check the residuals
+plot(ghaem_monthly_cosinor)
+
+# explore gly.haem differences between groups ####
+# calculate mean & plot glycated haem
+g_haem_summary <- ghaem_df %>%
+  group_by(assess_month, Group) %>%
+  summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
+#plot
+ggplot(g_haem_summary, aes(assess_month, mean, color=Group))+
+  geom_line()+ggtitle("glyc.haem Annual Profile")+
+  geom_point()+
+  geom_errorbar(aes(ymin=mean-SD, ymax=mean+SD), width=.2,
+                position=position_dodge(0.05))+
+  scale_x_continuous("assess_month", labels = as.character(ghaem_df$assess_month), breaks = ghaem_df$assess_month)
+
+# complete cosinor for group control
+ghaem_control <- ghaem_df %>% filter(Group!='bipolar')
+ghaem_control_monthly_cosinor <- cosinor(g_haem~1, date='assess_month', data=ghaem_control, type='monthly')
+summary(ghaem_control_monthly_cosinor)
+seasrescheck(ghaem_control_monthly_cosinor$residuals) # check the residuals
+plot(ghaem_control_monthly_cosinor)
+
+# complete cosinor for group bipolar
+ghaem_bipolar <- ghaem_df %>% filter(Group!='control')
+ghaem_bipolar_monthly_cosinor <- cosinor(g_haem~1, date='assess_month', data=ghaem_bipolar, type='monthly')
+summary(ghaem_bipolar_monthly_cosinor)
+seasrescheck(ghaem_bipolar_monthly_cosinor$residuals) # check the residuals
+plot(ghaem_bipolar_monthly_cosinor)
+
   
-  # do cosinor on daily data  
-  ghaem_daily_cosinor = cosinor(g_haem~1, date='assess_date', data=ghaem_df, type='daily')
-  summary(ghaem_daily_cosinor)
-  seasrescheck(ghaem_daily_cosinor$residuals) # check the residuals
-  plot(ghaem_daily_cosinor)
-  
-  # do cosinor on monthly data
-  ghaem_df$assess_month <- as.numeric(as.character(ghaem_df$assess_month))
-  ghaem_monthly_cosinor = cosinor(g_haem~1, date='assess_month', data=ghaem_df, type='monthly')
-  summary(ghaem_monthly_cosinor)
-  seasrescheck(ghaem_monthly_cosinor$residuals) # check the residuals
-  plot(ghaem_monthly_cosinor)
-  
-  # explore gly.haem differences between groups ####
-  # calculate mean & plot glycated haem
-  g_haem_summary <- ghaem_df %>%
-    group_by(assess_month, Group) %>%
-    summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
-  #plot
-  ggplot(g_haem_summary, aes(assess_month, mean, color=Group))+
-    geom_line()+ggtitle("glyc.haem Annual Profile")+
-    geom_point()+
-    geom_errorbar(aes(ymin=mean-SD, ymax=mean+SD), width=.2,
-                  position=position_dodge(0.05))+
-    scale_x_continuous("assess_month", labels = as.character(ghaem_df$assess_month), breaks = ghaem_df$assess_month)
-  
-  # complete cosinor for group control
-  ghaem_control <- ghaem_df %>% filter(Group!='bipolar')
-  ghaem_control_monthly_cosinor <- cosinor(g_haem~1, date='assess_month', data=ghaem_control, type='monthly')
-  summary(ghaem_control_monthly_cosinor)
-  seasrescheck(ghaem_control_monthly_cosinor$residuals) # check the residuals
-  plot(ghaem_control_monthly_cosinor)
-  
-  # complete cosinor for group bipolar
-  ghaem_bipolar <- ghaem_df %>% filter(Group!='control')
-  ghaem_bipolar_monthly_cosinor <- cosinor(g_haem~1, date='assess_month', data=ghaem_bipolar, type='monthly')
-  summary(ghaem_bipolar_monthly_cosinor)
-  seasrescheck(ghaem_bipolar_monthly_cosinor$residuals) # check the residuals
-  plot(ghaem_bipolar_monthly_cosinor)
