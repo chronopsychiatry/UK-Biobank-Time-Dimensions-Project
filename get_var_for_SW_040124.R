@@ -109,6 +109,22 @@ age_completed_education <- ifelse(age_completed_education == -2, 0,
 #	Qualifications (6138)
 qualifications <- core_vars$f.6138.0.0
 comment(qualifications)<-c("Datafield = 6138")
+table(qualifications)
+qualifications <- ifelse(qualifications == "None of the above", NA,
+                     ifelse(qualifications == "Prefer not to answer", NA,
+                            qualifications))
+
+qualifications <- factor(qualifications, levels = c(3:8), labels = c("University degree", "A levels", "GCSEs", "CSEs", "HND", "Professional qualification"))
+
+# 1	College or University degree
+# 2	A levels/AS levels or equivalent
+# 3	O levels/GCSEs or equivalent
+# 4	CSEs or equivalent
+# 5	NVQ or HND or HNC or equivalent
+# 6	Other professional qualifications eg: nursing, teaching
+# -7	None of the above
+# -3	Prefer not to answer
+
 
 #	Current employment status (6142)
 employed <- core_vars$f.6142.0.0
@@ -119,20 +135,37 @@ employed_corr <- core_vars$f.20119.0.0
 comment(employed_corr)<-c("Datafield = 20119")
 
 #	Job involves night shift work (3426)
-night_shift <- core_vars$f.3426.0.0
-comment(night_shift)<-c("Datafield = 3426")
+current_night_shift <- core_vars$f.3426.0.0
+comment(current_night_shift)<-c("Datafield = 3426")
+# Recode 
+current_night_shift[current_night_shift == "Prefer not to answer"] <- NA
+current_night_shift[current_night_shift == "Do not know"] <- NA
+current_night_shift <- droplevels(current_night_shift)
 
 #	Job involves shift work (826)
-shift_work <- core_vars$f.826.0.0
-comment(shift_work)<-c("Datafield = 826")
+current_shift_work <- core_vars$f.826.0.0
+comment(current_shift_work)<-c("Datafield = 826")
+
+# Recode 
+current_shift_work[current_shift_work == "Prefer not to answer"] <- NA
+current_shift_work[current_shift_work == "Do not know"] <- NA
+current_shift_work <- droplevels(current_shift_work)
+
+# Coding	Meaning
+# 1	Never/rarely
+# 2	Sometimes
+# 3	Usually
+# 4	Always
+# -1	Do not know
+# -3	Prefer not to answer
 
 #add variables to master dataframe
 UKB_master <- cbind(UKB_master, age_completed_education, qualifications, employed,
-                    employed_corr, night_shift, shift_work)
+                    employed_corr, current_night_shift, current_shift_work)
 
 #remove environment variables no longer needed outside of dataframe
-rm(age_completed_education, qualifications, employed, employed_corr, night_shift,
-   shift_work)
+rm(age_completed_education, qualifications, employed, employed_corr, current_night_shift,
+   current_shift_work)
 
 
 ## Early life  #############################################
@@ -179,26 +212,25 @@ rm(adopted, birth_weight, birth_weight_metric, breastfed, country_birth_uk,
    country_birth_nonuk, maternal_smoking, handedness)
 
 
-
-
-
-
 ## Health  #############################################
 
 #smoking status (20116)
 smoking_status <- core_vars$f.20116.0.0
 comment(smoking_status)<-c("Datafield = 20116")
-smoking_status <- factor(smoking_status)
-smoking_status <- ifelse(smoking_status == 'Prefer not to answer', NA, smoking_status)
+smoking_status[smoking_status == "Prefer not to answer"] <- NA
+smoking_status <- droplevels(smoking_status)
 
 #alcohol intake frequency (1558)
 alcohol_intake <- core_vars$f.1558.0.0
 comment(alcohol_intake)<-c("Datafield = 1558")
 alcohol_intake <- ifelse(alcohol_intake == 'Prefer not to answer', NA, alcohol_intake)
+alcohol_intake <- factor(alcohol_intake, levels = c(2:7), labels = c("Daily or almost daily","Three or four times a week","Once or twice a week","One to three times a month","Special occasions only","Never"))
 
 #overall health rating (2178)
 health_self_report <- core_vars$f.2178.0.0
 comment(health_self_report)<-c("Datafield = 2178")
+health_self_report <- ifelse(health_self_report == 'Prefer not to answer' | health_self_report == "Do not know", NA, health_self_report)
+health_self_report <- factor(health_self_report, levels = c(3:6), labels = c("Excellent","Good","Fair","Poor"))
 
 #number of medications (137)
 medication_number <- core_vars$f.137.0.0
@@ -238,10 +270,6 @@ UKB_master <- cbind(UKB_master, smoking_status, alcohol_intake, health_self_repo
 rm(smoking_status, alcohol_intake, health_self_report, medication_number,
    medication_code, disability_allowance, disability_self_report, depress_gp, depress_psych)
 
-
-
-
-
 ## Seasonal#############################################
 
 #time spent outdoors in summer (1050)
@@ -267,9 +295,6 @@ UKB_master <- cbind(UKB_master, time_outdoors_summer, time_outdoors_winter)
 #remove environment variables no longer needed outside of dataframe
 rm(time_outdoors_summer, time_outdoors_winter)
 
-
-
-
 ## Sleep #############################################
 
 #Sleep duration (1160)
@@ -281,6 +306,11 @@ comment(sleep_duration)<-c("Datafield = 1160")
 sleep_duration <- ifelse(sleep_duration == -3, NA,
                                 ifelse(sleep_duration == -1, NA,
                                        sleep_duration))
+sleep_cat <- ifelse (sleep_duration < 6, "Short" ,
+                    ifelse(sleep_duration > 6 & sleep_duration < 9, "Optimal",
+                           ifelse(sleep_duration > 9, "Long",   
+                           NA)))
+table(sleep_cat)
 
 #Getting up in morning	(1170)
 getting_up  <- core_vars$f.1170.0.0
@@ -295,25 +325,6 @@ chronotype <- ifelse(chronotype == "Do not know", NA,
                                    chronotype))
 chronotype <- factor(chronotype, levels = c(3:6), labels = c("Morning","More morning than evening","More evening than morning","Evening"))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #Nap during day (1190)
 day_naps <- core_vars$f.1190.0.0
 comment(day_naps)<-c("Datafield = 1190")
@@ -321,6 +332,7 @@ comment(day_naps)<-c("Datafield = 1190")
 #Sleeplessness / insomnia (1200)
 insomnia <- core_vars$f.1200.0.0
 comment(insomnia)<-c("Datafield = 1200")
+table(insomnia)
 insomnia <- ifelse(insomnia == "Prefer not to answer", NA, insomnia)
 
 #Snoring (1210)
@@ -337,13 +349,11 @@ comment(alcohol_yesterday)<-c("Datafield = 100580")
 
 #add variables to master dataframe
 UKB_master <- cbind(UKB_master, sleep_duration, getting_up, chronotype, day_naps, insomnia,
-                    snoring, day_sleepiness, alcohol_yesterday)
+                    snoring, day_sleepiness, alcohol_yesterday, sleep_cat)
 
 #remove environment variables no longer needed outside of dataframe
 rm(sleep_duration, getting_up, chronotype, day_naps, day_sleepiness, insomnia,
    snoring, alcohol_yesterday)
-
-
 
 
 ## Physical Measures #############
@@ -352,17 +362,17 @@ rm(sleep_duration, getting_up, chronotype, day_naps, day_sleepiness, insomnia,
 BMI <- core_vars$f.21001.0.0
 comment(BMI)<-c("Datafield = 21001.0.0")
 
+BMI_cat <- cut(BMI, breaks = c(0, 18.5, 24.9, 29.9, Inf), 
+                    labels = c("Underweight", "Normal weight", "Overweight", "Obese"))
+
 #add variables to master dataframe
-UKB_master <- cbind(UKB_master, BMI)
+UKB_master <- cbind(UKB_master, BMI, BMI_cat)
 
 #remove environment variables no longer needed outside of dataframe
 rm(BMI)
 
-
-
 ######################################################################################################
 #  Extra variables after UKB_master made from core variables.  These must use merge not cbind as order and n could be different
-
 
 #get townsend index
 townsend <- read.delim("C:/Users/Admin/OneDrive - Maynooth University/UK Biobank Shiftwork/townsend.tsv")
@@ -370,8 +380,6 @@ names(townsend) <- c("eid", "townsend")
 comment(townsend$townsend)<-c("Data field = 22189.0.0")
 townsend <- townsend[! townsend$eid %in% withdrawn$eid,]
 UKB_master <- merge(UKB_master, townsend, by="eid")
-
-
 
 #get PA from touchscreen data
 PA <- read.delim("./PA.tsv")
@@ -395,7 +403,6 @@ PA$IPAQ <- factor (PA$IPAQ, levels = c(0:2), labels = c("low", "moderate","high"
 # 2	high
 
 UKB_master <- merge(UKB_master, PA, by = "eid")
-
 
 #childhood obesity
 childhood_obesity <- read.delim("./childhood_obesity.tsv")
@@ -468,9 +475,7 @@ table(smoking$smoke_start_prev, useNA = "always")
 #Data-Field 22506 get smoking status now from the 120k - this is different than main touchscreen smoking status variable
 smoking$smoker <- smoking$X22506.0.0
 comment(smoking$smoker) <- c("Data field = 22506")
-head(smoking$smoker)
 
-table(smoking$smoker, useNA = "always")
 smoking$smoker <- factor(smoking$smoker,
 labels = c("Smokes on most or all days", "Occasionally","Ex-smoker","Never smoked","Prefer not to answer"),
 levels = c(111,112,113,114,-818))           
@@ -533,8 +538,6 @@ table(smoking$smoke_20yr, useNA ="always")
 
 describe(smoking$smoke_start_curr)
 describe(smoking$smoke_start_prev)
-hist(smoking$smoke_start_curr)
-hist(smoking$smoke_start)
 
 vars <- c("eid",
 "smoke_start_curr",
@@ -564,10 +567,10 @@ UKB_master$birth_latitude <- ifelse(UKB_master$country_birth_uk == "England", 52
 describe(UKB_master$birth_latitude)
 
 ### Save core variables 'UKB_master' as R datafile ######
-save(UKB_master,file="UKB_master.Rda")
+save(UKB_master,file="UKB_master150224.Rda")
 
 ### Save core variables 'UKB_master' as csv ######
-write.csv(UKB_master, file="UKB_master.csv")
+write.csv(UKB_master, file="UKB_master150224.csv")
 
 #remove lvl lbl  for clean environment
 rm(list=ls(pattern="lvl"))

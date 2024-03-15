@@ -9,58 +9,51 @@ library(sjPlot)
 library(stringr)
 library(glmnet)
 library(psych)
+library(performance)
+library(see)
+
 
 setwd("C:/Users/Admin/OneDrive - Maynooth University/UK Biobank Shiftwork")
 
-shiftwork <- read.csv("C:/Users/Admin/OneDrive - Maynooth University/UK Biobank Shiftwork/shiftwork.csv")
-UKB_master <- read.csv("C:/Users/Admin/OneDrive - Maynooth University/UK Biobank Shiftwork/UKB_master.csv")
+shiftwork1 <- read.csv("C:/Users/Admin/OneDrive - Maynooth University/UK Biobank Shiftwork/shiftwork.csv")
+UKB_master <- read.csv("C:/Users/Admin/OneDrive - Maynooth University/UK Biobank Shiftwork/UKB_master150224.csv")
 
 # goto get_NDD_var_040124.R to get NDD data into UKB_master
 
 #merge shiftowrk and core variables
-UKB_masterSW <- merge(shiftwork, UKB_master, by="eid")
+UKB_masterSW <- merge(shiftwork1, UKB_master, by="eid")
 
-#make an early life shiftwork variable
-#UKB_masterSW$early_life_SW <- ifelse(as.character(UKB_masterSW$agebracket) == "15-20" & as.character(UKB_masterSW$SW_YN) == "Shiftworker",1,0)
-
-# check if smoked for that year in prior smokers
-
-#age range
-UKB_masterSW$start_age <- substr(UKB_masterSW$agebracket,1,2)
-UKB_masterSW$stop_age <-  substr(UKB_masterSW$agebracket,4,5)
-
-
-#===       get started smoking var    not enough participants had this var  ======================
-#smokers range
-UKB_masterSW$stop_smoke <- UKB_masterSW$smoke_stopped
-UKB_masterSW$start_smoke <- UKB_masterSW$smoke_start
-
-#function to check if smoked during age bracket in prior smokers
-check_overlap <- function(start_age, stop_age, start_smoke, stop_smoke) {
-  as.integer(start_age <= stop_smoke & stop_age >= start_smoke)
-}
-
-# Create a new variable 'smoked_bracket' based on overlapping intervals
-UKB_masterSW$smoked_bracket <- check_overlap(UKB_masterSW$start_age, UKB_masterSW$stop_age, UKB_masterSW$start_smoke, UKB_masterSW$stop_smoke)
-
-#add 0 if never smoked
-UKB_masterSW$smoked_year <- ifelse(UKB_masterSW$smoking_status == "Never", 0, UKB_masterSW$smoked_year)
-
-table(UKB_masterSW$smoker)
-table(UKB_masterSW$smokerYN)
-
-#add 1 to all years after started smoking in current smokers
-UKB_masterSW$smoked_year <- ifelse(UKB_masterSW$smokerYN == "Non-Smoker" & UKB_masterSW$start_smoke > UKB_masterSW$start_age, 1, UKB_masterSW$smoked_year)
-
-UKB_masterSW$smoke_20yr <- factor(UKB_masterSW$smoke_20yr)
+# #===       get started smoking var    not enough participants had this var  ======================
+# #smokers range
+# UKB_masterSW$stop_smoke <- UKB_masterSW$smoke_stopped
+# UKB_masterSW$start_smoke <- UKB_masterSW$smoke_start
+# 
+# #function to check if smoked during age bracket in prior smokers
+# check_overlap <- function(start_age, stop_age, start_smoke, stop_smoke) {
+#   as.integer(start_age <= stop_smoke & stop_age >= start_smoke)
+# }
+# 
+# # Create a new variable 'smoked_bracket' based on overlapping intervals
+# UKB_masterSW$smoked_bracket <- check_overlap(UKB_masterSW$start_age, UKB_masterSW$stop_age, UKB_masterSW$start_smoke, UKB_masterSW$stop_smoke)
+# 
+# #add 0 if never smoked
+# UKB_masterSW$smoked_year <- ifelse(UKB_masterSW$smoking_status == "Never", 0, UKB_masterSW$smoked_year)
+# 
+# table(UKB_masterSW$smoker)
+# table(UKB_masterSW$smokerYN)
+# 
+# #add 1 to all years after started smoking in current smokers
+# UKB_masterSW$smoked_year <- ifelse(UKB_masterSW$smokerYN == "Non-Smoker" & UKB_masterSW$start_smoke > UKB_masterSW$start_age, 1, UKB_masterSW$smoked_year)
+# 
+# UKB_masterSW$smoke_20yr <- factor(UKB_masterSW$smoke_20yr)
 
 #=================================================================================================================
 
 #get missing MS var - change MS NA to MS zero
-UKB_masterSW$MS <- ifelse(UKB_masterSW$MS_year > 1, 1,0)
-table(UKB_masterSW$MS, useNA = "always")
-UKB_masterSW$MS <- ifelse(is.na(UKB_masterSW$MS_year), 0, UKB_masterSW$MS)
-table(UKB_masterSW$MS)
+# UKB_masterSW$MS <- ifelse(UKB_masterSW$MS_year > 1, 1,0)
+# table(UKB_masterSW$MS, useNA = "always")
+# UKB_masterSW$MS <- ifelse(is.na(UKB_masterSW$MS_year), 0, 1)
+# table(UKB_masterSW$MS)
 
 # get dataset of healthy only participants (other than MS)
 
@@ -88,62 +81,130 @@ UKB_masterSW <- UKB_masterSW %>%
   ))
 
 UKB_masterSW$healthy <- factor(UKB_masterSW$healthy)
-table(UKB_masterSW$healthy)
+table(UKB_masterSW$healthy, useNA = "always")
 
 #take out the unhealthy, leave MS and healthy
-UKB_masterSW_healthy <- UKB_masterSW[UKB_masterSW$healthy == "Healthy" | UKB_masterSW$MS == 1, ]
+UKB_masterSW_healthy <- UKB_masterSW[UKB_masterSW$healthy == "Healthy" | UKB_masterSW$MS_YN == 1, ]
 
 #change missing MS to didn't have MS, year = 0
-UKB_masterSW_healthy$MS <- ifelse(is.na(UKB_masterSW_healthy$MS_year), 0, UKB_masterSW_healthy$MS)
+#UKB_masterSW_healthy$MS <- ifelse(is.na(UKB_masterSW_healthy$MS_year), 0, UKB_masterSW_healthy$MS)
 
 #make a MS_YN variable
-UKB_masterSW_healthy$MS_YN <- 0
-UKB_masterSW_healthy$MS_YN[UKB_masterSW_healthy$MS == 1] <- 1
-
-table(UKB_masterSW_healthy$MS, useNA="always")
-table(UKB_masterSW_healthy$MS_YN, useNA="always")
-
-UKB_masterSW_healthy$MS[is.na(UKB_masterSW_healthy$MS)] <- 0
-UKB_masterSW_healthy$MS <- factor(UKB_masterSW_healthy$MS)
-UKB_masterSW_healthy$MS <- droplevels(UKB_masterSW_healthy$MS)
-table(UKB_masterSW_healthy$MS, useNA = "always")
-
+# UKB_masterSW$MS_YN <- 0
+# UKB_masterSW$MS_YN[UKB_masterSW$MS_YN == 1] <- 1
+# table(UKB_masterSW$MS_YN, useNA="always")
+# 
+# UKB_masterSW$MS[is.na(UKB_masterSW$MS_YN)] <- 0
+# UKB_masterSW$MS_YN <- factor(UKB_masterSW$MS_YN)
+# UKB_masterSW$MS_YN <- droplevels(UKB_masterSW$MS_YN)
+# str(UKB_masterSW$MS_YN)
 
 # ==========================          make SW vars ==================================================
-UKB_masterSW_healthy$SW_YN <- 0 # ever did SW
-UKB_masterSW_healthy$SW_YN <- ifelse (UKB_masterSW_healthy$bracket_total_hr_nightSW > 0 | UKB_masterSW_healthy$bracket_total_hr_mixSW >0 | UKB_masterSW_healthy$bracket_total_hr_daySW > 0,1,UKB_masterSW_healthy$SW_YN)
-UKB_masterSW_healthy$SW_YN <- factor(UKB_masterSW_healthy$SW_YN)
 
-UKB_masterSW_healthy$NSW_YN <- 0  #ever did NSW
-UKB_masterSW_healthy$NSW_YN <- ifelse (UKB_masterSW_healthy$bracket_total_hr_nightSW > 0 | UKB_masterSW_healthy$bracket_total_hr_mixSW >0,1,UKB_masterSW_healthy$NSW_YN)
-UKB_masterSW_healthy$NSW_YN <- factor(UKB_masterSW_healthy$NSW_YN)
+table(UKB_masterSW$bracket_SW_type, useNA="always")
 
-# ================           set all values for shiftwork after diagnosis to NA for sensitivity analysis only    ========
-if (UKB_masterSW_healthy$dementia_year | UKB_masterSW_healthy$PD_year | UKB_masterSW_healthy$MS_year)
+UKB_masterSW$SW_YN <- 0 # ever did SW
+UKB_masterSW$SW_YN <- ifelse (UKB_masterSW$bracket_total_hr_nightSW > 0 |
+                                        UKB_masterSW$bracket_total_hr_mixSW > 0 |
+                                        UKB_masterSW$bracket_total_hr_daySW > 0, 1, UKB_masterSW$SW_YN)
+                                        
+UKB_masterSW$SW_YN <- ifelse(!is.na(UKB_masterSW$current_shift_work) &
+                                       (UKB_masterSW$current_shift_work == "Always" |
+                                          UKB_masterSW$current_shift_work == "Sometimes" |
+                                          UKB_masterSW$current_shift_work == "Usually"),
+                                     1, UKB_masterSW$SW_YN)
+table(UKB_masterSW$SW_YN, useNA = "always")      # add current shiftwork
+UKB_masterSW$SW_YN <- factor(UKB_masterSW$SW_YN)
 
-UKB_masterSW_healthy$bracket_total_hr_daySW
-UKB_masterSW_healthy$bracket_total_hr_nightSW
-UKB_masterSW_healthy$bracket_total_hr_mixSW
-UKB_masterSW_healthy$bracket_SW_per_work
-UKB_masterSW_healthy$bracket_nightSW_per_work
-UKB_masterSW_healthy$bracket_daySW_per_work
-UKB_masterSW_healthy$bracket_mixSW_per_work
 
-#data for 15-20, used for general factors (ignore age bracket)
-tabledata <- UKB_masterSW_healthy[UKB_masterSW_healthy$agebracket=="15-20",]
-tabledata$MS[is.na(tabledata$MS)] <- 0
-table(tabledata$MS, useNA = "always")
-tabledata$MS[is.na(tabledata$MS)] <- 0
 
-#process PD, MND and dementia data to get YN variables and NAs to zero
-tabledata$PD_YN[is.na(tabledata$PD_YN)] <- 0
-tabledata$dementia_YN[is.na(tabledata$dementia_YN)] <- 0
-tabledata$mnd_YN[is.na(tabledata$dementia_YN)] <- 0
+UKB_masterSW$NSW_YN <- 0  # ever did NSW
+UKB_masterSW$NSW_YN <- ifelse (UKB_masterSW$bracket_total_hr_nightSW > 0 |
+                                        UKB_masterSW$bracket_total_hr_mixSW > 0 
+                                        , 1, UKB_masterSW$NSW_YN)
 
-table(tabledata$mnd_YN, useNA = "always")
-tabledata$mnd <- 0
-tabledata$mnd[tabledata$mnd_YN==1] <- 1
-table(tabledata$MS, useNA = "always")
+UKB_masterSW$NSW_YN <- ifelse(!is.na(UKB_masterSW$current_night_shift) &
+                                       (UKB_masterSW$current_night_shift == "Always" |
+                                          UKB_masterSW$current_night_shift == "Sometimes" |
+                                          UKB_masterSW$current_night_shift == "Usually"),
+                                     1, UKB_masterSW$NSW_YN)
+table(UKB_masterSW$NSW_YN, useNA = "always")      # add current shiftwork
+UKB_masterSW$NSW_YN <- factor(UKB_masterSW$NSW_YN)
+
+# ever did early shiftwork 15-20
+UKB_masterSW$early_SW_YN <- 0
+UKB_masterSW$early_SW_YN <- ifelse (UKB_masterSW$agebracket=="15-20" &
+                                            UKB_masterSW$bracket_total_hr_nightSW > 0 , 1, 
+                                            UKB_masterSW$early_SW_YN)
+UKB_masterSW$early_SW_YN <- ifelse (UKB_masterSW$agebracket=="15-20" &
+                                              UKB_masterSW$bracket_total_hr_daySW > 0 , 1, 
+                                            UKB_masterSW$early_SW_YN)
+UKB_masterSW$early_SW_YN <- ifelse (UKB_masterSW$agebracket=="15-20" &
+                                              UKB_masterSW$bracket_total_hr_mixSW > 0 , 1, 
+                                            UKB_masterSW$early_SW_YN)
+table(UKB_masterSW$early_SW_YN)
+UKB_masterSW$early_SW_YN 
+
+x<-UKB_masterSW[UKB_masterSW$agebracket=="15-20",] 
+table(x$early_SW_YN)
+
+UKB_masterSW$early_SW_YN <- factor(UKB_masterSW$early_SW_YN)
+                                       
+# ever did early night shiftwork 15-20
+UKB_masterSW$early_NSW_YN <- 0
+UKB_masterSW$early_NSW_YN <- ifelse (UKB_masterSW$agebracket=="15-20" &
+                                              UKB_masterSW$bracket_total_hr_nightSW > 0 , 1, 
+                                            UKB_masterSW$early_NSW_YN)
+UKB_masterSW$early_NSW_YN <- ifelse (UKB_masterSW$agebracket=="15-20" &
+                                              UKB_masterSW$bracket_total_hr_mixSW > 0 , 1, 
+                                            UKB_masterSW$early_NSW_YN)
+table(UKB_masterSW$bracket_total_hr_nightSW, useNA = "always")
+UKB_masterSW$early_NSW_YN <- factor(UKB_masterSW$early_NSW_YN)
+
+UKB_masterSW <- UKB_masterSW[!is.na(UKB_masterSW$eid), ]
+
+# missing values in job category not allowed.  All participants were working or on a gap, and no question omitted
+
+
+##----------------   correct quantitative shiftwork parameters    ----------------------------------
+UKB_masterSW$bracket_total_hr[UKB_masterSW$bracket_total_hr==0] <- NA
+UKB_masterSW$bracket_total_hr_daySW[UKB_masterSW$bracket_total_hr_daySW==0] <- NA
+UKB_masterSW$bracket_total_hr_nightSW[UKB_masterSW$bracket_total_hr_nightSW==0] <- NA
+UKB_masterSW$bracket_total_hr_mixSW[UKB_masterSW$bracket_total_hr_mixSW==0] <- NA
+
+UKB_masterSW$bracket_SW_per_work[UKB_masterSW$bracket_SW_per_work==0] <- NA
+UKB_masterSW$bracket_nightSW_per_work[UKB_masterSW$bracket_nightSW_per_work ==0] <- NA
+UKB_masterSW$bracket_mixSW_per_work[UKB_masterSW$bracket_mixSW_per_work==0] <- NA
+
+summary(UKB_masterSW$bracket_total_hr_daySW, useNA="always")
+summary(UKB_masterSW$bracket_total_hr_daySW, useNA="always")
+
+prop.table(table(UKB_masterSW$bracket_SW_type,UKB_masterSW$agebracket), margin=2)
+
+#make percentage in work variable - note that NA or 0 hours are gaps, not possible to have NA, either work or gap
+UKB_masterSW$workingYN <- ifelse(is.na(UKB_masterSW$bracket_total_hr), 0,1)
+table(UKB_masterSW$workingYN)
+summary(UKB_masterSW$bracket_total_hr)
+
+#age range
+UKB_masterSW$start_age <- substr(UKB_masterSW$agebracket,1,2)
+UKB_masterSW$stop_age <-  substr(UKB_masterSW$agebracket,4,5)
+
+
+
+
+# # ================           set all values for shiftwork after diagnosis to NA for sensitivity analysis only    ========
+# if (UKB_masterSW$dementia_year | UKB_masterSW$PD_year | UKB_masterSW$MS_year)
+# 
+# UKB_masterSW$bracket_total_hr_daySW
+# UKB_masterSW$bracket_total_hr_nightSW
+# UKB_masterSW$bracket_total_hr_mixSW
+# UKB_masterSW$bracket_SW_per_work
+# UKB_masterSW$bracket_nightSW_per_work
+# UKB_masterSW$bracket_daySW_per_work
+# UKB_masterSW$bracket_mixSW_per_work
+# # ================      ========
+ 
 
 "agebracket"              
 
@@ -156,7 +217,10 @@ table(tabledata$MS, useNA = "always")
 "bracket_nightSW_per_work" 
 "bracket_daySW_per_work"   
 "bracket_mixSW_per_work"  
-
+"early_NSW_YN"
+"early_SW_YN"
+"SW_YN"
+"NSW_YN"
 "sex"                      
 "age"
 "ethnicity_5"
@@ -180,14 +244,13 @@ table(tabledata$MS, useNA = "always")
 "dementia_YN"
 
 #get variables for tables
-vars <- UKB_masterSW_healthy %>%
+vars <- UKB_masterSW %>%
   select(where(is.numeric)) %>%
   colnames() %>%
   str_c('"', ., '"') %>% 
   str_c(collapse = " + ") %>% 
   cat()
 
-x <- names(UKB_masterSW_healthy)
 vars <- paste(x, collapse = " + ")
 vars <- noquote(vars)
 
@@ -219,30 +282,55 @@ margin_of_error <- qt(0.975, df) * se
 lower_ci <- sample_mean - margin_of_error
 upper_ci <- sample_mean + margin_of_error
 
+
+#copy values for early life shiftwork to all other levels of agebracket, not just 15-20
+table(UKB_masterSW_updated$early_SW_YN)
+df <- UKB_masterSW_updated
+# Find the value of SW_YN for rows where both eid and agebracket match the condition
+sw_15_20 <- df$SW_YN[df$agebracket == "15-20" & !is.na(df$SW_YN)]
+
+# Find the eids where agebracket is not "15-20"
+eids_not_15_20 <- df$eid[df$agebracket != "15-20"]
+
+# Update the SW_YN for other rows with matching eid
+for (eid in eids_not_15_20) {
+  df$SW_YN[df$eid == eid] <- sw_15_20[df$eid[df$agebracket == "15-20"] == eid]
+}
+
+
 ############################################################################################################### 
 # Table 1   Demography stratify by MS
-# 
-##############################################################################################################
+################################################################################################################
 
-chronotype <- factor(chronotype, levels = c(3:6), labels = c("Morning","More morning than evening","More evening than morning","Evening"))
+#make variable to stratify by NDD
+UKB_masterSW$NDD <- 0
+UKB_masterSW$NDD <- ifelse(UKB_masterSW$MS_YN == 1, "MS", 
+                 ifelse(UKB_masterSW$PD_YN == 1, "PD",
+                        ifelse(UKB_masterSW$dementia_YN == 1, "Dementia"
+                              ,0)))
 
-# covariables
-sex + age + ethnicity_5 + townsend + alcohol_intake + time_outdoors_summer + chronotype + BMI + smoker + child_obesity
-+ smoke_start + smoke_20yr + birth_latitude + sleep_duration
+table(UKB_masterSW$NDD,useNA="always")
 
 #outcome
-"mnd_YN"
 "PD_YN" 
 "MS_YN"
 "dementia_YN"
 
+# table (as.numeric(UKB_master$MS_YN, useNA = "always"))
+# na_index <- is.na(UKB_masterSW_healthy$MS_YN)
+# UKB_masterSW_healthy$MS_YN[na_index] <- 0
+# UKB_masterSW_healthy$MS_YN <- droplevels(factor(UKB_masterSW_healthy$MS_YN))
+# table(UKB_masterSW_healthy$PD_YN, useNA = "always")
+
+UKB_masterSW$smoke_20yr <- factor(UKB_masterSW$smoke_20yr)
+
 # this is nicely formated table1, add pvalues from tableone function below
-table1(~ sex + age + townsend + + birth_latitude + #demography
+table1(~ sex + age + townsend + birth_latitude + #demography
+         BMI_cat +  healthy + sleep_cat + chronotype + child_obesity + #physiology
          alcohol_intake + time_outdoors_summer +  #lifestype
-         chronotype + sleep_duration + BMI + child_obesity + #physiology
          smoker + smoke_start + smoke_20yr  + #smoking
-         SW_YN + NSW_YN + bracket_SW_per_work + bracket_nightSW_per_work # shiftwork 15-20
-         | dementia_YN, data=tabledata, overall=FALSE, render.continuous=my.render.cont, render.categorical=my.render.cat)
+         early_NSW_YN + early_SW_YN + NSW_YN + SW_YN # shiftwork 15-20
+         | NDD, data=UKB_masterSW[UKB_masterSW$agebracket=="15-20",], overall=FALSE, render.missing = NULL, render.continuous=my.render.cont, render.categorical=my.render.cat)
 
 #check that some MS did shiftwork
 result <- UKB_masterSW %>%
@@ -251,12 +339,12 @@ result <- UKB_masterSW %>%
 
 ## Create Table 1 stratified by MS to get p-values
 tableOne <- CreateTableOne(vars = c('sex' , 'age' , 'townsend' , 'birth_latitude' , #demography
+                                      'BMI_cat' ,  'healthy' , 'sleep_cat' , 'chronotype' , 'child_obesity' , #physiology
                                       'alcohol_intake' , 'time_outdoors_summer' ,  #lifestype
-                                      'chronotype' , 'sleep_duration' , 'BMI' , 'child_obesity' , #physiology
                                       'smoker' , 'smoke_start' , 'smoke_20yr'  , #smoking
-                                      'SW_YN' , 'NSW_YN' , 'bracket_SW_per_work' , 'bracket_nightSW_per_work'),
-                           strata = c("dementia_YN"), 
-                           data = tabledata, 
+                                      'early_NSW_YN' , 'early_SW_YN' , 'NSW_YN' , 'SW_YN' ),
+                           strata = c("MS_YN"), 
+                           data = UKB_masterSW[UKB_masterSW$agebracket=="15-20",], 
                            #test = FALSE, 
                            factorVars = c())
 
@@ -264,76 +352,67 @@ print(tableOne)
 
 ##############################################################################################################
 # 
-# Table 2   Descriptive Statistics of Shiftwork stratified by brackets and MS
+# Table 2   Descriptive Statistics of Shiftwork stratified by brackets 
 # 
 ##############################################################################################################
 
-# Remove rows with missing values in the agebracket
-UKB_masterSW_healthy <- UKB_masterSW_healthy[complete.cases(UKB_masterSW_healthy$agebracket), ]
 
-
-UKB_masterSW_healthy <- UKB_masterSW_healthy[complete.cases(UKB_masterSW_healthy$agebracket),]
-describe(UKB_masterSW_healthy$bracket_nightSW_per_work)
-
-#percentage in work
-#percentage in shiftwork
-UKB_masterSW_healthy$bracket_total_hr_daySW
+table1(~  workingYN + bracket_total_hr + bracket_total_hr_daySW + bracket_total_hr_nightSW + bracket_total_hr_mixSW + bracket_SW_type + bracket_SW_per_work + bracket_nightSW_per_work + bracket_daySW_per_work + bracket_mixSW_per_work | agebracket, data=UKB_masterSW, overall=FALSE, render.continuous=my.render.cont, render.missing = NULL,render.categorical=my.render.cat)
 
 # this is only 15-20
-table1(~  bracket_total_hr + bracket_total_hr_daySW + bracket_total_hr_nightSW + bracket_total_hr_mixSW + bracket_SW_type + bracket_SW_per_work + bracket_nightSW_per_work + bracket_daySW_per_work + bracket_mixSW_per_work | agebracket + MS, data=UKB_masterSW_healthy, overall=FALSE, render.continuous=my.render.cont, render.categorical=my.render.cat)
+table1(~ workingYN + bracket_total_hr + bracket_total_hr_daySW + bracket_total_hr_nightSW + bracket_total_hr_mixSW + bracket_SW_type + bracket_SW_per_work + bracket_nightSW_per_work + bracket_daySW_per_work + bracket_mixSW_per_work  | NDD, data = UKB_masterSW[UKB_masterSW$agebracket == "15-20",], render.missing = NULL, overall=FALSE, render.continuous=my.render.cont, render.categorical=my.render.cat)
 
-table1(~  bracket_total_hr + bracket_total_hr_daySW + bracket_total_hr_nightSW + bracket_total_hr_mixSW + bracket_SW_type + bracket_SW_per_work + bracket_nightSW_per_work + bracket_daySW_per_work + bracket_mixSW_per_work + allSW + SW_summary + night_shift + shift_work|MS, data=mydata[mydata$agebracket != "15-20",], overall=FALSE, render.continuous=my.render.cont, render.categorical=my.render.cat)
+filtered_rows <- UKB_masterSW[UKB_masterSW$agebracket == "15-20" & UKB_masterSW$MS_YN == 1, ]
 
-## Create Table 1 stratified by MS to get p-values
-tableOne <- CreateTableOne(vars = c("bracket_total_hr" , "bracket_total_hr_daySW" , "bracket_total_hr_nightSW" , "bracket_total_hr_mixSW" , "bracket_SW_type" , "bracket_SW_per_work" , "bracket_nightSW_per_work" , "bracket_daySW_per_work" , "bracket_mixSW_per_work" , "allSW" , "SW_summary" , "night_shift" , "shift_work"), strata = c("MS"), data = tabledata, factorVars = c())
 
-print(tableOne)
+
+tableOne <- CreateTableOne(vars = c('workingYN' , 'bracket_total_hr' , 'bracket_total_hr_daySW' , 'bracket_total_hr_nightSW' , 'bracket_total_hr_mixSW' , 'bracket_SW_type' , 'bracket_SW_per_work' , 'bracket_nightSW_per_work' , 'bracket_daySW_per_work' , 'bracket_mixSW_per_work' ), strata = c("NDD"), data = UKB_masterSW[UKB_masterSW$agebracket == "15-20",], factorVars = c())
+
+prprprint(tableOne)
 
 tableOne <- CreateTableOne(vars = c("bracket_total_hr" , "bracket_total_hr_daySW" , "bracket_total_hr_nightSW" , "bracket_total_hr_mixSW" , "bracket_SW_type" , "bracket_SW_per_work" , "bracket_nightSW_per_work" , "bracket_daySW_per_work" , "bracket_mixSW_per_work" , "allSW" , "SW_summary" , "night_shift" , "shift_work"), strata = c("MS"), data = mydata[mydata$agebracket != "15-20",], factorVars = c())
 print(tableOne)
 
+x <- UKB_masterSW[UKB_masterSW$agebracket == "15-20",]
+x$bracket_total_hr_daySW
 
 ##############################################################################################################
 #
 # Model - SW in early life no age bracket data
 #
 ################################################################################################################
-# IPAQ early_life_SW early_life_smoke
-#M1 - demography
-#
-model <- glm(MS ~ age + sex + ethnicity_5 + townsend + birth_latitude + early_life_SW ,
-                data = tabledata, family = "binomial")
-summary(model)  
 
-#M2 - physical mental health and lifestyle
-model <- glm(MS ~ age + sex + ethnicity_5 + townsend + birth_latitude +  time_outdoors_summer + shift_work +
-              child_obesity + chronotype + BMI + bracket_total_hr_nightSW + bracket_SW_per_work        ,
-             data = tabledata, family = "binomial")
-summary(model)  
-table(tabledata$shift_work, useNA = "always")
+sex + age + townsend + birth_latitude + #demography
+         BMI_cat +  healthy + sleep_cat + chronotype + child_obesity + #physiology
+         alcohol_intake + time_outdoors_summer +  #lifestype
+         smoker + smoke_start + smoke_20yr  + #smoking
+         early_NSW_YN + early_SW_YN + NSW_YN + SW_YN # shiftwork 15-20
+       | NDD, data=UKB_masterSW[UKB_masterSW$agebracket=="15-20",], overall=FALSE
 
-#M3 - work and environment
-model <- glm(MS ~ age + sex + ethnicity_5 + townsend + birth_latitude + 
-               child_obesity + sleep_duration + chronotype + BMI + smoking_status + alcohol_intake  + depress_psych + 
-              +  + early_life_SW,
-               
-             data = tabledata, family = "binomial")
-summary(model)  
+# Check model assumptions
+check_model(model3)
++ early_SW_YN ++ NSW_YN
+table(UKB_masterSW$agebracket)
++ early_SW_YN + NSW_YN ++ early_SW_YN 
+#MS
+model_MS <- glm(MS_YN ~ age + sex + ethnicity_5 + townsend + birth_latitude + time_outdoors_summer +
+             child_obesity  + SW_YN  ,
+               data = UKB_masterSW[UKB_masterSW$agebracket=="21-25",], family = "binomial")
+summary(model_MS)  
++ early_SW_YN 
+#PD
+model_PD <- glm(PD_YN ~ age + sex + ethnicity_5 + townsend + birth_latitude + time_outdoors_summer +
+                  child_obesity + SW_YN   ,
+                data = UKB_masterSW[UKB_masterSW$agebracket=="21-25",], family = "binomial")
+summary(model_PD)  
 
+#MS
+model_dementia <- glm(dementia_YN ~ age + sex + ethnicity_5 + townsend + birth_latitude + time_outdoors_summer +
+                  child_obesity  + SW_YN  ,
+                data = UKB_masterSW[UKB_masterSW$agebracket=="21-25",], family = "binomial")
+summary(model_dementia)  
 
-
-# Fit logistic regression model for early life shiftwork
-model <- glm(MS ~  + smoking_status + alcohol_intake + townsend + depress_psych + time_outdoors_summer +  sleep_duration + chronotype + BMI + bracket_total_hr_nightSW + age + sex + bracket_SW_per_work, data = tabledata, family = "binomial")
-
-# Display the summary of the model
-summary(model)
-
-# Fit logistic regression model for total life shiftwork
-model <- glm(MS ~ ethnicity_5 + early_life_SW + smoking_status + alcohol_intake + townsend + depress_psych + agebracket + time_outdoors_summer +  sleep_duration + chronotype + BMI + bracket_total_hr_nightSW + age + sex + bracket_SW_per_work, data = mydata, family = "binomial")
-
-# Display the summary of the model
-summary(model)
-
++  NSW_YN 
 ##############################################################################################################
 #
 # Model - SW in early life - cross sectional

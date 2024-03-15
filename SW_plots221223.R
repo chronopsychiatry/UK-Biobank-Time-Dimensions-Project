@@ -1,3 +1,5 @@
+library(viridis)
+library(dplyr)
 
 #######################################################################################################
 #
@@ -30,7 +32,7 @@ col <- viridis(length(labels), option = "D", begin = 0, end = 1, direction = 1 )
 #   tab:olive : #bcbd22
 #   tab:cyan : #17becf
 
-col<-pal_jco("default")(9)
+#col<-pal_jco("default")(9)
 
 col <-c('#1f77b4', #tableau matlab
         '#ff7f0e',
@@ -40,7 +42,7 @@ col <-c('#1f77b4', #tableau matlab
         '#8c564b',
         '#e377c2',
         '#7f7f7f',
-        '#bcbd22')
+        '#bcbd22',
 '#17becf')
 
 shiftwork$bracket_SW_type <- factor(shiftwork$bracket_SW_type, levels = c("Assoc_prof","Prof","Machine","Managers","Trades","Service","Element","Admin","Sales"))

@@ -341,10 +341,11 @@ for(file in filelist) { #note filelist of ts, where t is the table of jobs for e
 }    
    
       
-write.csv(shiftwork, file="shiftwork250225.csv")
 shiftwork <- rbind(shiftwork230224, shiftwork250224, shiftwork260225)
-
-table(shiftwork$bracket_SW_occupation)
+shiftwork230224 <- read.csv("C:/Users/Admin/OneDrive - Maynooth University/UK Biobank Shiftwork/shiftwork230224.csv")
+shiftwork250224 <- read.csv("C:/Users/Admin/OneDrive - Maynooth University/UK Biobank Shiftwork/shiftwork250224.csv")
+shiftwork260225 <- read.csv("C:/Users/Admin/OneDrive - Maynooth University/UK Biobank Shiftwork/shiftwork260225.csv")
+write.csv(shiftwork, file="shiftwork250225.csv")
 
 
 # the only thing of interest is the type of shiftwork at different age brackets.  The actual type of shiftwork at an individual level is probably not useful - would be under powered to detect any association with MS.  In the shiftwork dataframe, bracket_SW_type records the job type of each SW job for that age bracket for that person. Next loop though the shiftwork data frames to summarise the types of shiftwork done at each age bracket

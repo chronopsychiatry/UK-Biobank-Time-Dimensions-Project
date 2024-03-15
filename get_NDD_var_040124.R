@@ -45,7 +45,8 @@ comment(MS_UKB$MS_year) <-"Data field 131042"
 #MS source is the diagnosis of MS
 #MS_year is the year of diagnosis
 
-MS_UKB$MS_source <- ifelse(!is.na(MS_UKB$MS_source), 1, 0)
+MS_UKB$MS_YN <- ifelse(!is.na(MS_UKB$MS_source), 1, 0)
+table(MS_UKB$MS_YN, useNA = "always")
 
 ##############################################################################################
 # Parkinsons Disease
