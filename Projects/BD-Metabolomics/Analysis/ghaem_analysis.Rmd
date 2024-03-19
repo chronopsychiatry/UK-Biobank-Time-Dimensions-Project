@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## BD Seasonality/metabolomics
 
-```{load, echo=FALSE}
+```{r load, echo=FALSE}
 #load libraries
 library(tidyverse)
 library(dplyr)
@@ -21,11 +21,7 @@ library(MatchIt)
 library(ggplot2)
 
 # load participant dataframe for analysis
-load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\Metabolite Analyses\\analysis_met.Rda")
-
-bs_vars <- readr::read_tsv("C:/Users/arogusk2/OneDrive - University of Edinburgh./HELIOS-BD/Side Projects/BioBank Project/core dataset/Sample timings/blood_datetime_3166_participant.tsv")
-
-study_population <- merge(analysis_met,bs_vars, by="eid")
+load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\Final study participant dataframe\\analysis_df.Rda")
 
 ```
 
@@ -40,29 +36,14 @@ Remove:
 ghaem_df <- study_population %>%  filter(!is.na(g_haem))
 ghaem_df<- ghaem_df %>%  filter(!g_haem>200)
 
-# tidy blood sample timings variable
-#rename variable '3166-0.0'
-ghaem_df <- ghaem_df %>% 
-  rename('BS_datetime' = '3166-0.0')
 
-# pull out year
-bs_timings <- ghaem_df$eid
-bs_timings$bs_year <- as.numeric(NA)
-bs_timings$bs_month <- as.numeric(NA)
-bs_timings$bs_time <- as.numeric(NA)
-
-# pull out month
-
-# pull out day of week
-
-# pull out ToD
 
 ```
 
 ## Create matched control group
 
 ``` {r match}
-
+df_to_matchit<-na.omit(df_to_matchit[,.(identifier,DmT2_0_Hx,f.21003.0.0,f.31.0.0,f.21001.0.0)])
 ```
 
 ## Table 1
