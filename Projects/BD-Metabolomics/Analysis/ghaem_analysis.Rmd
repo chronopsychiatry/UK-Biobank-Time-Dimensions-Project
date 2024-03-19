@@ -9,7 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## BD Seasonality/metabolomics
+# BD Seasonality & glycated haemoglobin
+##load data - section complete
 
 ```{r load, echo=FALSE}
 #load libraries
@@ -25,36 +26,54 @@ load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\S
 
 ```
 
-## Tidy data
+## Tidy data for Glycated Haemoglobin analysis - section complete
 
 Remove:
 * People with NA for glycated haemoglobin
 * People with glycated haemoglobin levels >200mmol/mol
 
 ```{r pressure, echo=FALSE}
-# remove people
+# remove people with NA glycated haemoglobin
 ghaem_df <- study_population %>%  filter(!is.na(g_haem))
-ghaem_df<- ghaem_df %>%  filter(!g_haem>200)
 
+#remove people with glycated haemoglobin levels outside of manufacturer's reportable range
+ghaem_df<- ghaem_df %>%  filter(!g_haem>184)
+ghaem_df<- ghaem_df %>%  filter(!g_haem<15)
 
+# remove people with NA variables: bs_datetime (removes 2)
+ghaem_df<- ghaem_df %>%  filter(!is.na(BS_datetime))
 
 ```
 
-## Create matched control group
+## Create matched control group - section complete
+
+1:1 matching based on sex, age, ethnicity, BMI, assess_centre, bs_month, bs_year
 
 ``` {r match}
-df_to_matchit<-na.omit(df_to_matchit[,.(identifier,DmT2_0_Hx,f.21003.0.0,f.31.0.0,f.21001.0.0)])
+# convert matching variables to type 'factor' for matchit function to work
+
+for_match_df <- ghaem_df
+for_match_df$Group<- as.factor(as.character(for_match_df$Group))
+
+# remove people with NA variables: ethnicity
+for_match_df<- for_match_df %>%  filter(!is.na(ethnicity))
+#for_match_df<- for_match_df %>%  filter(!is.na(BMI))
+
+m.out1 <- matchit(Group ~ age + sex + ethnicity + assess_centre + bs_month + bs_year, data = for_match_df)
+
+match_control_df <- match.data(m.out1)
 ```
 
-## Table 1
+## Table 1 - section in progress
 
 ```{r table 1}
-# summary statistics - mean&sd for continuous variables:
+# summary statistics - mean for continuous variables:
 demo_mean_df <- ghaem_df %>%
   group_by(Group) %>%
   summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales'),
                mean, na.rm=TRUE)
 
+# summary statistics - std.dev for continuous variables:
 demo_sd_df <- ghaem_df %>%
   group_by(Group) %>%
   summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales'),
@@ -76,18 +95,20 @@ demo_disabled_df <- ghaem_df %>%
 ```
 
 
-## Explore blood sample timings
+## Explore blood sample timings - section in progress
 
 ```{r explore sample timings/distribution}
 
 # month
-ggplot(ghaem_df, aes(x = BS_month)) +
+ggplot(ghaem_df, aes(x = bs_month)) +
   geom_histogram(fill = "salmon2", colour = "black") +
   facet_grid(Group ~ ., scales = "free")
 
 # day
-
+ggplot(ghaem_df, aes(x = bs_wday)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
 ```
 
-## Explore glycated haemoglobin
+## Explore glycated haemoglobin - section in progress
 
