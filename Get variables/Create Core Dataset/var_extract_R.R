@@ -532,7 +532,7 @@ end_interview <- as.POSIXct(datetime_vars$f.21831.0.0)
 comment (end_interview)<-c("Datafield = 21831")
 
 # pull out blood sample timings info 
-bs_vars <- readr::read_tsv("./Sample timings/blood_datetime_3166_participant.tsv")
+bs_vars <- readr::read_tsv("C:/Users/arogusk2/OneDrive - University of Edinburgh./HELIOS-BD/Side Projects/BioBank Project/core dataset/Sample timings/blood_datetime_3166_participant.tsv")
 
 #datetime of day of blood sampling at assessment centre (3166)
 BS_date <- as.Date(bs_vars$'3166-0.0')
