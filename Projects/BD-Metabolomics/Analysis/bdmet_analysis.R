@@ -10,6 +10,25 @@ library(ggplot2)
 # load participant dataframe for analysis
 load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\Metabolite Analyses\\analysis_met.Rda")
 
+
+# analyses for g_haem hypothesis ####
+ghaem_df <- analysis_met %>%  filter(!is.na(g_haem))
+ghaem_df<- ghaem_df %>%  filter(!g_haem>200)
+
+
+# summary statistics - mean&sd for continuous variables:
+demo_mean_df <- ghaem_df %>%
+  group_by(Group) %>%
+  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales'),
+               mean, na.rm=TRUE)
+
+demo_sd_df <- ghaem_df %>%
+  group_by(Group) %>%
+  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales'),
+               sd, na.rm=TRUE)
+
+
+
 # initial descriptive analyses
 alanine_df <- analysis_met %>%
   group_by(Group) %>%

@@ -1,0 +1,112 @@
+---
+title: "UKB_ghaem"
+author: "agpr141"
+date: "2024-03-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## BD Seasonality/metabolomics
+
+```{load, echo=FALSE}
+#load libraries
+library(tidyverse)
+library(dplyr)
+library(readr)
+library(season)
+library(MatchIt)
+library(ggplot2)
+
+# load participant dataframe for analysis
+load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\Metabolite Analyses\\analysis_met.Rda")
+
+bs_vars <- readr::read_tsv("C:/Users/arogusk2/OneDrive - University of Edinburgh./HELIOS-BD/Side Projects/BioBank Project/core dataset/Sample timings/blood_datetime_3166_participant.tsv")
+
+study_population <- merge(analysis_met,bs_vars, by="eid")
+
+```
+
+## Tidy data
+
+Remove:
+* People with NA for glycated haemoglobin
+* People with glycated haemoglobin levels >200mmol/mol
+
+```{r pressure, echo=FALSE}
+# remove people
+ghaem_df <- study_population %>%  filter(!is.na(g_haem))
+ghaem_df<- ghaem_df %>%  filter(!g_haem>200)
+
+# tidy blood sample timings variable
+#rename variable '3166-0.0'
+ghaem_df <- ghaem_df %>% 
+  rename('BS_datetime' = '3166-0.0')
+
+# pull out year
+bs_timings <- ghaem_df$eid
+bs_timings$bs_year <- as.numeric(NA)
+bs_timings$bs_month <- as.numeric(NA)
+bs_timings$bs_time <- as.numeric(NA)
+
+# pull out month
+
+# pull out day of week
+
+# pull out ToD
+
+```
+
+## Create matched control group
+
+``` {r match}
+
+```
+
+## Table 1
+
+```{r table 1}
+# summary statistics - mean&sd for continuous variables:
+demo_mean_df <- ghaem_df %>%
+  group_by(Group) %>%
+  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales'),
+               mean, na.rm=TRUE)
+
+demo_sd_df <- ghaem_df %>%
+  group_by(Group) %>%
+  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales'),
+               sd, na.rm=TRUE)
+
+#counts for discrete variables:
+demo_sex_df <- ghaem_df %>%
+  group_by(Group) %>%
+  #mutate(sex = factor(sex)) %>% 
+  count(sex)
+demo_ethnicity_df <- ghaem_df %>%
+  group_by(Group) %>%
+  #mutate(sex = factor(sex)) %>% 
+  count(ethnicity)
+demo_disabled_df <- ghaem_df %>%
+  group_by(Group) %>%
+  #mutate(sex = factor(sex)) %>% 
+  count(disability_self_report)    
+```
+
+
+## Explore blood sample timings
+
+```{r explore sample timings/distribution}
+
+# month
+ggplot(ghaem_df, aes(x = BS_month)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# day
+
+```
+
+## Explore glycated haemoglobin
+
