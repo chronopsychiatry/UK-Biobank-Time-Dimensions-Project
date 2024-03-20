@@ -11,5 +11,7 @@ Code to do this from the terminal using bash is supplied in Time_Variables/extra
 ### Initial plotting of UKB variables versus time
 Code to do this is in Biometric_tests.Rmd and outputs are in Biometric Tests.html file.
 
+Updated version to plot measures against "hour bins" rather than "time bins" is in Biometric_graphs.Rmd.
+
 
 
