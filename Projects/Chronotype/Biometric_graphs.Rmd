@@ -1,0 +1,152 @@
+---
+title: "Biometric_Time_Graphs"
+output: html_document
+date: "2024-03-20"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load packages
+  
+lubridate is used to convert hour, min, seconds (hms) to seconds
+```{r}
+library(lubridate)
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+```
+
+### Read in data and convert times to decimal hours
+```{r}
+data <- read.table("//wsl.localhost/Ubuntu/home/lfahey/ukb_concept/bp_times_chrono.tab", header=T, fill = TRUE)
+mins <- lubridate::hms(data$time)
+data$biometrics_seconds <- period_to_seconds(mins)
+data$hours <- data$biometrics_seconds / 3600
+```
+
+# Plot time ranges
+
+```{r}
+# Read in file
+biomet <- read.table("//wsl.localhost/Ubuntu/home/lfahey/ukb_concept/biometrics_stats.txt", header=T, fill = TRUE)
+
+biomet
+
+# Make barplot
+barplot(biomet$NumberParticipants, names=biomet$TimeRange, xlab = "Hours", ylab = "Number of participants", main = "Times participants completed biometric tests")
+```
+Based on above, we could use a threshold of 10,000 samples - This would mean removing samples that completed biometric tests before 9am and after 8pm.
+
+Create an additional column in data, called hour bin, which bins samples in bins based on the hour they completed the biometric tests.
+
+```{r}
+data <- data[data$hours > 9 & data$hours < 20,]
+data$hour_bins <- cut(data$hours, breaks = c(9:20), labels = c(9:19))
+```
+
+
+## In the next could block, I am getting data ready to plot average measures for each time bin for different chronotypes
+1. Create seperate data frames for four different chronotypes \
+2. Get the average measure value for each hour bin \
+3. Add chronotype as an extra column to each df \
+4. Bind all 4 dfs by rows 
+
+```{r}
+# Def Evening
+
+def_owl <- data[data$chrono == 4,]
+mean_grip_per_bin_f.4079.0.0 <- aggregate(f.4079.0.0 ~ hour_bins, data = def_owl, FUN = mean)
+mean_grip_per_bin_f.102.0.0 <- aggregate(f.102.0.0 ~ hour_bins, data = def_owl, FUN = mean)
+mean_grip_per_bin_f.4080.0.0 <- aggregate(f.4080.0.0 ~ hour_bins, data = def_owl, FUN = mean)
+mean_grip_def_owls <- cbind(mean_grip_per_bin_f.4079.0.0, mean_grip_per_bin_f.102.0.0, mean_grip_per_bin_f.4080.0.0)
+mean_grip_def_owls$chronotype <- "DefinetlyEvening"
+
+# More Evening
+more_owl <- data[data$chrono == 3,]
+mean_grip_per_bin_f.4079.0.0 <- aggregate(f.4079.0.0 ~ hour_bins, data = more_owl, FUN = mean)
+mean_grip_per_bin_f.102.0.0 <- aggregate(f.102.0.0 ~ hour_bins, data = more_owl, FUN = mean)
+mean_grip_per_bin_f.4080.0.0 <- aggregate(f.4080.0.0 ~ hour_bins, data = more_owl, FUN = mean)
+mean_grip_more_owls <- cbind(mean_grip_per_bin_f.4079.0.0, mean_grip_per_bin_f.102.0.0, mean_grip_per_bin_f.4080.0.0)
+mean_grip_more_owls$chronotype <- "MoreEvening"
+
+# More Morning
+more_lark <- data[data$chrono == 2,]
+mean_grip_per_bin_f.4079.0.0 <- aggregate(f.4079.0.0 ~ hour_bins, data = more_lark, FUN = mean)
+mean_grip_per_bin_f.102.0.0 <- aggregate(f.102.0.0 ~ hour_bins, data = more_lark, FUN = mean)
+mean_grip_per_bin_f.4080.0.0 <- aggregate(f.4080.0.0 ~ hour_bins, data = more_lark, FUN = mean)
+mean_grip_more_larks <- cbind(mean_grip_per_bin_f.4079.0.0, mean_grip_per_bin_f.102.0.0, mean_grip_per_bin_f.4080.0.0)
+mean_grip_more_larks$chronotype <- "MoreMorning"
+
+# Def Morning
+def_lark <- data[data$chrono == 1,]
+mean_grip_per_bin_f.4079.0.0 <- aggregate(f.4079.0.0 ~ hour_bins, data = def_lark, FUN = mean)
+mean_grip_per_bin_f.102.0.0 <- aggregate(f.102.0.0 ~ hour_bins, data = def_lark, FUN = mean)
+mean_grip_per_bin_f.4080.0.0 <- aggregate(f.4080.0.0 ~ hour_bins, data = def_lark, FUN = mean)
+mean_grip_def_larks <- cbind(mean_grip_per_bin_f.4079.0.0, mean_grip_per_bin_f.102.0.0, mean_grip_per_bin_f.4080.0.0)
+mean_grip_def_larks$chronotype <- "DefinetlyMorning"
+
+mean_grip_chronotype <- rbind(mean_grip_def_larks, mean_grip_more_larks, mean_grip_def_owls, mean_grip_more_owls)
+mean_grip_chronotype$chronotype <- gsub("Definetly", "Definitely", mean_grip_chronotype$chronotype)
+mean_grip_chronotype <- mean_grip_chronotype[,c("hour_bins", "f.4079.0.0", "f.102.0.0", "f.4080.0.0", "chronotype")]
+
+head(mean_grip_chronotype)
+
+# Make hour_bins numeric (required for making the line graph)
+mean_grip_chronotype$hour_bins <- as.numeric(as.character(mean_grip_chronotype$hour_bins))
+```
+
+
+## Make Plots or all measures
+
+# Make hours to be used as x-axis ticks and labels
+```{r}
+hours <- c(9:19)
+```
+
+```{r}
+
+systolic_bp <- ggplot(data = mean_grip_chronotype, aes(x = hour_bins, y = f.4080.0.0, colour = chronotype)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = hours, 
+                     labels = hours) +
+  labs(x = "Time Bins", y = "Systolic blood pressure") +
+  ggtitle("Systolic blood pressure by chronotype") +
+  theme_minimal()
+
+systolic_bp
+```
+
+```{r}
+
+pulse_rate <- ggplot(data = mean_grip_chronotype, aes(x = hour_bins, y = f.102.0.0, colour = chronotype)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = hours, 
+                     labels = hours) +
+  labs(x = "Time Bins", y = "Pulse rate") +
+  ggtitle("Pulse rate by chronotype") +
+  theme_minimal()
+
+pulse_rate
+```
+
+```{r}
+
+Diastolic_bp <- ggplot(data = mean_grip_chronotype, aes(x = hour_bins, y = f.4079.0.0, colour = chronotype)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = hours, 
+                     labels = hours) +
+  labs(x = "Time Bins", y = "Diastolic blood pressure") +
+  ggtitle("Diastolic blood pressure by chronotype") +
+  theme_minimal()
+
+Diastolic_bp
+```
+
+
+# To add confidence interval shaded region (haven't figured out how to get CIs for mean just yet):
+p<-p+geom_ribbon(aes(ymin=data$lower, ymax=data$upper), linetype=2, alpha=0.1)
