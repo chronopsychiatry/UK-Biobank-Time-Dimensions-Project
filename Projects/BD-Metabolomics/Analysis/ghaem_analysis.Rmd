@@ -66,7 +66,7 @@ m.out1 <- matchit(Group ~ age + sex + ethnicity + assess_centre + bs_month + bs_
 match_control_df <- match.data(m.out1)
 
 #try different matching method: exact
-m.out_exact <- matchit(Group ~ age + sex + ethnicity + assess_centre + bs_month + bs_year, data = for_match_df, method="exact")
+m.out_exact <- matchit(Group ~ age + sex + ethnicity + assess_centre + bs_month + bs_year, data = for_match_df, method="nearest", exact= ~ bs_month + age + sex + assess_centre)
 match_exact_df <- match.data(m.out_exact)
 ```
 
@@ -135,22 +135,83 @@ Glycated haemoglobin levels are reportedly higher in cooler months, and lower in
 # task 1: visualise with data collapsed into months - all participants
 
 # calculate mean & plot glycated haem - all controls
+#individual months
 g_haem_summary <- ghaem_df %>%
   group_by(bs_month, Group) %>%
   summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
 
+#seasons
+#spring
+g_haem_spring <- ghaem_df %>%
+  filter(bs_month == "3" |bs_month =="4" |bs_month == "5") %>%
+  group_by(Group) %>%
+  summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
+
+#summer
+g_haem_summer <- ghaem_df %>%
+  filter(bs_month == "6" |bs_month =="7" |bs_month == "8") %>%
+  group_by(Group) %>%
+  summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
+
+#autumn
+g_haem_autumn <- ghaem_df %>%
+  filter(bs_month == "9" |bs_month =="10" |bs_month == "11") %>%
+  group_by(Group) %>%
+  summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
+
+#winter
+g_haem_winter <- ghaem_df %>%
+  filter(bs_month == "12" |bs_month =="1" |bs_month == "2") %>%
+  group_by(Group) %>%
+  summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
+
+
 # calculate mean & plot glycated haem - matched controls
-g_haem_summary_matched <- match_control_df %>%
+g_haem_summary_matched <- match_exact_df %>%
   group_by(bs_month, Group) %>%
   summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
+
+#matched control seasons
+#spring
+g_haem_m_spring <- match_exact_df %>%
+  filter(bs_month == "3" |bs_month =="4" |bs_month == "5") %>%
+  group_by(Group) %>%
+  summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
+
+#summer
+g_haem_m_summer <- match_exact_df %>%
+  filter(bs_month == "6" |bs_month =="7" |bs_month == "8") %>%
+  group_by(Group) %>%
+  summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
+
+#autumn
+g_haem_m_autumn <- match_exact_df %>%
+  filter(bs_month == "9" |bs_month =="10" |bs_month == "11") %>%
+  group_by(Group) %>%
+  summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
+
+#winter
+g_haem_m_winter <- match_exact_df %>%
+  filter(bs_month == "12" |bs_month =="1" |bs_month == "2") %>%
+  group_by(Group) %>%
+  summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
+
 
 #plot
 ggplot(g_haem_summary, aes(bs_month, mean, color=Group))+
   geom_line()+ggtitle("glyc.haem Annual Profile")+
   geom_point()+
   geom_errorbar(aes(ymin=mean-SD, ymax=mean+SD), width=.2,
-                position=position_dodge(0.05))#+
-  #scale_x_continuous("bs_month", labels = as.character(ghaem_df$bs_month), breaks = ghaem_df$bs_month)
+                position=position_dodge(0.05))+
+  scale_x_continuous("bs_month", labels = as.character(g_haem_summary$bs_month), breaks = g_haem_summary$bs_month)
 
-
+# plot temp correlation
+ggplot(match_exact_df, aes(x=average_temp, y=g_haem, color=Group)) + 
+  geom_point()+
+  geom_smooth(method=lm)+  
+  ylim(20, 50)
+model <- ghaem_df %>%
+  filter(Group=="control") %>%
+  lm(g_haem~average_temp)
+temp_ghaem <- cor.test(ghaem_df$average_temp, ghaem_df$g_haem, method=c("pearson", "kendall", "spearman"))
 ```
