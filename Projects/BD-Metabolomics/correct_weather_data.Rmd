@@ -98,5 +98,9 @@ working_df <- merge(working_df,weather_stations, by="assess_centre")
 #merge dataframes based on year and month and centre
 working_df <- merge(working_df, temp_table, by = c("assess_year", "station", "assess_month"), all.x = TRUE)
 
+rm(analysis_df)
+analysis_df <- working_df
+save(analysis_df,file="analysis_df.Rda")
+
 ```
 

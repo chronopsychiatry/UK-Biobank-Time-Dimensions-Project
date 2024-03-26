@@ -196,7 +196,7 @@ g_haem_m_winter <- match_exact_df %>%
   group_by(Group) %>%
   summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
 
-
+ 
 #plot
 ggplot(g_haem_summary, aes(bs_month, mean, color=Group))+
   geom_line()+ggtitle("glyc.haem Annual Profile")+
