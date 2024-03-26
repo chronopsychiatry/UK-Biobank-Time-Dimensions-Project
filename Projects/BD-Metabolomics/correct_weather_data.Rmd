@@ -1,0 +1,102 @@
+---
+title: "get weather data"
+author: "Cathy Wyse"
+date: '2023-09-27'
+output: html_document
+---
+This code extracts mean monthly outdoor temperature for each assessment centre and year.  The month and year are taken from the baseline assessment date.  Average monthly temperature is used to avoid variations from unusual daily temperatures.  
+
+The nearest weather station to the assessment centres (that had historical data) were:  
+  
+Weather Data Table  
+
+station | near	        |Category  |centre code 
+:-------|:--------------|:---------|:----------- 
+shef	  |Cheadle        |(revisit) |11024 
+shef	  |Cheadle        |(imaging) |11025 
+Brad  	|Leeds	        |          |11010  
+Card  	|Cardiff        |          |11003 
+Card	  |Swansea        |          |11022 
+Durh	  |Newcastle      |          |11009 
+Heat  	|Barts	        |          |11012 
+Heat  	|Croydon        |          |11020 
+Heat  	|Hounslow       |	         |11018 
+Heat  	|Reading        |	         |11007 
+Leuc  	|Edinburgh      |          |11005 
+Oxfo  	|Oxford         |          |11002 
+Pais  	|Glasgow        |	         |11004 
+Ross  	|Bristol        |          |11011 
+Shaw  	|Wrexham        |          |11023 
+Shef  	|Stockport      |(pilot)   |10003 
+Shef  	|Bury	          |          |11008  
+Shef  	|Liverpool      |	         |11016 
+Shef  	|Manchester     |          |11001 
+Shef  	|Sheffield      |	         |11014 
+Shef  	|Stoke          |          |11006 
+Sutt  	|Birmingham     |          |11021 
+Sutt  	|Nottingham     |          |11013 
+Whit  	|Middlesborough |          |11017 
+ 
+The data are taken from Met Office website
+https://www.metoffice.gov.uk/research/climate/maps-and-data/historic-station-data
+
+**Historic station data consists of:**  
+Mean daily maximum temperature (tmax)  
+Mean daily minimum temperature (tmin)  
+Days of air frost (af)  
+Total rainfall (rain)  
+Total sunshine duration (sun)  
+Monthly mean temperature  
+
+The monthly mean temperature is calculated from the average of the mean daily maximum and mean daily minimum temperature i.e. (tmax+tmin)/2.  
+ 
+Missing data  
+Missing data (more than two days missing in a month) have been indicated by "---". Estimated data (where available) have been indicated by "*" after the value.  
+
+Sunshine data  
+Sunshine data using a Kipp and Zonen sensor have been indicated by a "#" after the value. All other sunshine data have been recorded using a Campbell-Stokes recorder.  
+
+The file containing the temperature data is called weather_ukb_270923.xlsx.  Only data for average temperature have been extracted.  
+
+```{r import data}
+library(pillar)
+library(readxl)
+setwd("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\biobank-time-dimensions\\Projects\\BD-Metabolomics")
+temp_table <- read_excel("./weather_ukb_270923.xlsx", sheet = "monthly temp")
+colnames(temp_table) <- c("station","assess_year", "assess_month", "tmax", "tmin", "frost", "rain", "sun", "average_temp")
+weather_stations <- read_excel("weather_ukb_270923.xlsx", sheet = "ukb centres - weather stations")
+#UKB_master <- read.csv("C:/UKB-time/UKB_master") - use ghaem_df instead
+colnames(weather_stations) <- c("station","assess_centre_name", "assess_centre")
+```
+
+Link eid to year, month and weather station
+
+They are linked by the month, year and assessment centre for each eid to give a value for average monthly temperature for each participant at the baseline assessment visit.
+
+
+```{r merge}
+library(dplyr)
+
+setwd("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\biobank-time-dimensions\\Projects\\BD-Metabolomics")
+
+#check station names & clean up
+working_df <- ghaem_df
+
+# check main df
+unique(working_df$station)  #lists 12 stations with 1st letter capital
+
+# check weather_stations and remove shef for revisits
+unique(weather_stations$station)  #lists 13 stations with 1st letter capital EXCEPT lower case shef (revisit & imaging)
+
+
+unique(temp_table$station)  #lists 12 stations with 1st letter lower case EXCEPT upper case Card, Brad
+#merge weather stations and centre
+working_df  <- analysis_df
+working_df  = subset(working_df , select = -c(station,tmax, tmin,frost, rain, sun, average_temp))
+working_df <- merge(working_df,weather_stations, by="assess_centre")
+
+#merge dataframes based on year and month and centre
+working_df <- merge(working_df, temp_table, by = c("assess_year", "station", "assess_month"), all.x = TRUE)
+
+```
+
