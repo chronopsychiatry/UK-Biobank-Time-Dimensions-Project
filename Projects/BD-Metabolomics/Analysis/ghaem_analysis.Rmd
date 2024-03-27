@@ -3,6 +3,9 @@ title: "UKB_ghaem"
 author: "agpr141"
 date: "2024-03-18"
 output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ```{r setup, include=FALSE}
@@ -10,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # BD Seasonality & glycated haemoglobin
+
 ##load data - section complete
 
 ```{r load, echo=FALSE, verbose=FALSE}
@@ -21,6 +25,9 @@ library(season)
 library(MatchIt)
 library(ggplot2)
 library(lubridate)
+library(broom)
+library(hrbrthemes)
+library(viridis)
 
 # load participant dataframe for analysis
 load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\Final study participant dataframe\\analysis_df.Rda")
@@ -30,8 +37,18 @@ load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\S
 ## Tidy data for Glycated Haemoglobin analysis - section complete
 
 Remove:
-* People with NA for glycated haemoglobin
-* People with glycated haemoglobin levels >200mmol/mol
+
+-    People with NA for glycated haemoglobin
+
+-   People with glycated haemoglobin levels outside of analytic
+    reference range 15-184mmol/mol
+
+Make:
+
+-   New outlier variable for glycated haemoglobin
+
+-   Season variable from month data (1=Spring, 2=Summer, 3=Autumn,
+    4=Winter)
 
 ```{r pressure, echo=FALSE}
 # remove people with NA glycated haemoglobin
@@ -41,18 +58,29 @@ ghaem_df <- analysis_df %>%  filter(!is.na(g_haem))
 ghaem_df<- ghaem_df %>%  filter(!g_haem>184)
 ghaem_df<- ghaem_df %>%  filter(!g_haem<15)
 
+# add new column to df to indicate if ghaem value is IQR-defined outlier
+find_outlier <- function(x) {
+  return(x < quantile(x, .25) - 1.5*IQR(x) | x > quantile(x, .75) + 1.5*IQR(x))
+}
+
+ghaem_df <- ghaem_df %>%
+        group_by(Group) %>%
+        mutate(outlier = ifelse(find_outlier(g_haem), g_haem, NA))
+
 # remove people with NA variables: bs_datetime (removes 2)
 ghaem_df<- ghaem_df %>%  filter(!is.na(BS_datetime))
 
 # make season numeric
 ghaem_df$bs_season <- as.numeric(as.character(ghaem_df$bs_season))
+
 ```
 
 ## Create matched control group - section complete
 
-1:1 matching based on sex, age, ethnicity, BMI, assess_centre, bs_month, bs_year
+1:1 matching based on sex, age, ethnicity, BMI, assess_centre, bs_month,
+bs_year
 
-``` {r match, verbose=FALSE}
+```{r match, verbose=FALSE}
 # convert matching variables to type 'factor' for matchit function to work
 
 for_match_df <- ghaem_df
@@ -145,6 +173,31 @@ write.csv(table, file = "checkABCD3.csv")
 
 ```
 
++---------------+--------------------+--------------------+----------------+---------+
+| Variable      | Control group (n=) | Bipolar group (n=) | Test statistic | p-value |
++===============+====================+====================+================+=========+
+| Age (years),  |                    |                    |                |         |
++---------------+--------------------+--------------------+----------------+---------+
+| Sex, N (%)    |                    |                    |                |         |
++---------------+--------------------+--------------------+----------------+---------+
+|               |                    |                    |                |         |
++---------------+--------------------+--------------------+----------------+---------+
+|               |                    |                    |                |         |
++---------------+--------------------+--------------------+----------------+---------+
+|               |                    |                    |                |         |
++---------------+--------------------+--------------------+----------------+---------+
+|               |                    |                    |                |         |
++---------------+--------------------+--------------------+----------------+---------+
+|               |                    |                    |                |         |
++---------------+--------------------+--------------------+----------------+---------+
+|               |                    |                    |                |         |
++---------------+--------------------+--------------------+----------------+---------+
+|               |                    |                    |                |         |
++---------------+--------------------+--------------------+----------------+---------+
+|               |                    |                    |                |         |
++---------------+--------------------+--------------------+----------------+---------+
+
+: Table 1:
 
 ## Explore blood sample timings - section in progress
 
@@ -176,86 +229,48 @@ ggplot(ghaem_df, aes(x = bs_time)) +
 ```
 
 ## Explore glycated haemoglobin - section in progress
-Glycated haemoglobin levels are reportedly higher in cooler months, and lower in warmer months.
-1. is this true for both our control groups?
-    * calculate mean + sd for HbA1c levels for months (individually) and seasons
-    * correlation between temperature & Hba1c level - months
-    * correlation between (avg) daylength and (avg) rate of change & Hba1c levels - month
+
+Glycated haemoglobin levels are reportedly higher in cooler months, and
+lower in warmer months. 1. is this true for both our control groups? \*
+calculate mean + IQR (not -sd-) for HbA1c levels for months
+(individually) and seasons \* correlation between temperature & Hba1c
+level - months \* correlation between (avg) daylength and (avg) rate of
+change & Hba1c levels - month
 
 ```{r gly_haem}
 
-# task 1: visualise with data collapsed into months - all participants
+# task 1: visualise with data collapsed into months & seasons
 
 # calculate mean & plot glycated haem - all controls
 #individual months
-g_haem_summary <- ghaem_df %>%
+ghaem_month <- ghaem_df %>%
   group_by(bs_month, Group) %>%
-  summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
+  summarise(median = median(g_haem, na.rm=TRUE), IQR = IQR(g_haem, na.rm=TRUE), q1 = quantile(g_haem, 0.25), q3 = quantile(g_haem, 0.75), N = length(g_haem))
 
 #seasons
-#spring
-g_haem_spring <- ghaem_df %>%
-  filter(bs_month == "3" |bs_month =="4" |bs_month == "5") %>%
-  group_by(Group) %>%
-  summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
-
-#summer
-g_haem_summer <- ghaem_df %>%
-  filter(bs_month == "6" |bs_month =="7" |bs_month == "8") %>%
-  group_by(Group) %>%
-  summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
-
-#autumn
-g_haem_autumn <- ghaem_df %>%
-  filter(bs_month == "9" |bs_month =="10" |bs_month == "11") %>%
-  group_by(Group) %>%
-  summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
-
-#winter
-g_haem_winter <- ghaem_df %>%
-  filter(bs_month == "12" |bs_month =="1" |bs_month == "2") %>%
-  group_by(Group) %>%
-  summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
+ghaem_season <- ghaem_df %>%
+  group_by(bs_season, Group) %>%
+  summarise(median = median(g_haem, na.rm=TRUE), IQR = IQR(g_haem, na.rm=TRUE), q1 = quantile(g_haem, 0.25), q3 = quantile(g_haem, 0.75), N = length(g_haem))
 
 
 # calculate mean & plot glycated haem - matched controls
-g_haem_summary_matched <- match_exact_df %>%
+ghaem_month_matched <- match_exact_df %>%
   group_by(bs_month, Group) %>%
-  summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
+  summarise(median = median(g_haem, na.rm=TRUE), IQR = IQR(g_haem, na.rm=TRUE), q1 = quantile(g_haem, 0.25), q3 = quantile(g_haem, 0.75), N = length(g_haem))
 
 #matched control seasons
-#spring
-g_haem_m_spring <- match_exact_df %>%
-  filter(bs_month == "3" |bs_month =="4" |bs_month == "5") %>%
-  group_by(Group) %>%
-  summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
-
-#summer
-g_haem_m_summer <- match_exact_df %>%
-  filter(bs_month == "6" |bs_month =="7" |bs_month == "8") %>%
-  group_by(Group) %>%
-  summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
-
-#autumn
-g_haem_m_autumn <- match_exact_df %>%
-  filter(bs_month == "9" |bs_month =="10" |bs_month == "11") %>%
-  group_by(Group) %>%
-  summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
-
-#winter
-g_haem_m_winter <- match_exact_df %>%
-  filter(bs_month == "12" |bs_month =="1" |bs_month == "2") %>%
-  group_by(Group) %>%
-  summarise(mean = mean(g_haem, na.rm=TRUE), SD = sd(g_haem, na.rm=TRUE), N = length(g_haem))
+ghaem_season_matched <- match_exact_df %>%
+  group_by(bs_season, Group) %>%
+  summarise(median = median(g_haem, na.rm=TRUE), IQR = IQR(g_haem, na.rm=TRUE), q1 = quantile(g_haem, 0.25), q3 = quantile(g_haem, 0.75), N = length(g_haem))
 
  
 #plot
-ggplot(g_haem_summary, aes(bs_month, mean, color=Group))+
-  geom_line()+ggtitle("glyc.haem Annual Profile")+
+ggplot(ghaem_season, aes(bs_season, median, color=Group))+
+  geom_line()+ggtitle("glyc.haem seasonal Profile")+
   geom_point()+
-  geom_errorbar(aes(ymin=mean-SD, ymax=mean+SD), width=.2,
+  geom_errorbar(aes(ymin=median-IQR, ymax=median+IQR), width=.2,
                 position=position_dodge(0.05))+
-  scale_x_continuous("bs_month", labels = as.character(g_haem_summary$bs_month), breaks = g_haem_summary$bs_month)
+  scale_x_continuous("bs_season", labels = as.character(ghaem_season$bs_season), breaks = ghaem_season$bs_season)
 
 # plot temp correlation
 ggplot(match_exact_df, aes(x=average_temp, y=g_haem, color=Group)) + 
@@ -266,4 +281,47 @@ model <- ghaem_df %>%
   filter(Group=="control") %>%
   lm(g_haem~average_temp)
 temp_ghaem <- cor.test(ghaem_df$average_temp, ghaem_df$g_haem, method=c("pearson", "kendall", "spearman"))
+```
+
+### test sig
+
+xyzxyz
+
+```{r ghaem stats, echo=FALSE}
+
+# Independent samples t-test: assumptions
+# 1. dependent variable is continuous
+# 2. independent variable contains 2 categorical independent groups
+# 3. observations are independent e.g. no relationship between observations within the group and between the groups themselves
+# 4. no significant outliers in the data
+# box plot to visualise
+
+x = factor(ghaem_df$bs_season)  # make bs_season factor variable
+
+#boxplot for groups with outliers labelled
+ggplot(ghaem_df) +
+  aes(x = x, y = g_haem) +
+  geom_boxplot(fill = "steelblue") +
+  geom_text(aes(label=outlier), na.rm=TRUE, hjust=-.5)+
+  facet_grid(Group ~ ., scales = "free") +
+  theme_minimal()
+
+# 5. dependent variable data (&residuals) is (approximately) normally distributed for each group
+#for both tests - if p>0.05 data is normally distributed, use parametric test. if p<0.05, use non-parametric test.
+ggplot(ghaem_df, aes(x = age)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# if n<2000 - Shapiro Wilk
+sw_normality <- ghaem_df %>%
+  group_by(Group) %>%
+  do(tidy(shapiro.test(ghaem_df$g_haem)))
+
+#if n>2000 - Kolmogorov-Smirnov
+ks_normality <- ghaem_df %>%
+  group_by(Group) %>%
+  do(tidy(ks.test(ghaem_df$g_haem, "pnorm", mean(ghaem_df$g_haem),sd(ghaem_df$g_haem))))
+
+# 6. homogeneity of variance - variance for each group is the same
+hom_o_var <- var.test(ghaem_df$g_haem ~ ghaem_df$Group, ghaem_df)
 ```
