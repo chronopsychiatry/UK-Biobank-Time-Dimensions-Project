@@ -51,6 +51,8 @@ Make:
 -   Season variable from month data (1=Spring, 2=Summer, 3=Autumn,
     4=Winter)
 
+-   Tidy 'time_outdoors...' variables to remove '-10', '-3', '-1' values
+
 ```{r pressure, echo=FALSE}
 # remove people with NA glycated haemoglobin
 ghaem_df <- analysis_df %>%  filter(!is.na(g_haem))
@@ -76,6 +78,15 @@ ghaem_df<- ghaem_df %>%  filter(!is.na(BS_datetime))
 
 # make season numeric
 ghaem_df$bs_season <- as.numeric(as.character(ghaem_df$bs_season))
+
+# tidy time outdoors data to remove '-10', '-3', '-1' values:
+ghaem_df$time_outdoors_summer[ghaem_df$time_outdoors_summer ==-10] <- 0
+ghaem_df$time_outdoors_summer[ghaem_df$time_outdoors_summer ==-3] <- NA
+ghaem_df$time_outdoors_summer[ghaem_df$time_outdoors_summer ==-1] <- NA
+
+ghaem_df$time_outdoors_winter[ghaem_df$time_outdoors_winter ==-10] <- 0
+ghaem_df$time_outdoors_winter[ghaem_df$time_outdoors_winter ==-3] <- NA
+ghaem_df$time_outdoors_winter[ghaem_df$time_outdoors_winter ==-1] <- NA
 
 ```
 
@@ -107,20 +118,8 @@ match_exact_df <- match.data(m.out_exact)
 
 ## Table 1 - section in progress
 
-test_df\<-ghaem_df
-
-test_df\$time_outdoors_summer[test_df\$time_outdoors_summer == -10] \<-
-0
-
 ```{r table 1}
-# tidy time outdoors data to remove '-10', '-3', '-1' values:
-ghaem_df$time_outdoors_summer[ghaem_df$time_outdoors_summer ==-10] <- 0
-ghaem_df$time_outdoors_summer[ghaem_df$time_outdoors_summer ==-3] <- NA
-ghaem_df$time_outdoors_summer[ghaem_df$time_outdoors_summer ==-1] <- NA
 
-ghaem_df$time_outdoors_winter[ghaem_df$time_outdoors_winter ==-10] <- 0
-ghaem_df$time_outdoors_winter[ghaem_df$time_outdoors_winter ==-3] <- NA
-ghaem_df$time_outdoors_winter[ghaem_df$time_outdoors_winter ==-1] <- NA
 
 # summary statistics - median for continuous variables:
 demo_mean_df <- ghaem_df %>%
@@ -201,7 +200,7 @@ ggplot(ghaem_df, aes(x = bs_time)) +
 
 ```
 
-## Explore glycated haemoglobin - section in progress
+## Explore diabetic markers - section in progress
 
 Glycated haemoglobin levels are reportedly higher in cooler months, and
 lower in warmer months. 1. is this true for both our control groups? \*
