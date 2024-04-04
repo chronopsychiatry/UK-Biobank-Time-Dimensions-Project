@@ -30,6 +30,7 @@ library(hrbrthemes)
 library(viridis)
 library(yarrr)
 library(ggpubr)
+library(sjstats)
 
 # load participant dataframe for analysis
 load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\Final study participant dataframe\\analysis_df.Rda")
@@ -169,6 +170,14 @@ demo_alcohol_df <- ghaem_df %>%
   group_by(Group) %>%
   count(alcohol_intake)  
 
+
+#check assumptions
+#lm code
+model <- ghaem_df %>%
+  filter(Group=="control") %>%
+  lm(g_haem~average_temp, data=ghaem_df)
+check_model(ghaem_df$age)
+
 # stats tests - chi square for categorical
 sex_chi <- chisq.test(x = table(ghaem_df$Group,
                                         ghaem_df$sex))
@@ -213,6 +222,7 @@ ghaem_df$bs_time <- hm(ghaem_df$bs_time)
 
 ggplot(ghaem_df, aes(x = bs_time)) +
   geom_histogram(fill = "salmon2", colour = "black", binwidth=10) +
+  scale_x_continuous(breaks = seq(24*3600, 24*3600))+
   facet_grid(Group ~ ., scales = "free")
 
 ```
@@ -344,6 +354,7 @@ variables
 ```{r}
 # seasonal variables
 
+#### temperature
 range(ghaem_df$lactate, na.rm=TRUE)  # useful code to determine ranges for ylims
 
 #1. multi-plot: temperature and diabetic markers
@@ -382,12 +393,221 @@ figure <- ggarrange(pl1,pl2,pl3,pl4,pl5,
                     ncol = 3, nrow = 2)
 figure
 
+# calculate correlation for temp and diabetic markers
+temp_ghaem <- cor.test(ghaem_df$average_temp, ghaem_df$g_haem, method="pearson")
+yarrr::apa(temp_ghaem)
+temp_glucose <- cor.test(ghaem_df$average_temp, ghaem_df$glucose, method="pearson")
+yarrr::apa(temp_glucose)
+temp_lactate <- cor.test(ghaem_df$average_temp, ghaem_df$lactate, method="pearson")
+yarrr::apa(temp_lactate)
+temp_pyruvate <- cor.test(ghaem_df$average_temp, ghaem_df$pyruvate, method="pearson")
+yarrr::apa(temp_pyruvate)
+temp_citrate <- cor.test(ghaem_df$average_temp, ghaem_df$citrate, method="pearson")
+yarrr::apa(temp_citrate)
 
-model <- ghaem_df %>%
-  filter(Group=="control") %>%
-  lm(g_haem~average_temp)
+####  daylength
+#1. multi-plot: daylength and diabetic markers
+pl1 <- ggplot(ghaem_df, aes(x=daylength_min, y=g_haem, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(15, 48) #ylim for plotting points
+  #ylim(30, 40)  #ylim for plotting line of best fit only
 
-temp_ghaem <- cor.test(ghaem_df$average_temp, ghaem_df$g_haem, method=c("pearson", "kendall", "spearman"))
+pl2 <- ggplot(ghaem_df, aes(x=daylength_min, y=glucose, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(1.5, 14.5) #ylim for plotting points
+  #ylim(3, 7)  #ylim for plotting line of best fit only
+
+pl3 <- ggplot(ghaem_df, aes(x=daylength_min, y=lactate, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(0.5, 13) #ylim for plotting points
+  #ylim(1, 5)  #ylim for plotting line of best fit only
+
+pl4 <- ggplot(ghaem_df, aes(x=daylength_min, y=pyruvate, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(0, 2) #ylim for plotting points
+  #ylim(0, 0.3) #ylim for plotting line of best fit only
+  
+pl5 <- ggplot(ghaem_df, aes(x=daylength_min, y=citrate, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(0, 0.3) #ylim for plotting points
+  #ylim(0, 0.1)  #ylim for plotting line of best fit only
+
+figure <- ggarrange(pl1,pl2,pl3,pl4,pl5,
+                    labels = c("HbA1c", "Glucose", "Lactate", "Pyruvate", "Citrate"),
+                    ncol = 3, nrow = 2)
+figure
+
+# calculate correlation for daylength and diabetic markers
+day_ghaem <- cor.test(ghaem_df$daylength_min, ghaem_df$g_haem, method="pearson")
+yarrr::apa(day_ghaem)
+day_glucose <- cor.test(ghaem_df$daylength_min, ghaem_df$glucose, method="pearson")
+yarrr::apa(day_glucose)
+day_lactate <- cor.test(ghaem_df$daylength_min, ghaem_df$lactate, method="pearson")
+yarrr::apa(day_lactate)
+day_pyruvate <- cor.test(ghaem_df$daylength_min, ghaem_df$pyruvate, method="pearson")
+yarrr::apa(day_pyruvate)
+day_citrate <- cor.test(ghaem_df$daylength_min, ghaem_df$citrate, method="pearson")
+yarrr::apa(day_citrate)
+
+
+####  ROC
+#1. multi-plot: photoperiod roc and diabetic markers
+pl1 <- ggplot(ghaem_df, aes(x=photoperiod_roc_min, y=g_haem, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(15, 48) #ylim for plotting points
+  #ylim(30, 40)  #ylim for plotting line of best fit only
+
+pl2 <- ggplot(ghaem_df, aes(x=photoperiod_roc_min, y=glucose, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(1.5, 14.5) #ylim for plotting points
+  #ylim(3, 7)  #ylim for plotting line of best fit only
+
+pl3 <- ggplot(ghaem_df, aes(x=photoperiod_roc_min, y=lactate, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(0.5, 13) #ylim for plotting points
+  #ylim(1, 5)  #ylim for plotting line of best fit only
+
+pl4 <- ggplot(ghaem_df, aes(x=photoperiod_roc_min, y=pyruvate, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(0, 2) #ylim for plotting points
+  #ylim(0, 0.3) #ylim for plotting line of best fit only
+  
+pl5 <- ggplot(ghaem_df, aes(x=photoperiod_roc_min, y=citrate, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(0, 0.3) #ylim for plotting points
+  #ylim(0, 0.1)  #ylim for plotting line of best fit only
+
+figure <- ggarrange(pl1,pl2,pl3,pl4,pl5,
+                    labels = c("HbA1c", "Glucose", "Lactate", "Pyruvate", "Citrate"),
+                    ncol = 3, nrow = 2)
+figure
+
+# calculate correlation for photoperiod roc and diabetic markers
+roc_ghaem <- cor.test(ghaem_df$photoperiod_roc_min, ghaem_df$g_haem, method="pearson")
+yarrr::apa(roc_ghaem)
+roc_glucose <- cor.test(ghaem_df$photoperiod_roc_min, ghaem_df$glucose, method="pearson")
+yarrr::apa(roc_glucose)
+roc_lactate <- cor.test(ghaem_df$photoperiod_roc_min, ghaem_df$lactate, method="pearson")
+yarrr::apa(roc_lactate)
+roc_pyruvate <- cor.test(ghaem_df$photoperiod_roc_min, ghaem_df$pyruvate, method="pearson")
+yarrr::apa(roc_pyruvate)
+roc_citrate <- cor.test(ghaem_df$photoperiod_roc_min, ghaem_df$citrate, method="pearson")
+yarrr::apa(roc_citrate)
+
+#####geographic
+####  latitude
+#1. multi-plot: latitude and diabetic markers
+pl1 <- ggplot(ghaem_df, aes(x=assess_latitude, y=g_haem, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(15, 48) #ylim for plotting points
+  #ylim(30, 40)  #ylim for plotting line of best fit only
+
+pl2 <- ggplot(ghaem_df, aes(x=assess_latitude, y=glucose, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(1.5, 14.5) #ylim for plotting points
+  #ylim(3, 7)  #ylim for plotting line of best fit only
+
+pl3 <- ggplot(ghaem_df, aes(x=assess_latitude, y=lactate, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(0.5, 13) #ylim for plotting points
+  #ylim(1, 5)  #ylim for plotting line of best fit only
+
+pl4 <- ggplot(ghaem_df, aes(x=assess_latitude, y=pyruvate, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(0, 2) #ylim for plotting points
+  #ylim(0, 0.3) #ylim for plotting line of best fit only
+  
+pl5 <- ggplot(ghaem_df, aes(x=assess_latitude, y=citrate, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(0, 0.3) #ylim for plotting points
+  #ylim(0, 0.1)  #ylim for plotting line of best fit only
+
+figure <- ggarrange(pl1,pl2,pl3,pl4,pl5,
+                    labels = c("HbA1c", "Glucose", "Lactate", "Pyruvate", "Citrate"),
+                    ncol = 3, nrow = 2)
+figure
+
+# calculate correlation for latitude and diabetic markers
+latitude_ghaem <- cor.test(ghaem_df$assess_latitude, ghaem_df$g_haem, method="pearson")
+yarrr::apa(latitude_ghaem)
+latitude_glucose <- cor.test(ghaem_df$assess_latitude, ghaem_df$glucose, method="pearson")
+yarrr::apa(latitude_glucose)
+latitude_lactate <- cor.test(ghaem_df$assess_latitude, ghaem_df$lactate, method="pearson")
+yarrr::apa(latitude_lactate)
+latitude_pyruvate <- cor.test(ghaem_df$assess_latitude, ghaem_df$pyruvate, method="pearson")
+yarrr::apa(latitude_pyruvate)
+latitude_citrate <- cor.test(ghaem_df$assess_latitude, ghaem_df$citrate, method="pearson")
+yarrr::apa(latitude_citrate)
+
+#####time - does not work yet, time format issues!
+####  time of day
+test_time <- ghaem_df
+test_time$bs_time <- as.POSIXct(test_time$bs_time)
+ghaem_df$bs_time <- as.POSIXct(ghaem_df$bs_time)
+#1. multi-plot: sample TOD and diabetic markers
+pl1 <- ggplot(ghaem_df, aes(x=bs_time, y=g_haem, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(15, 48) #ylim for plotting points
+  #ylim(30, 40)  #ylim for plotting line of best fit only
+
+pl2 <- ggplot(ghaem_df, aes(x=bs_time, y=glucose, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(1.5, 14.5) #ylim for plotting points
+  #ylim(3, 7)  #ylim for plotting line of best fit only
+
+pl3 <- ggplot(ghaem_df, aes(x=bs_time, y=lactate, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(0.5, 13) #ylim for plotting points
+  #ylim(1, 5)  #ylim for plotting line of best fit only
+
+pl4 <- ggplot(ghaem_df, aes(x=bs_time, y=pyruvate, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(0, 2) #ylim for plotting points
+  #ylim(0, 0.3) #ylim for plotting line of best fit only
+  
+pl5 <- ggplot(ghaem_df, aes(x=bs_time, y=citrate, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(0, 0.3) #ylim for plotting points
+  #ylim(0, 0.1)  #ylim for plotting line of best fit only
+
+figure <- ggarrange(pl1,pl2,pl3,pl4,pl5,
+                    labels = c("HbA1c", "Glucose", "Lactate", "Pyruvate", "Citrate"),
+                    ncol = 3, nrow = 2)
+figure
+
+# calculate correlation for time and diabetic markers
+time_ghaem <- cor.test(ghaem_df$bs_time, ghaem_df$g_haem, method="pearson")
+yarrr::apa(time_ghaem)
+time_glucose <- cor.test(ghaem_df$bs_time, ghaem_df$glucose, method="pearson")
+yarrr::apa(time_glucose)
+time_lactate <- cor.test(ghaem_df$bs_time, ghaem_df$lactate, method="pearson")
+yarrr::apa(time_lactate)
+time_pyruvate <- cor.test(ghaem_df$bs_time, ghaem_df$pyruvate, method="pearson")
+yarrr::apa(time_pyruvate)
+time_citrate <- cor.test(ghaem_df$bs_time, ghaem_df$citrate, method="pearson")
+yarrr::apa(time_citrate)
+
+
 ```
 
 plotting
@@ -460,4 +680,20 @@ ks_normality <- ghaem_df %>%
 
 # 6. homogeneity of variance - variance for each group is the same
 hom_o_var <- var.test(ghaem_df$g_haem ~ ghaem_df$Group, ghaem_df)
+```
+
+cosinor
+
+```{r}
+#make sure df is not grouped:
+ghaem_df = as.data.frame(ghaem_df)
+
+res=cosinor(g_haem~1, date='bs_month', data=ghaem_df, type='monthly', family=poisson())
+sumary(res)
+plot(res)
+
+ghaem_control_monthly_cosinor <- cosinor(g_haem~1, date='bs_month', data=ghaem_df, type='monthly')
+summary(ghaem_control_monthly_cosinor)
+seasrescheck(ghaem_control_monthly_cosinor$residuals) # check the residuals
+plot(ghaem_control_monthly_cosinor)
 ```
