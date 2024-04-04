@@ -29,6 +29,7 @@ library(broom)
 library(hrbrthemes)
 library(viridis)
 library(yarrr)
+library(ggpubr)
 
 # load participant dataframe for analysis
 load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\Final study participant dataframe\\analysis_df.Rda")
@@ -122,7 +123,12 @@ m.out_exact <- matchit(Group ~ age + sex + ethnicity + assess_centre + bs_month 
 match_exact_df <- match.data(m.out_exact)
 ```
 
-## Table 1 - section in progress
+## Table 1 - section complete
+
+-   Compute counts for discrete variables, mean+sd for continous
+    variables
+
+-   code for basic statistical tests
 
 ```{r table 1}
 
@@ -166,7 +172,8 @@ demo_alcohol_df <- ghaem_df %>%
 # stats tests - chi square for categorical
 sex_chi <- chisq.test(x = table(ghaem_df$Group,
                                         ghaem_df$sex))
-yarrr::apa(sex_chi)
+yarrr::apa(sex_chi)# print stats test result in legible apa format
+
 ethnicity_chi <- chisq.test(x = table(ghaem_df$Group,
                                         ghaem_df$ethnicity))
 sex_chi <- chisq.test(x = table(ghaem_df$Group,
@@ -175,6 +182,10 @@ sex_chi <- chisq.test(x = table(ghaem_df$Group,
 # stats tests - t-test for parametric continous
 age_ttest <- t.test(ghaem_df$age ~ ghaem_df$Group)
 yarrr::apa(age_ttest)
+
+# stats tests - wilcoxon rank sum for non-parametric continous
+age_mw <- wilcox.test(age ~ Group, data = ghaem_df, exact = FALSE)
+yarrr::apa(age_mw)
 ```
 
 ## Explore blood sample timings - section in progress
@@ -208,12 +219,17 @@ ggplot(ghaem_df, aes(x = bs_time)) +
 
 ## Explore diabetic markers - section in progress
 
-Glycated haemoglobin levels are reportedly higher in cooler months, and
-lower in warmer months. 1. is this true for both our control groups? \*
-calculate mean + IQR (not -sd-) for HbA1c levels for months
-(individually) and seasons \* correlation between temperature & Hba1c
-level - months \* correlation between (avg) daylength and (avg) rate of
-change & Hba1c levels - month
+-   Glycated haemoglobin levels are reportedly higher in cooler months,
+    and lower in warmer months. is this true for both our control
+    groups?
+
+    -   calculate mean + sd + CI for HbA1c levels for months
+        (individually) and seasons
+
+    -   correlation between temperature & Hba1c level - months
+
+    -   correlation between (avg) daylength and (avg) rate of change &
+        Hba1c levels - month
 
 ```{r gly_haem}
 
@@ -320,6 +336,58 @@ citrate_season <- ghaem_df %>%
 #  group_by(bs_month, Group) %>%
 #  summarise(median = median(g_haem, na.rm=TRUE), IQR = IQR(g_haem, na.rm=TRUE), q1 #= quantile(g_haem, 0.25), q3 = quantile(g_haem, 0.75), N = length(g_haem))
 
+```
+
+Explore correlation between diabetic marker levels and different
+variables
+
+```{r}
+# seasonal variables
+
+range(ghaem_df$lactate, na.rm=TRUE)  # useful code to determine ranges for ylims
+
+#1. multi-plot: temperature and diabetic markers
+pl1 <- ggplot(ghaem_df, aes(x=average_temp, y=g_haem, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)+  
+  #ylim(15, 48) #ylim for plotting points
+  ylim(30, 40)  #ylim for plotting line of best fit only
+
+pl2 <- ggplot(ghaem_df, aes(x=average_temp, y=glucose, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)+  
+  #ylim(1.5, 14.5) #ylim for plotting points
+  ylim(3, 7)  #ylim for plotting line of best fit only
+
+pl3 <- ggplot(ghaem_df, aes(x=average_temp, y=lactate, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)+  
+  #ylim(0.5, 13) #ylim for plotting points
+  ylim(1, 5)  #ylim for plotting line of best fit only
+
+pl4 <- ggplot(ghaem_df, aes(x=average_temp, y=pyruvate, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)+  
+  #ylim(0, 2) #ylim for plotting points
+  ylim(0, 0.3) #ylim for plotting line of best fit only
+  
+pl5 <- ggplot(ghaem_df, aes(x=average_temp, y=citrate, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)+  
+  #ylim(0, 0.3) #ylim for plotting points
+  ylim(0, 0.1)  #ylim for plotting line of best fit only
+
+figure <- ggarrange(pl1,pl2,pl3,pl4,pl5,
+                    labels = c("HbA1c", "Glucose", "Lactate", "Pyruvate", "Citrate"),
+                    ncol = 3, nrow = 2)
+figure
+
+
+model <- ghaem_df %>%
+  filter(Group=="control") %>%
+  lm(g_haem~average_temp)
+
+temp_ghaem <- cor.test(ghaem_df$average_temp, ghaem_df$g_haem, method=c("pearson", "kendall", "spearman"))
 ```
 
 plotting
