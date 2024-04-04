@@ -98,7 +98,10 @@ ghaem_df$time_outdoors_winter[ghaem_df$time_outdoors_winter ==-1] <- NA
 1:1 matching based on sex, age, ethnicity, BMI, assess_centre, bs_month,
 bs_year
 
-```{r match, verbose=FALSE}
+CURRENT DEFAULT: do not run this code section. for optional future use
+(sensitivity analyses)
+
+```{r match, eval=FALSE, include=FALSE, verbose=FALSE}
 # convert matching variables to type 'factor' for matchit function to work
 
 for_match_df <- ghaem_df
