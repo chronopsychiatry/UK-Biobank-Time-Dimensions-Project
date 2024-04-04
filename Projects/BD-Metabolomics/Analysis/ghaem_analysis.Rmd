@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # BD Seasonality & glycated haemoglobin
 
-##load data - section complete
+## Import libs & load data - section complete
 
 ```{r load, echo=FALSE, verbose=FALSE}
 #load libraries
@@ -35,7 +35,7 @@ load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\S
 
 ```
 
-## Tidy data for Glycated Haemoglobin analysis - section complete
+## Tidy data for diabetic marker analysis - section complete
 
 Remove:
 
@@ -43,6 +43,9 @@ Remove:
 
 -   People with glycated haemoglobin levels outside of analytic
     reference range 15-184mmol/mol
+
+-   People with glycated haemoglobin levels \>48mmol/mol (diagnostic
+    level for diabetes)
 
 Make:
 
