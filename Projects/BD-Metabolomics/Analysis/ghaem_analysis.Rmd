@@ -28,6 +28,7 @@ library(lubridate)
 library(broom)
 library(hrbrthemes)
 library(viridis)
+library(yarrr)
 
 # load participant dataframe for analysis
 load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\Final study participant dataframe\\analysis_df.Rda")
@@ -38,7 +39,7 @@ load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\S
 
 Remove:
 
--    People with NA for glycated haemoglobin
+-   People with NA for glycated haemoglobin
 
 -   People with glycated haemoglobin levels outside of analytic
     reference range 15-184mmol/mol
@@ -57,6 +58,9 @@ ghaem_df <- analysis_df %>%  filter(!is.na(g_haem))
 #remove people with glycated haemoglobin levels outside of manufacturer's reportable range
 ghaem_df<- ghaem_df %>%  filter(!g_haem>184)
 ghaem_df<- ghaem_df %>%  filter(!g_haem<15)
+
+#remove people with glycated haemoglobin levels above 48mmol/ml (diabetes diagnostic criteria)
+ghaem_df<- ghaem_df %>%  filter(!g_haem>48)
 
 # add new column to df to indicate if ghaem value is IQR-defined outlier
 find_outlier <- function(x) {
@@ -103,101 +107,70 @@ match_exact_df <- match.data(m.out_exact)
 
 ## Table 1 - section in progress
 
+test_df\<-ghaem_df
+
+test_df\$time_outdoors_summer[test_df\$time_outdoors_summer == -10] \<-
+0
+
 ```{r table 1}
-# amber code:
-# summary statistics - mean for continuous variables:
+# tidy time outdoors data to remove '-10', '-3', '-1' values:
+ghaem_df$time_outdoors_summer[ghaem_df$time_outdoors_summer ==-10] <- 0
+ghaem_df$time_outdoors_summer[ghaem_df$time_outdoors_summer ==-3] <- NA
+ghaem_df$time_outdoors_summer[ghaem_df$time_outdoors_summer ==-1] <- NA
+
+ghaem_df$time_outdoors_winter[ghaem_df$time_outdoors_winter ==-10] <- 0
+ghaem_df$time_outdoors_winter[ghaem_df$time_outdoors_winter ==-3] <- NA
+ghaem_df$time_outdoors_winter[ghaem_df$time_outdoors_winter ==-1] <- NA
+
+# summary statistics - median for continuous variables:
 demo_mean_df <- ghaem_df %>%
   group_by(Group) %>%
-  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales'),
+  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales', 'time_outdoors_summer', 'time_outdoors_winter'),
                mean, na.rm=TRUE)
 
 # summary statistics - std.dev for continuous variables:
 demo_sd_df <- ghaem_df %>%
   group_by(Group) %>%
-  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales'),
+  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales', 'time_outdoors_summer', 'time_outdoors_winter'),
                sd, na.rm=TRUE)
 
 #counts for discrete variables:
 demo_sex_df <- ghaem_df %>%
   group_by(Group) %>%
-  #mutate(sex = factor(sex)) %>% 
+    #mutate(sex = factor(sex)) %>% 
   count(sex)
 demo_ethnicity_df <- ghaem_df %>%
   group_by(Group) %>%
-  #mutate(sex = factor(sex)) %>% 
   count(ethnicity)
 demo_disabled_df <- ghaem_df %>%
   group_by(Group) %>%
-  #mutate(sex = factor(sex)) %>% 
   count(disability_self_report)    
+demo_chronotype_df <- ghaem_df %>%
+  group_by(Group) %>%
+  count(chronotype)    
+demo_employment_df <- ghaem_df %>%
+  group_by(Group) %>%
+  count(employed) 
+demo_smoking_df <- ghaem_df %>%
+  group_by(Group) %>%
+  count(smoking_status)  
+demo_alcohol_df <- ghaem_df %>%
+  group_by(Group) %>%
+  count(alcohol_intake)  
 
-#cathy code:
-#This is code to make Table 1 and regression tables, this has saved me a lot of time.  
-library(table1)
-library(tableone)
-library(finalfit)
-library(dplyr)
-library(knitr)
-library(sjPlot)
-library(stringr)
+# stats tests - chi square for categorical
+sex_chi <- chisq.test(x = table(ghaem_df$Group,
+                                        ghaem_df$sex))
+yarrr::apa(sex_chi)
+ethnicity_chi <- chisq.test(x = table(ghaem_df$Group,
+                                        ghaem_df$ethnicity))
+sex_chi <- chisq.test(x = table(ghaem_df$Group,
+                                        ghaem_df$sex))
 
-data <- ghaem_df
-
-vars <- data %>%
-  select(where(is.numeric)) %>%
-  colnames() %>%
-  str_c('"', ., '"') %>% 
-  str_c(collapse = " + ") %>% 
-  cat()
-
-
-x <- names(data)
-vars <- paste(x, collapse = " + ")
-vars <- noquote(vars)
-
-
-#make table 1
-my.render.cont <- function(x) {with(stats.apply.rounding(stats.default(x), digits=4), c("","Mean (SD)"=sprintf("%s (&plusmn; %s)", MEAN, SD)))}
-my.render.cat <- function(x) {c("", sapply(stats.default(x), function(y) with(y, sprintf("%d (%0.0f %%)", FREQ, PCT))))}
-my.render.NP_cont <- function(x) {with(stats.apply.rounding(stats.default(x), digits=0), c("","Median (IQR)"=sprintf("%s (&plusmn; %s)", MEDIAN, IQR)))}
-
-table <- table1(~  age + sex + ethnicity + BMI,  data=data, overall=TRUE, render.continuous=my.render.cont, render.categorical=my.render.cat)
-
-table <- table1(~  age + sex + reshist_addr1_adi_wsum + reshist_addr1_adi_perc + household.income.3level + household.income.10level + race.6level.p + race.4level.p + race.6level.y + race.4level.y + race_ethnicity + household.educ + married + married.or.livingtogether + rel_family_id + rel_birth_id + demo_roster_v2 + sleepdisturb1_p + sds_p_ss_total + anthro_bmi_calc + BMIz + physical_activity1_y + screentime_total_p + pds_total_py_male + pds_total_py_female|eventname ,  data=data, overall=TRUE, render.continuous=my.render.cont, render.categorical=my.render.cat)
-
-#stratify by var3
-table1(~ Group, data=data, overall=FALSE, render.continuous=my.render.cont, render.categorical=my.render.cat)
-table1(~ var1 + var2|var3, data=dat, overall=FALSE, render.continuous=my.render.cont, render.categorical=my.render.cat)
-
-write.csv(table, file = "checkABCD3.csv")
-
+# stats tests - t-test for parametric continous
+age_ttest <- t.test(ghaem_df$age ~ ghaem_df$Group)
+yarrr::apa(age_ttest)
 ```
-
-+---------------+--------------------+--------------------+----------------+---------+
-| Variable      | Control group (n=) | Bipolar group (n=) | Test statistic | p-value |
-+===============+====================+====================+================+=========+
-| Age (years),  |                    |                    |                |         |
-+---------------+--------------------+--------------------+----------------+---------+
-| Sex, N (%)    |                    |                    |                |         |
-+---------------+--------------------+--------------------+----------------+---------+
-|               |                    |                    |                |         |
-+---------------+--------------------+--------------------+----------------+---------+
-|               |                    |                    |                |         |
-+---------------+--------------------+--------------------+----------------+---------+
-|               |                    |                    |                |         |
-+---------------+--------------------+--------------------+----------------+---------+
-|               |                    |                    |                |         |
-+---------------+--------------------+--------------------+----------------+---------+
-|               |                    |                    |                |         |
-+---------------+--------------------+--------------------+----------------+---------+
-|               |                    |                    |                |         |
-+---------------+--------------------+--------------------+----------------+---------+
-|               |                    |                    |                |         |
-+---------------+--------------------+--------------------+----------------+---------+
-|               |                    |                    |                |         |
-+---------------+--------------------+--------------------+----------------+---------+
-
-: Table 1:
 
 ## Explore blood sample timings - section in progress
 
@@ -241,39 +214,123 @@ change & Hba1c levels - month
 
 # task 1: visualise with data collapsed into months & seasons
 
-# calculate mean & plot glycated haem - all controls
-#individual months
+#HBA1C
+#months
 ghaem_month <- ghaem_df %>%
   group_by(bs_month, Group) %>%
-  summarise(median = median(g_haem, na.rm=TRUE), IQR = IQR(g_haem, na.rm=TRUE), q1 = quantile(g_haem, 0.25), q3 = quantile(g_haem, 0.75), N = length(g_haem))
+  summarise(mean = mean(g_haem, na.rm=TRUE), sd = sd(g_haem, na.rm=TRUE), n = length(g_haem)) %>%
+  mutate(se = sd / sqrt(n),
+         lower.ci = mean - qt(1 - (0.05 / 2), n - 1) * se,
+         upper.ci = mean + qt(1 - (0.05 / 2), n - 1) * se)
 
 #seasons
 ghaem_season <- ghaem_df %>%
   group_by(bs_season, Group) %>%
-  summarise(median = median(g_haem, na.rm=TRUE), IQR = IQR(g_haem, na.rm=TRUE), q1 = quantile(g_haem, 0.25), q3 = quantile(g_haem, 0.75), N = length(g_haem))
+  summarise(mean = mean(g_haem, na.rm=TRUE), sd = sd(g_haem, na.rm=TRUE), n = length(g_haem)) %>%
+  mutate(se = sd / sqrt(n),
+         lower.ci = mean - qt(1 - (0.05 / 2), n - 1) * se,
+         upper.ci = mean + qt(1 - (0.05 / 2), n - 1) * se)
 
+#GLUCOSE
+#months
+glucose_month <- ghaem_df %>%
+  group_by(bs_month, Group) %>%
+  summarise(mean = mean(glucose, na.rm=TRUE), sd = sd(glucose, na.rm=TRUE), n = length(glucose)) %>%
+  mutate(se = sd / sqrt(n),
+         lower.ci = mean - qt(1 - (0.05 / 2), n - 1) * se,
+         upper.ci = mean + qt(1 - (0.05 / 2), n - 1) * se)
+
+#seasons
+glucose_season <- ghaem_df %>%
+  group_by(bs_season, Group) %>%
+  summarise(mean = mean(glucose, na.rm=TRUE), sd = sd(glucose, na.rm=TRUE), n = length(glucose)) %>%
+  mutate(se = sd / sqrt(n),
+         lower.ci = mean - qt(1 - (0.05 / 2), n - 1) * se,
+         upper.ci = mean + qt(1 - (0.05 / 2), n - 1) * se)
+
+#LACTATE
+#months
+lactate_month <- ghaem_df %>%
+  group_by(bs_month, Group) %>%
+  summarise(mean = mean(lactate, na.rm=TRUE), sd = sd(lactate, na.rm=TRUE), n = length(lactate)) %>%
+  mutate(se = sd / sqrt(n),
+         lower.ci = mean - qt(1 - (0.05 / 2), n - 1) * se,
+         upper.ci = mean + qt(1 - (0.05 / 2), n - 1) * se)
+
+#seasons
+lactate_season <- ghaem_df %>%
+  group_by(bs_season, Group) %>%
+  summarise(mean = mean(lactate, na.rm=TRUE), sd = sd(lactate, na.rm=TRUE), n = length(lactate)) %>%
+  mutate(se = sd / sqrt(n),
+         lower.ci = mean - qt(1 - (0.05 / 2), n - 1) * se,
+         upper.ci = mean + qt(1 - (0.05 / 2), n - 1) * se)
+
+#PYRUVATE
+#months
+pyruvate_month <- ghaem_df %>%
+  group_by(bs_month, Group) %>%
+  summarise(mean = mean(pyruvate, na.rm=TRUE), sd = sd(pyruvate, na.rm=TRUE), n = length(pyruvate)) %>%
+  mutate(se = sd / sqrt(n),
+         lower.ci = mean - qt(1 - (0.05 / 2), n - 1) * se,
+         upper.ci = mean + qt(1 - (0.05 / 2), n - 1) * se)
+
+#seasons
+pyruvate_season <- ghaem_df %>%
+  group_by(bs_season, Group) %>%
+  summarise(mean = mean(pyruvate, na.rm=TRUE), sd = sd(pyruvate, na.rm=TRUE), n = length(pyruvate)) %>%
+  mutate(se = sd / sqrt(n),
+         lower.ci = mean - qt(1 - (0.05 / 2), n - 1) * se,
+         upper.ci = mean + qt(1 - (0.05 / 2), n - 1) * se)
+
+#CITRATE
+#months
+citrate_month <- ghaem_df %>%
+  group_by(bs_month, Group) %>%
+  summarise(mean = mean(citrate, na.rm=TRUE), sd = sd(citrate, na.rm=TRUE), n = length(citrate)) %>%
+  mutate(se = sd / sqrt(n),
+         lower.ci = mean - qt(1 - (0.05 / 2), n - 1) * se,
+         upper.ci = mean + qt(1 - (0.05 / 2), n - 1) * se)
+
+#seasons
+citrate_season <- ghaem_df %>%
+  group_by(bs_season, Group) %>%
+  summarise(mean = mean(citrate, na.rm=TRUE), sd = sd(citrate, na.rm=TRUE), n = length(citrate)) %>%
+  mutate(se = sd / sqrt(n),
+         lower.ci = mean - qt(1 - (0.05 / 2), n - 1) * se,
+         upper.ci = mean + qt(1 - (0.05 / 2), n - 1) * se)
 
 # calculate mean & plot glycated haem - matched controls
-ghaem_month_matched <- match_exact_df %>%
-  group_by(bs_month, Group) %>%
-  summarise(median = median(g_haem, na.rm=TRUE), IQR = IQR(g_haem, na.rm=TRUE), q1 = quantile(g_haem, 0.25), q3 = quantile(g_haem, 0.75), N = length(g_haem))
+#ghaem_month_matched <- match_exact_df %>%
+#  group_by(bs_month, Group) %>%
+#  summarise(median = median(g_haem, na.rm=TRUE), IQR = IQR(g_haem, na.rm=TRUE), q1 #= quantile(g_haem, 0.25), q3 = quantile(g_haem, 0.75), N = length(g_haem))
 
 #matched control seasons
-ghaem_season_matched <- match_exact_df %>%
-  group_by(bs_season, Group) %>%
-  summarise(median = median(g_haem, na.rm=TRUE), IQR = IQR(g_haem, na.rm=TRUE), q1 = quantile(g_haem, 0.25), q3 = quantile(g_haem, 0.75), N = length(g_haem))
+#ghaem_season_matched <- match_exact_df %>%
+#  group_by(bs_season, Group) %>%
+#  summarise(median = median(g_haem, na.rm=TRUE), IQR = IQR(g_haem, na.rm=TRUE), q1 #= quantile(g_haem, 0.25), q3 = quantile(g_haem, 0.75), N = length(g_haem))
 
+
+#if wanting to calculate median + IQR
+#ghaem_month <- ghaem_df %>%
+#  group_by(bs_month, Group) %>%
+#  summarise(median = median(g_haem, na.rm=TRUE), IQR = IQR(g_haem, na.rm=TRUE), q1 #= quantile(g_haem, 0.25), q3 = quantile(g_haem, 0.75), N = length(g_haem))
+
+```
+
+plotting
+
+```{r plotting}
  
-#plot
-ggplot(ghaem_season, aes(bs_season, median, color=Group))+
-  geom_line()+ggtitle("glyc.haem seasonal Profile")+
+#plot mean values plus 95%CI
+ggplot(citrate_season, aes(bs_season, mean, color=Group))+
+  geom_line()+ggtitle("citrate seasonal Profile")+
   geom_point()+
-  geom_errorbar(aes(ymin=median-IQR, ymax=median+IQR), width=.2,
+  geom_errorbar(aes(ymin=lower.ci, ymax=upper.ci), width=.2,
                 position=position_dodge(0.05))+
-  scale_x_continuous("bs_season", labels = as.character(ghaem_season$bs_season), breaks = ghaem_season$bs_season)
+  scale_x_continuous("bs_season", labels = as.character(citrate_season$bs_season), breaks = citrate_season$bs_season)
 
 # plot temp correlation
-ggplot(match_exact_df, aes(x=average_temp, y=g_haem, color=Group)) + 
+ggplot(ghaem_df, aes(x=average_temp, y=g_haem, color=Group)) + 
   geom_point()+
   geom_smooth(method=lm)+  
   ylim(20, 50)
@@ -281,6 +338,12 @@ model <- ghaem_df %>%
   filter(Group=="control") %>%
   lm(g_haem~average_temp)
 temp_ghaem <- cor.test(ghaem_df$average_temp, ghaem_df$g_haem, method=c("pearson", "kendall", "spearman"))
+```
+
+correlations between different variables
+
+```{r}
+
 ```
 
 ### test sig
