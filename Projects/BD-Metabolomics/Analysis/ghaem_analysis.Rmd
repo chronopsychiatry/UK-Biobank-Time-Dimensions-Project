@@ -220,9 +220,7 @@ figure
 
 # stats tests - chi square for categorical
 #sex
-sex_chi <- ghaem_df %>% 
-  group_by(sex) %>% 
-  chisq.test(x = table(ghaem_df$Group,ghaem_df$sex))
+sex_chi <- chisq.test(x = table(ghaem_df$Group,ghaem_df$sex))
 yarrr::apa(sex_chi)# print stats test result in legible apa format
 
 #ethnicity
