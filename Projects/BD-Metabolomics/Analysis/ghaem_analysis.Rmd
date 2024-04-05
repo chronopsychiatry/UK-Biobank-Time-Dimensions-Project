@@ -171,22 +171,83 @@ demo_alcohol_df <- ghaem_df %>%
   count(alcohol_intake)  
 
 
-#check assumptions
-#lm code
-model <- ghaem_df %>%
-  filter(Group=="control") %>%
-  lm(g_haem~average_temp, data=ghaem_df)
-check_model(ghaem_df$age)
+#plot data to visualise distribution
+# age - normal
+age_plot <- ggplot(ghaem_df, aes(x = age)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# bmi - right skew
+bmi_plot <- ggplot(ghaem_df, aes(x = BMI)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# age completed education - normal
+age_edu_plot <- ggplot(ghaem_df, aes(x = age_completed_education)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# IMD: England - right skew
+imd_e_plot <- ggplot(ghaem_df, aes(x = deprivation_index_england)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# IMD: Scotland - right skew
+imd_s_plot <- ggplot(ghaem_df, aes(x = deprivation_index_scotland)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# IMD: Wales - right skew
+imd_w_plot <- ggplot(ghaem_df, aes(x = deprivation_index_wales)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# time outdoors summer - right skew
+outsummer_plot <- ggplot(ghaem_df, aes(x = time_outdoors_summer)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# time outdoors winter - right skew
+outwinter_plot <- ggplot(ghaem_df, aes(x = time_outdoors_winter)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# plot in multi-plot
+figure <- ggarrange(age_plot,bmi_plot,age_edu_plot,imd_e_plot,imd_s_plot,imd_w_plot,outsummer_plot,outwinter_plot,labels = c("Age", "BMI", "Age Education", "IMD_E", "IMD_S", "IMD_W", "outdoors summer", "outdoors winter"),
+                    ncol = 4, nrow = 2)
+figure
+
 
 # stats tests - chi square for categorical
-sex_chi <- chisq.test(x = table(ghaem_df$Group,
-                                        ghaem_df$sex))
+#sex
+sex_chi <- ghaem_df %>% 
+  group_by(sex) %>% 
+  chisq.test(x = table(ghaem_df$Group,ghaem_df$sex))
 yarrr::apa(sex_chi)# print stats test result in legible apa format
 
-ethnicity_chi <- chisq.test(x = table(ghaem_df$Group,
-                                        ghaem_df$ethnicity))
-sex_chi <- chisq.test(x = table(ghaem_df$Group,
-                                        ghaem_df$sex))
+#ethnicity
+ethnicity_chi <- chisq.test(x = table(ghaem_df$Group,ghaem_df$ethnicity))
+yarrr::apa(ethnicity_chi)
+
+#employment
+employment_chi <- chisq.test(x = table(ghaem_df$Group,ghaem_df$employed))
+yarrr::apa(employment_chi)
+
+#disability
+disability_chi <- chisq.test(x = table(ghaem_df$Group, ghaem_df$disability_self_report=='Yes'))
+yarrr::apa(disability_chi)
+
+#smoking
+smoking_chi <- chisq.test(x = table(ghaem_df$Group, ghaem_df$smoking_status))
+yarrr::apa(smoking_chi)
+
+#alcohol
+alcohol_chi <- chisq.test(x = table(ghaem_df$Group, ghaem_df$alcohol_intake))
+yarrr::apa(alcohol_chi)
+
+#chronotype
+chrono_chi <- chisq.test(x = table(ghaem_df$Group, ghaem_df$chronotype))
+yarrr::apa(chrono_chi)
 
 # stats tests - t-test for parametric continous
 age_ttest <- t.test(ghaem_df$age ~ ghaem_df$Group)
@@ -636,6 +697,12 @@ temp_ghaem <- cor.test(ghaem_df$average_temp, ghaem_df$g_haem, method=c("pearson
 correlations between different variables
 
 ```{r}
+#check assumptions
+#lm code
+model <- ghaem_df %>%
+  filter(Group=="control") %>%
+  lm(g_haem~average_temp, data=ghaem_df)
+check_model(ghaem_df$age)
 
 ```
 
