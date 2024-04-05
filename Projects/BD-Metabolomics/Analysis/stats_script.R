@@ -18,7 +18,7 @@ xyzxyz
 
 # 5. dependent variable data (&residuals) is (approximately) normally distributed for each group
 #for both tests - if p>0.05 data is normally distributed, use parametric test. if p<0.05, use non-parametric test.
-ggplot(ghaem_df, aes(x = age)) +
+ggplot(ghaem_df, aes(x = ghaem_df$pyruvate)) +
   geom_histogram(fill = "salmon2", colour = "black") +
   facet_grid(Group ~ ., scales = "free")
 
