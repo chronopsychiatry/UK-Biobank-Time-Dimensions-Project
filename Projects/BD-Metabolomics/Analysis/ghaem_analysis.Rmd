@@ -248,12 +248,38 @@ chrono_chi <- chisq.test(x = table(ghaem_df$Group, ghaem_df$chronotype))
 yarrr::apa(chrono_chi)
 
 # stats tests - t-test for parametric continous
-age_ttest <- t.test(ghaem_df$age ~ ghaem_df$Group)
+#age
+age_ttest <- t.test(ghaem_df$age ~ ghaem_df$Group, na.rm=TRUE)
 yarrr::apa(age_ttest)
 
 # stats tests - wilcoxon rank sum for non-parametric continous
-age_mw <- wilcox.test(age ~ Group, data = ghaem_df, exact = FALSE)
-yarrr::apa(age_mw)
+#BMI
+bmi_wrs <- wilcox.test(BMI ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+bmi_wrs
+
+#IMD ENGLAND
+imd_e_wrs <- wilcox.test(deprivation_index_england ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+imd_e_wrs
+
+#IMD SCOTLAND
+imd_s_wrs <- wilcox.test(deprivation_index_scotland ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+imd_s_wrs
+
+#IMD WALES
+imd_w_wrs <- wilcox.test(deprivation_index_wales ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+imd_w_wrs
+
+#age completed education
+edu_age_wrs <- wilcox.test(age_completed_education ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+edu_age_wrs
+
+#time outdoors summer
+outsummer_wrs <- wilcox.test(time_outdoors_summer ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+outsummer_wrs
+
+#time outdoors winter
+outwinter_wrs <- wilcox.test(time_outdoors_winter ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+outwinter_wrs
 ```
 
 ## Explore blood sample timings - section in progress
