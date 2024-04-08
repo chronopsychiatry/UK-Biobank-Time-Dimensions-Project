@@ -494,7 +494,7 @@ pirateplot(formula =  g_haem ~ bs_month,
 
 axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
 axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
-  #lines(1:12,SEdata$ly, lty=2,lwd=1, col="black")
+lines(1:12,fit, lty=2,lwd=1, col="black")
 
 #pirate plot hba1c - bipolar
 dev.new() # open new plot
@@ -784,6 +784,63 @@ pirateplot(formula =  citrate ~ bs_month,
 axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
 axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
   #lines(1:12,SEdata$ly, lty=2,lwd=1, col="black")
+
+```
+
+statistical differences between months and levels
+
+```{r}
+#is there a significant difference between marker levels between months?
+
+# is there a significant difference between marker level between groups per month?
+
+jan <- ghaem_df %>%  filter(bs_month==1) 
+jan_wrs <-  wilcox.test(citrate ~ Group, data=jan, exact = FALSE, conf.int = TRUE)
+jan_wrs
+
+feb <- ghaem_df %>%  filter(bs_month==2) 
+feb_wrs <-  wilcox.test(citrate ~ Group, data=feb, exact = FALSE, conf.int = TRUE)
+feb_wrs
+
+march <- ghaem_df %>%  filter(bs_month==3) 
+march_wrs <-  wilcox.test(citrate ~ Group, data=march, exact = FALSE, conf.int = TRUE)
+march_wrs
+
+april <- ghaem_df %>%  filter(bs_month==4) 
+april_wrs <-  wilcox.test(citrate ~ Group, data=april, exact = FALSE, conf.int = TRUE)
+april_wrs
+
+may <- ghaem_df %>%  filter(bs_month==5) 
+may_wrs <-  wilcox.test(citrate ~ Group, data=may, exact = FALSE, conf.int = TRUE)
+may_wrs
+
+june <- ghaem_df %>%  filter(bs_month==6) 
+june_wrs <-  wilcox.test(citrate ~ Group, data=june, exact = FALSE, conf.int = TRUE)
+june_wrs
+
+july <- ghaem_df %>%  filter(bs_month==7) 
+july_wrs <-  wilcox.test(citrate ~ Group, data=july, exact = FALSE, conf.int = TRUE)
+july_wrs
+
+aug <- ghaem_df %>%  filter(bs_month==8) 
+aug_wrs <-  wilcox.test(citrate ~ Group, data=aug, exact = FALSE, conf.int = TRUE)
+aug_wrs
+
+sept <- ghaem_df %>%  filter(bs_month==9) 
+sept_wrs <-  wilcox.test(citrate ~ Group, data=sept, exact = FALSE, conf.int = TRUE)
+sept_wrs
+
+oct <- ghaem_df %>%  filter(bs_month==10) 
+oct_wrs <-  wilcox.test(citrate ~ Group, data=oct, exact = FALSE, conf.int = TRUE)
+oct_wrs
+
+nov <- ghaem_df %>%  filter(bs_month==11) 
+nov_wrs <-  wilcox.test(citrate ~ Group, data=nov, exact = FALSE, conf.int = TRUE)
+nov_wrs
+
+dec <- ghaem_df %>%  filter(bs_month==12) 
+dec_wrs <-  wilcox.test(citrate ~ Group, data=dec, exact = FALSE, conf.int = TRUE)
+dec_wrs
 
 ```
 
@@ -1132,13 +1189,21 @@ cosinor
 ```{r}
 #make sure df is not grouped:
 ghaem_df = as.data.frame(ghaem_df)
+control_df <- ghaem_df %>%  filter(Group=='control')
+bipolar_df <- ghaem_df %>%  filter(Group=='bipolar')
 
-res=cosinor(g_haem~1, date='bs_month', data=ghaem_df, type='monthly', family=poisson())
-sumary(res)
+#run cosinor (simple, initial)
+res=cosinor(g_haem~1, date='bs_month', type='monthly', data=control_df)
+summary(res)
+summary(res$glm)
 plot(res)
+seasrescheck(res$residuals) # check the residuals
 
-ghaem_control_monthly_cosinor <- cosinor(g_haem~1, date='bs_month', data=ghaem_df, type='monthly')
-summary(ghaem_control_monthly_cosinor)
-seasrescheck(ghaem_control_monthly_cosinor$residuals) # check the residuals
-plot(ghaem_control_monthly_cosinor)
+# test run cosinor with additional vars
+test_res=cosinor(citrate~1 + average_temp, date='bs_month', type='monthly', data=control_df)
+summary(test_res)
+summary(test_res$glm)
+plot(test_res)
+seasrescheck(test_res$residuals) # check the residuals
+
 ```
