@@ -34,8 +34,6 @@ library(plotrix)
 library(segmented)
 library(plot3D)
 library(season)
-
-
 ```
 
 ### 2: Load data
@@ -45,6 +43,12 @@ library(season)
 # load participant dataframe for analysis
 load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\Final study participant dataframe\\analysis_df.Rda")
 
+fasting_time <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\fasting_time.tsv")
+
+fasting_time <- fasting_time %>% 
+  rename('fasting_time' = 'p74_i0')
+
+analysis_df <- merge(analysis_df,fasting_time, by="eid")
 ```
 
 ### 3: Tidy data
@@ -982,6 +986,13 @@ points(time_fit_bipolar[o], citrate_bipolar_cos$fitted.values[o], pch = 19)
 
 ```
 
+### 9. Multivariable analysis
+
+```{r multivariable analysis}
+
+
+```
+
 ## Extra code for different tasks
 
 #### extra: code for multivariable cosinor
@@ -989,7 +1000,7 @@ points(time_fit_bipolar[o], citrate_bipolar_cos$fitted.values[o], pch = 19)
 ```{r cosinor additional variables}
 
 # test run cosinor with additional vars
-test_res=cosinor(citrate~1 + average_temp, date='bs_month', type='monthly', data=control_df)
+test_res=cosinor(glucose~1 + fasting_time, date='bs_month', type='monthly', data=control_df)
 summary(test_res)
 summary(test_res$glm)
 plot(test_res)
