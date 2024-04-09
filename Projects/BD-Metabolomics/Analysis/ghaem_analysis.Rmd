@@ -18,7 +18,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r load, echo=FALSE, verbose=FALSE}
 #load libraries
-#library(season)
 library(tidyverse)
 library(dplyr)
 library(readr)
@@ -68,6 +67,8 @@ Make:
     4=Winter)
 
 -   Tidy 'time_outdoors...' variables to remove '-10', '-3', '-1' values
+
+-   2x new dfs: control_df and bipolar_df for later analysis use
 
 ```{r pressure, echo=FALSE}
 # remove people with NA glycated haemoglobin
