@@ -34,8 +34,6 @@ library(plotrix)
 library(segmented)
 library(plot3D)
 library(season)
-
-
 ```
 
 ### 2: Load data
@@ -45,6 +43,12 @@ library(season)
 # load participant dataframe for analysis
 load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\Final study participant dataframe\\analysis_df.Rda")
 
+fasting_time <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\fasting_time.tsv")
+
+fasting_time <- fasting_time %>% 
+  rename('fasting_time' = 'p74_i0')
+
+analysis_df <- merge(analysis_df,fasting_time, by="eid")
 ```
 
 ### 3: Tidy data
@@ -979,6 +983,13 @@ axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
 axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
 lines(time_fit_bipolar[o],citrate_bipolar_cos$fitted.values[o], lty=2,lwd=1, col="black")
 points(time_fit_bipolar[o], citrate_bipolar_cos$fitted.values[o], pch = 19)
+
+```
+
+### 9. Multivariable analysis
+
+```{r multivariable analysis}
+
 
 ```
 
