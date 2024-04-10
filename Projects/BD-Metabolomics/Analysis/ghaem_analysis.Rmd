@@ -49,6 +49,13 @@ fasting_time <- fasting_time %>%
   rename('fasting_time' = 'p74_i0')
 
 analysis_df <- merge(analysis_df,fasting_time, by="eid")
+
+townsend <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\townsend.tsv")
+
+townsend <- townsend %>% 
+  rename('townsend' = 'p22189')
+
+analysis_df <- merge(analysis_df,townsend, by="eid")
 ```
 
 ### 3: Tidy data
@@ -132,13 +139,13 @@ bipolar_df <- ghaem_df %>%  filter(Group=='bipolar')
 # summary statistics - median for continuous variables:
 demo_mean_df <- ghaem_df %>%
   group_by(Group) %>%
-  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales', 'time_outdoors_summer', 'time_outdoors_winter'),
+  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales', 'time_outdoors_summer', 'time_outdoors_winter', 'fasting_time', 'townsend'),
                mean, na.rm=TRUE)
 
 # summary statistics - std.dev for continuous variables:
 demo_sd_df <- ghaem_df %>%
   group_by(Group) %>%
-  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales', 'time_outdoors_summer', 'time_outdoors_winter'),
+  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales', 'time_outdoors_summer', 'time_outdoors_winter', 'fasting_time', 'townsend'),
                sd, na.rm=TRUE)
 
 #counts for discrete variables:
@@ -207,9 +214,19 @@ outwinter_plot <- ggplot(ghaem_df, aes(x = time_outdoors_winter)) +
   geom_histogram(fill = "salmon2", colour = "black") +
   facet_grid(Group ~ ., scales = "free")
 
+# fasting time - right skew
+fastingtime_plot <- ggplot(ghaem_df, aes(x = fasting_time)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# townsend - right skew
+townsend_plot <- ggplot(ghaem_df, aes(x = townsend)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
 # plot in multi-plot
-figure <- ggarrange(age_plot,bmi_plot,age_edu_plot,imd_e_plot,imd_s_plot,imd_w_plot,outsummer_plot,outwinter_plot,labels = c("Age", "BMI", "Age Education", "IMD_E", "IMD_S", "IMD_W", "outdoors summer", "outdoors winter"),
-                    ncol = 4, nrow = 2)
+figure <- ggarrange(age_plot,bmi_plot,age_edu_plot,imd_e_plot,imd_s_plot,imd_w_plot,outsummer_plot,outwinter_plot, fastingtime_plot,townsend_plot, labels = c("Age", "BMI", "Age Education", "IMD_E", "IMD_S", "IMD_W", "outdoors summer", "outdoors winter", "fasting time", "townsend"),
+                    ncol = 5, nrow = 2)
 figure
 
 
@@ -275,6 +292,14 @@ outsummer_wrs
 #time outdoors winter
 outwinter_wrs <- wilcox.test(time_outdoors_winter ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
 outwinter_wrs
+
+#fasting time
+fasting_wrs <- wilcox.test(fasting_time ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+fasting_wrs
+
+#townsend
+townsend_wrs <- wilcox.test(townsend ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+townsend_wrs
 ```
 
 ### 5. Explore blood sample timings - section in progress
@@ -986,11 +1011,28 @@ points(time_fit_bipolar[o], citrate_bipolar_cos$fitted.values[o], pch = 19)
 
 ```
 
-### 9. Multivariable analysis
+### 9. Multivariable analysis between marker & daylength ( proxy season marker)
+
+Increasing model adjustment to include:
+
+-   Level 1: sociodemographic factors
+
+-   Level 2: health & lifestyle/behavioural factors
+
+-   Level 3: environmental & seasonal factors
 
 ```{r multivariable analysis}
+#plot
+ggplot(ghaem_df, aes(x=daylength_min, y=g_haem, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)+  
+  ylim(20, 50)
 
-
+#multivariate analysis
+model1 <- lm(g_haem ~ daylength_min + age + townsend,
+  data = bipolar_df
+)
+summary(model1)
 ```
 
 ## Extra code for different tasks
@@ -1282,8 +1324,8 @@ ggplot(citrate_season, aes(bs_season, mean, color=Group))+
   scale_x_continuous("bs_season", labels = as.character(citrate_season$bs_season), breaks = citrate_season$bs_season)
 
 # plot temp correlation
-ggplot(ghaem_df, aes(x=average_temp, y=g_haem, color=Group)) + 
-  geom_point()+
+ggplot(ghaem_df, aes(x=daylength_min, y=g_haem, color=Group)) + 
+  #geom_point()+
   geom_smooth(method=lm)+  
   ylim(20, 50)
 model <- ghaem_df %>%
