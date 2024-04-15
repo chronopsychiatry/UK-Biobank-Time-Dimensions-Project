@@ -170,7 +170,10 @@ demo_smoking_df <- ghaem_df %>%
   count(smoking_status)  
 demo_alcohol_df <- ghaem_df %>%
   group_by(Group) %>%
-  count(alcohol_intake)  
+  count(alcohol_intake)
+demo_healthstatus_df <- ghaem_df %>%
+  group_by(Group) %>%
+  count(health_self_report) 
 
 
 #plot data to visualise distribution
@@ -258,6 +261,10 @@ yarrr::apa(alcohol_chi)
 #chronotype
 chrono_chi <- chisq.test(x = table(ghaem_df$Group, ghaem_df$chronotype))
 yarrr::apa(chrono_chi)
+
+#health self-report
+health_chi <- chisq.test(x = table(ghaem_df$Group, ghaem_df$health_self_report))
+yarrr::apa(health_chi)
 
 # stats tests - t-test for parametric continous
 #age
@@ -1015,11 +1022,14 @@ points(time_fit_bipolar[o], citrate_bipolar_cos$fitted.values[o], pch = 19)
 
 Increasing model adjustment to include:
 
--   Level 1: sociodemographic factors
+-   Level 1: sociodemographic factors (sex, age, ethnicity, townsend)
 
--   Level 2: health & lifestyle/behavioural factors
+-   Level 2: health & lifestyle/behavioural factors (BMI, smoking,
+    alcohol, health self report, disability, chronotype)
 
--   Level 3: environmental & seasonal factors
+-   Level 3: environmental & seasonal factors (sample time of day,
+    photoperiod rate of change, latitude, temperature, time outdoors in
+    summer, time outdoors in winter, urban or rural)
 
 ```{r multivariable analysis}
 #plot
@@ -1028,11 +1038,48 @@ ggplot(ghaem_df, aes(x=daylength_min, y=g_haem, color=Group)) +
   geom_smooth(method=lm)+  
   ylim(20, 50)
 
-#multivariate analysis
-model1 <- lm(g_haem ~ daylength_min + age + townsend,
+#multivariate analysis - level 1
+model1 <- lm(g_haem ~ daylength_min +
+               #level 1
+               age + sex + townsend + ethnicity,
   data = bipolar_df
 )
 summary(model1)
+
+# test for multicollinearity
+ols_vif_tol(model1)
+
+#multivariate analysis - level 2
+model2 <- lm(g_haem ~ daylength_min + 
+               #level 1
+               age + sex + townsend + ethnicity +
+               #level 2
+               BMI + smoking_status + alcohol_intake + health_self_report +
+               disability_self_report + chronotype,
+  data = bipolar_df
+)
+summary(model2)
+
+# test for multicollinearity
+ols_vif_tol(model2)
+
+#multivariate analysis - level 3
+model3 <- lm(g_haem ~ daylength_min + 
+               #level 1
+               age + sex + townsend + ethnicity +
+               #level 2
+               BMI + smoking_status + alcohol_intake + health_self_report + 
+               disability_self_report + chronotype +
+               #level 3
+               #bs_time + (NEED TO BIN BS_TIME)
+               photoperiod_roc_min + assess_latitude + average_temp + 
+               time_outdoors_summer + time_outdoors_winter,
+  data = bipolar_df
+)
+summary(model3)
+
+# test for multicollinearity
+ols_vif_tol(model3)
 ```
 
 ## Extra code for different tasks
