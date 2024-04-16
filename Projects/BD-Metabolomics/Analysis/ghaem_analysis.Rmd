@@ -81,6 +81,11 @@ Make:
 
 -   2x new dfs: control_df and bipolar_df for later analysis use
 
+-   Recode ethnicity to new collapsed variable + dummy vars for
+    regression
+
+-   Recode employment into new collapsed variable
+
 ```{r pressure, echo=FALSE}
 # remove people with NA glycated haemoglobin
 ghaem_df <- analysis_df %>%  filter(!is.na(g_haem))
@@ -116,9 +121,39 @@ ghaem_df$time_outdoors_winter[ghaem_df$time_outdoors_winter ==-10] <- 0
 ghaem_df$time_outdoors_winter[ghaem_df$time_outdoors_winter ==-3] <- NA
 ghaem_df$time_outdoors_winter[ghaem_df$time_outdoors_winter ==-1] <- NA
 
+# recode ethnicity into 7 groups
+library('plyr')
+#1=White, 2=Mixed, 3=Asian/Asian British, 4=Black/Black British, 5=Chinese, 6=Other ethnic group, 7=do not know/prefer not to answer
+ghaem_df$ethnicity_recode <- revalue(ghaem_df$ethnicity, c("British"="1", "Any other white background"="1", "White"="1", "Irish"="1", "Mixed"="2", "White and Black Caribbean"="2", "White and Black African"="2", "White and Asian"="2", "Any other mixed background"="2", "Asian or Asian British"="3", "Indian"="3", "Pakistani"="3", "Bangladeshi"="3", "Any other Asian background"="3", "Black or Black British"="4", "Caribbean"="4", "African"="4", "Any other Black background"="4", "Chinese"="5", "Other ethnic group"="6", "Do not know"="7", "Prefer not to answer"="7"))
+#ghaem_df$ethnicity_recode <- as.numeric(ghaem_df$ethnicity_recode)
+
+#ethnicity dummy vars code
+#white
+ghaem_df$ethnicity_white <- revalue(ghaem_df$ethnicity_recode, c("1"="1", "2"="0", "3"="0", "4"="0", "5"="0", "6"="0", "7"="0"))
+
+#mixed
+ghaem_df$ethnicity_mixed <- revalue(ghaem_df$ethnicity_recode, c("1"="0", "2"="1", "3"="0", "4"="0", "5"="0", "6"="0", "7"="0"))
+
+#asian/asian british
+ghaem_df$ethnicity_asian <- revalue(ghaem_df$ethnicity_recode, c("1"="0", "2"="0", "3"="1", "4"="0", "5"="0", "6"="0", "7"="0"))
+
+#black/black british
+ghaem_df$ethnicity_asian <- revalue(ghaem_df$ethnicity_recode, c("1"="0", "2"="0", "3"="0", "4"="1", "5"="0", "6"="0", "7"="0"))
+
+#chinese
+ghaem_df$ethnicity_asian <- revalue(ghaem_df$ethnicity_recode, c("1"="0", "2"="0", "3"="0", "4"="0", "5"="1", "6"="0", "7"="0"))
+
+#other
+ghaem_df$ethnicity_asian <- revalue(ghaem_df$ethnicity_recode, c("1"="0", "2"="0", "3"="0", "4"="0", "5"="0", "6"="1", "7"="0"))
+
+# recode employment into 5 groups
+#1=employed, 2=retired, 3=unable to work because of sickness/disability, 4=other unemployment, 5=do not know/prefer not to answer
+ghaem_df$employment_recode <- revalue(ghaem_df$employed, c("In paid employment or self-employed"="1", "Retired"="2", "Doing unpaid or voluntary work"="4", "Unable to work because of sickness or disability"="3", "Full or part-time student"="4", "Unemployed"="4", "Looking after home and/or family"="4", "None of the above"="4", "Prefer not to answer"="5"))
+
+#remove plyr package as has masking for later functions
+detach("package:plyr", unload=TRUE)
 
 # make control and bipolar dataframes
-
 #ungroup main df
 ghaem_df = as.data.frame(ghaem_df)
 
@@ -151,11 +186,10 @@ demo_sd_df <- ghaem_df %>%
 #counts for discrete variables:
 demo_sex_df <- ghaem_df %>%
   group_by(Group) %>%
-    #mutate(sex = factor(sex)) %>% 
   count(sex)
 demo_ethnicity_df <- ghaem_df %>%
   group_by(Group) %>%
-  count(ethnicity)
+  count(ethnicity_recode)
 demo_disabled_df <- ghaem_df %>%
   group_by(Group) %>%
   count(disability_self_report)    
@@ -164,7 +198,7 @@ demo_chronotype_df <- ghaem_df %>%
   count(chronotype)    
 demo_employment_df <- ghaem_df %>%
   group_by(Group) %>%
-  count(employed) 
+  count(employment_recode) 
 demo_smoking_df <- ghaem_df %>%
   group_by(Group) %>%
   count(smoking_status)  
@@ -239,11 +273,11 @@ sex_chi <- chisq.test(x = table(ghaem_df$Group,ghaem_df$sex))
 yarrr::apa(sex_chi)# print stats test result in legible apa format
 
 #ethnicity
-ethnicity_chi <- chisq.test(x = table(ghaem_df$Group,ghaem_df$ethnicity))
+ethnicity_chi <- chisq.test(x = table(ghaem_df$Group,ghaem_df$ethnicity_recode))
 yarrr::apa(ethnicity_chi)
 
 #employment
-employment_chi <- chisq.test(x = table(ghaem_df$Group,ghaem_df$employed))
+employment_chi <- chisq.test(x = table(ghaem_df$Group,ghaem_df$employment_recode))
 yarrr::apa(employment_chi)
 
 #disability
@@ -541,8 +575,10 @@ namesshort <-c("J","F","M","A","M","J","J","A","S","O","N","D")
 hba1c_control_cos <- cosinor(g_haem~1, date='bs_month', type='monthly', data=control_df)
 summary(hba1c_control_cos)
 summary(hba1c_control_cos$glm)
+mesor_control <- mean(hba1c_control_cos$glm$fitted.values) # for mesor
 #plot(hba1c_control_cos)
 #seasrescheck(hba1c_control_cos$residuals) # check the residuals
+
 
 #create new vars for plotting fitted sinusoid from a Cosinor object
 time_fit_control = subset(hba1c_control_cos$glm$data, select = hba1c_control_cos$date)[, 1]
@@ -588,6 +624,7 @@ points(time_fit_control[o], hba1c_control_cos$fitted.values[o], pch = 19)
 hba1c_bipolar_cos <- cosinor(g_haem~1, date='bs_month', type='monthly', data=bipolar_df)
 summary(hba1c_bipolar_cos)
 summary(hba1c_bipolar_cos$glm)
+mesor_bipolar <- mean(hba1c_bipolar_cos$glm$fitted.values) # for mesor
 #plot(hba1c_bipolar_cos)
 #seasrescheck(hba1c_bipolar_cos$residuals) # check the residuals
 
@@ -628,6 +665,22 @@ axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
 lines(time_fit_bipolar[o],hba1c_bipolar_cos$fitted.values[o], lty=2,lwd=1, col="black")
 points(time_fit_bipolar[o], hba1c_bipolar_cos$fitted.values[o], pch = 19)
 
+
+#run significance test between groups for: phase, nadir, amplitude, mesor
+#control
+#make glm summary object
+s_control = summary(hba1c_control_cos$glm)
+
+cnames_c = row.names(s_control$coefficients)
+cindex_c = sum(as.numeric(cnames_c == "cosw") * (1:length(cnames_c)))
+sindex_c = sum(as.numeric(cnames_c == "sinw") * (1:length(cnames_c)))
+
+amp_c = sqrt((s_control$coefficients[cindex_c, 1]^2) + (s_control$coefficients[sindex_c, 1]^2))
+
+
+#bipolar
+
+s_bipolar = summary(hba1c_bipolar_cos$glm)
 ```
 
 #### [Glucose]{.underline}
@@ -1027,22 +1080,105 @@ Increasing model adjustment to include:
 -   Level 2: health & lifestyle/behavioural factors (BMI, smoking,
     alcohol, health self report, disability, chronotype)
 
--   Level 3: environmental & seasonal factors (sample time of day,
-    photoperiod rate of change, latitude, temperature, time outdoors in
-    summer, time outdoors in winter, urban or rural)
+Level 3: environmental & seasonal factors (sample time of day,
+photoperiod rate of change, latitude, temperature, time outdoors in
+summer, time outdoors in winter)
+
+```{r recode}
+
+library('plyr')
+
+##Group
+#control
+ghaem_df$group <- revalue(ghaem_df$Group, c("control"="1", "bipolar"="0"))
+
+##Smoking
+#previous
+ghaem_df$smoking_previous <- revalue(ghaem_df$smoking_status, c("Previous"="1", "Never"="0", "Current"="0", "Prefer not to answer"="0"))
+
+#never
+ghaem_df$smoking_never <- revalue(ghaem_df$smoking_status, c("Previous"="0", "Never"="1", "Current"="0", "Prefer not to answer"="0"))
+
+#current
+ghaem_df$smoking_current <- revalue(ghaem_df$smoking_status, c("Previous"="0", "Never"="0", "Current"="1", "Prefer not to answer"="0"))
+
+##Alcohol
+#never/special
+ghaem_df$alcohol_rare <- revalue(ghaem_df$alcohol_intake, c("Special occasions only"="1", "Never"="1", "One to three times a month"="0", "Once or twice a week"="0","Three or four times a week"="0", "Daily or almost daily"="0","Prefer not to answer"="0"))
+
+#1-3 month
+ghaem_df$alcohol_13month <- revalue(ghaem_df$alcohol_intake, c("Special occasions only"="0", "Never"="0", "One to three times a month"="1", "Once or twice a week"="0","Three or four times a week"="0", "Daily or almost daily"="0","Prefer not to answer"="0"))
+
+#1-2 week
+ghaem_df$alcohol_12week <- revalue(ghaem_df$alcohol_intake, c("Special occasions only"="0", "Never"="0", "One to three times a month"="0", "Once or twice a week"="1","Three or four times a week"="0", "Daily or almost daily"="0","Prefer not to answer"="0"))
+
+#3-4 week
+ghaem_df$alcohol_34week <- revalue(ghaem_df$alcohol_intake, c("Special occasions only"="0", "Never"="0", "One to three times a month"="0", "Once or twice a week"="0","Three or four times a week"="1", "Daily or almost daily"="0","Prefer not to answer"="0"))
+
+#near daily
+ghaem_df$alcohol_daily <- revalue(ghaem_df$alcohol_intake, c("Special occasions only"="0", "Never"="0", "One to three times a month"="0", "Once or twice a week"="0","Three or four times a week"="0", "Daily or almost daily"="1","Prefer not to answer"="0"))
+
+##Disability self-report
+#yes
+ghaem_df$disability_yes <- revalue(ghaem_df$disability_self_report, c("Yes"="1", "No"="0", "Do not know"="0", "Prefer not to answer"="0"))
+  
+#no
+ghaem_df$disability_no <- revalue(ghaem_df$disability_self_report, c("Yes"="0", "No"="1", "Do not know"="0", "Prefer not to answer"="0"))
+
+##health status self-report
+#Excellent
+ghaem_df$health_excellent <- revalue(ghaem_df$health_self_report, c("Excellent"="1", "Good"="0", "Fair"="0", "Poor"="0","Do not know"="0", "Prefer not to answer"="0"))
+  
+#Good
+ghaem_df$health_good <- revalue(ghaem_df$health_self_report, c("Excellent"="0", "Good"="1", "Fair"="0", "Poor"="0","Do not know"="0", "Prefer not to answer"="0"))
+
+#Fair
+ghaem_df$health_fair <- revalue(ghaem_df$health_self_report, c("Excellent"="0", "Good"="0", "Fair"="1", "Poor"="0","Do not know"="0", "Prefer not to answer"="0"))
+
+#Poor
+ghaem_df$health_poor <- revalue(ghaem_df$health_self_report, c("Excellent"="0", "Good"="0", "Fair"="0", "Poor"="1","Do not know"="0", "Prefer not to answer"="0"))
+
+##Chronotype
+#def morning
+ghaem_df$chrono_defmorn <- revalue(ghaem_df$chronotype, c("Definitely a 'morning' person"="1", "More a 'morning' than 'evening' person"="0", "More an 'evening' than a 'morning' person"="0", "Definitely an 'evening' person"="0","Do not know"="0", "Prefer not to answer"="0"))
+
+#more morning
+ghaem_df$chrono_moremorn <- revalue(ghaem_df$chronotype, c("Definitely a 'morning' person"="0", "More a 'morning' than 'evening' person"="1", "More an 'evening' than a 'morning' person"="0", "Definitely an 'evening' person"="0","Do not know"="0", "Prefer not to answer"="0"))
+
+#more evening
+ghaem_df$chrono_moreeve <- revalue(ghaem_df$chronotype, c("Definitely a 'morning' person"="0", "More a 'morning' than 'evening' person"="0", "More an 'evening' than a 'morning' person"="1", "Definitely an 'evening' person"="0","Do not know"="0", "Prefer not to answer"="0"))
+
+#def evening
+ghaem_df$chrono_defeve <- revalue(ghaem_df$chronotype, c("Definitely a 'morning' person"="0", "More a 'morning' than 'evening' person"="0", "More an 'evening' than a 'morning' person"="0", "Definitely an 'evening' person"="1","Do not know"="0", "Prefer not to answer"="0"))
+
+
+#remove plyr package as has masking for later functions
+detach("package:plyr", unload=TRUE)
+
+
+# re-make control and bipolar dataframes
+#ungroup main df
+ghaem_df = as.data.frame(ghaem_df)
+
+#create groups
+control_df <- ghaem_df %>%  filter(Group=='control')
+bipolar_df <- ghaem_df %>%  filter(Group=='bipolar')
+```
 
 ```{r multivariable analysis}
+
 #plot
 ggplot(ghaem_df, aes(x=daylength_min, y=g_haem, color=Group)) + 
   #geom_point()+
   geom_smooth(method=lm)+  
-  ylim(20, 50)
+  #ylim(20, 50)
 
 #multivariate analysis - level 1
 model1 <- lm(g_haem ~ daylength_min +
+               group +
                #level 1
-               age + sex + townsend + ethnicity,
-  data = bipolar_df
+               age + sex + townsend + ethnicity_white,
+  data = ghaem_df
 )
 summary(model1)
 
@@ -1052,11 +1188,14 @@ ols_vif_tol(model1)
 #multivariate analysis - level 2
 model2 <- lm(g_haem ~ daylength_min + 
                #level 1
-               age + sex + townsend + ethnicity +
+               age + sex + townsend + ethnicity_white +
                #level 2
-               BMI + smoking_status + alcohol_intake + health_self_report +
-               disability_self_report + chronotype,
-  data = bipolar_df
+               BMI + smoking_previous + smoking_current + smoking_never +
+               alcohol_rare + alcohol_13month + alcohol_12week + alcohol_34week +
+               alcohol_daily + health_excellent + health_good + health_fair +
+               health_poor + disability_yes + disability_no + chrono_defmorn +
+               chrono_moremorn + chrono_moreeve + chrono_defeve,
+  data = control_df
 )
 summary(model2)
 
@@ -1066,15 +1205,18 @@ ols_vif_tol(model2)
 #multivariate analysis - level 3
 model3 <- lm(g_haem ~ daylength_min + 
                #level 1
-               age + sex + townsend + ethnicity +
+               age + sex + townsend + ethnicity_white +
                #level 2
-               BMI + smoking_status + alcohol_intake + health_self_report + 
-               disability_self_report + chronotype +
+               BMI + smoking_previous + smoking_current + smoking_never +
+               alcohol_rare + alcohol_13month + alcohol_12week + alcohol_34week +
+               alcohol_daily + health_excellent + health_good + health_fair +
+               health_poor + disability_yes + disability_no + chrono_defmorn +
+               chrono_moremorn + chrono_moreeve + chrono_defeve +
                #level 3
                #bs_time + (NEED TO BIN BS_TIME)
                photoperiod_roc_min + assess_latitude + average_temp + 
                time_outdoors_summer + time_outdoors_winter,
-  data = bipolar_df
+  data = control_df
 )
 summary(model3)
 
