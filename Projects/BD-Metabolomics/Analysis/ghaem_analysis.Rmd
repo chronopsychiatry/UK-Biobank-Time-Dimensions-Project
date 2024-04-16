@@ -1080,9 +1080,9 @@ Increasing model adjustment to include:
 -   Level 2: health & lifestyle/behavioural factors (BMI, smoking,
     alcohol, health self report, disability, chronotype)
 
-Level 3: environmental & seasonal factors (sample time of day,
-photoperiod rate of change, latitude, temperature, time outdoors in
-summer, time outdoors in winter)
+-   Level 3: environmental & seasonal factors (sample time of day,
+    photoperiod rate of change, latitude, temperature, time outdoors in
+    summer, time outdoors in winter)
 
 ```{r recode}
 
@@ -1091,6 +1091,32 @@ library('plyr')
 ##Group
 #control
 ghaem_df$group <- revalue(ghaem_df$Group, c("control"="1", "bipolar"="0"))
+ghaem_df$group <- factor(ghaem_df$group)
+
+#Sex
+#sex
+ghaem_df$sex_recode <- revalue(ghaem_df$sex, c("male"="1", "female"="0"))
+ghaem_df$sex_recode <- factor(ghaem_df$sex_recode)
+
+#ethnicity
+ghaem_df$ethnicity_recode <- factor(ghaem_df$ethnicity_recode)
+
+#smoking
+ghaem_df$smoking_status <- factor(ghaem_df$smoking_status, levels= c(), labels=c())
+
+#alcohol
+ghaem_df$alcohol_intake <- factor(ghaem_df$alcohol_intake)
+
+#health self-report
+ghaem_df$health_self_report <- factor(ghaem_df$health_self_report)
+
+#disbility
+ghaem_df$disability_self_report <- factor(ghaem_df$disability_self_report)
+
+#chronotype
+ghaem_df$chronotype <- factor(ghaem_df$chronotype)
+
+###create dummy variables
 
 ##Smoking
 #previous
@@ -1106,14 +1132,12 @@ ghaem_df$smoking_current <- revalue(ghaem_df$smoking_status, c("Previous"="0", "
 #never/special
 ghaem_df$alcohol_rare <- revalue(ghaem_df$alcohol_intake, c("Special occasions only"="1", "Never"="1", "One to three times a month"="0", "Once or twice a week"="0","Three or four times a week"="0", "Daily or almost daily"="0","Prefer not to answer"="0"))
 
-#1-3 month
-ghaem_df$alcohol_13month <- revalue(ghaem_df$alcohol_intake, c("Special occasions only"="0", "Never"="0", "One to three times a month"="1", "Once or twice a week"="0","Three or four times a week"="0", "Daily or almost daily"="0","Prefer not to answer"="0"))
+#moderate
+ghaem_df$alcohol_moderate <- revalue(ghaem_df$alcohol_intake, c("Special occasions only"="0", "Never"="0", "One to three times a month"="1", "Once or twice a week"="1","Three or four times a week"="0", "Daily or almost daily"="0","Prefer not to answer"="0"))
 
-#1-2 week
-ghaem_df$alcohol_12week <- revalue(ghaem_df$alcohol_intake, c("Special occasions only"="0", "Never"="0", "One to three times a month"="0", "Once or twice a week"="1","Three or four times a week"="0", "Daily or almost daily"="0","Prefer not to answer"="0"))
 
-#3-4 week
-ghaem_df$alcohol_34week <- revalue(ghaem_df$alcohol_intake, c("Special occasions only"="0", "Never"="0", "One to three times a month"="0", "Once or twice a week"="0","Three or four times a week"="1", "Daily or almost daily"="0","Prefer not to answer"="0"))
+#frequent
+ghaem_df$alcohol_frequent <- revalue(ghaem_df$alcohol_intake, c("Special occasions only"="0", "Never"="0", "One to three times a month"="0", "Once or twice a week"="0","Three or four times a week"="1", "Daily or almost daily"="1","Prefer not to answer"="0"))
 
 #near daily
 ghaem_df$alcohol_daily <- revalue(ghaem_df$alcohol_intake, c("Special occasions only"="0", "Never"="0", "One to three times a month"="0", "Once or twice a week"="0","Three or four times a week"="0", "Daily or almost daily"="1","Prefer not to answer"="0"))
@@ -1151,9 +1175,9 @@ ghaem_df$chrono_moreeve <- revalue(ghaem_df$chronotype, c("Definitely a 'morning
 #def evening
 ghaem_df$chrono_defeve <- revalue(ghaem_df$chronotype, c("Definitely a 'morning' person"="0", "More a 'morning' than 'evening' person"="0", "More an 'evening' than a 'morning' person"="0", "Definitely an 'evening' person"="1","Do not know"="0", "Prefer not to answer"="0"))
 
-
 #remove plyr package as has masking for later functions
 detach("package:plyr", unload=TRUE)
+
 
 
 # re-make control and bipolar dataframes
@@ -1166,6 +1190,8 @@ bipolar_df <- ghaem_df %>%  filter(Group=='bipolar')
 ```
 
 ```{r multivariable analysis}
+# https://stats.oarc.ucla.edu/r/modules/coding-for-categorical-variables-in-regression-models/
+library (olsrr)
 
 #plot
 ggplot(ghaem_df, aes(x=daylength_min, y=g_haem, color=Group)) + 
@@ -1175,10 +1201,10 @@ ggplot(ghaem_df, aes(x=daylength_min, y=g_haem, color=Group)) +
 
 #multivariate analysis - level 1
 model1 <- lm(g_haem ~ daylength_min +
-               group +
+               #group +
                #level 1
-               age + sex + townsend + ethnicity_white,
-  data = ghaem_df
+               age + sex_recode + townsend + ethnicity_recode,
+  data = control_df
 )
 summary(model1)
 
@@ -1188,13 +1214,11 @@ ols_vif_tol(model1)
 #multivariate analysis - level 2
 model2 <- lm(g_haem ~ daylength_min + 
                #level 1
-               age + sex + townsend + ethnicity_white +
+               age + sex + townsend + ethnicity_recode +
                #level 2
-               BMI + smoking_previous + smoking_current + smoking_never +
-               alcohol_rare + alcohol_13month + alcohol_12week + alcohol_34week +
-               alcohol_daily + health_excellent + health_good + health_fair +
-               health_poor + disability_yes + disability_no + chrono_defmorn +
-               chrono_moremorn + chrono_moreeve + chrono_defeve,
+               BMI + smoking_status +
+               alcohol_intake + health_self_report + disability_self_report + 
+               chronotype,
   data = control_df
 )
 summary(model2)
