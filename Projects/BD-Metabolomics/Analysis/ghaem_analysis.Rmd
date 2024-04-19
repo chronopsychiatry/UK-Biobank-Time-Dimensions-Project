@@ -56,6 +56,21 @@ townsend <- townsend %>%
   rename('townsend' = 'p22189')
 
 analysis_df <- merge(analysis_df,townsend, by="eid")
+
+
+sleep_activity <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\sleep_activity.tsv")
+
+sleep_activity <- sleep_activity %>% 
+  rename('sleep_duration_sr' = '1160-0.0',
+         'sleep_avg_acti' = '40042-0.0',
+         'sedentary_avg_acti' = '40043-0.0',
+         'moderate_avg_acti' = '40045-0.0',
+         'light_avg_acti' = '40044-0.0',
+         'acti_data_qual' = '90015-0.0',
+         'IPAQ_group' = '22032-0.0')
+
+analysis_df <- merge(analysis_df,sleep_activity, by="eid")
+
 ```
 
 ### 3: Tidy data
@@ -85,6 +100,8 @@ Make:
     regression
 
 -   Recode employment into new collapsed variable
+
+-   recode blood sample time to collapse into one day
 
 ```{r pressure, echo=FALSE}
 # remove people with NA glycated haemoglobin
@@ -121,6 +138,11 @@ ghaem_df$time_outdoors_winter[ghaem_df$time_outdoors_winter ==-10] <- 0
 ghaem_df$time_outdoors_winter[ghaem_df$time_outdoors_winter ==-3] <- NA
 ghaem_df$time_outdoors_winter[ghaem_df$time_outdoors_winter ==-1] <- NA
 
+# tidy self-report sleep time to remove -3', '-1' values:
+ghaem_df$sleep_duration[ghaem_df$sleep_duration ==-3] <- NA
+ghaem_df$sleep_duration[ghaem_df$sleep_duration ==-1] <- NA
+
+
 # recode ethnicity into 7 groups
 library('plyr')
 #1=White, 2=Mixed, 3=Asian/Asian British, 4=Black/Black British, 5=Chinese, 6=Other ethnic group, 7=do not know/prefer not to answer
@@ -153,6 +175,21 @@ ghaem_df$employment_recode <- revalue(ghaem_df$employed, c("In paid employment o
 #remove plyr package as has masking for later functions
 detach("package:plyr", unload=TRUE)
 
+# collapse bs_time into 1 day time variable - n=161 people with whacky time between 00:00 - 08:00
+ghaem_df$bs_time_collapsed <- as.POSIXct(ghaem_df$bs_time,format="%H:%M")
+
+    #create variables containing sequence of times to exclude from data
+    # pull out the data date 
+    start_time <- ymd_hms("2024-04-19 00:00:00")
+    end_time <- ymd_hms("2024-04-19 08:00:00")
+    exclude_dt_range <- seq(start_time, end_time, "min")
+    exclude_time_range <- format(as.POSIXct(exclude_dt_range,format='%Y-%m-%d %H:%M:%S'),format='%Y-%m-%d %H:%M:%S')
+exclude_time_range <- as.POSIXct(exclude_time_range)
+    
+    #remove rows where sample time is outside of 23:00:00-06:00:00 range
+    bloodtime_df <- ghaem_df %>%
+      filter(!bs_time_collapsed %in% exclude_time_range)
+
 # make control and bipolar dataframes
 #ungroup main df
 ghaem_df = as.data.frame(ghaem_df)
@@ -174,13 +211,13 @@ bipolar_df <- ghaem_df %>%  filter(Group=='bipolar')
 # summary statistics - median for continuous variables:
 demo_mean_df <- ghaem_df %>%
   group_by(Group) %>%
-  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales', 'time_outdoors_summer', 'time_outdoors_winter', 'fasting_time', 'townsend'),
+  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales', 'time_outdoors_summer', 'time_outdoors_winter', 'fasting_time', 'townsend', 'sleep_duration'),
                mean, na.rm=TRUE)
 
 # summary statistics - std.dev for continuous variables:
 demo_sd_df <- ghaem_df %>%
   group_by(Group) %>%
-  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales', 'time_outdoors_summer', 'time_outdoors_winter', 'fasting_time', 'townsend'),
+  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales', 'time_outdoors_summer', 'time_outdoors_winter', 'fasting_time', 'townsend', 'sleep_duration'),
                sd, na.rm=TRUE)
 
 #counts for discrete variables:
@@ -208,6 +245,9 @@ demo_alcohol_df <- ghaem_df %>%
 demo_healthstatus_df <- ghaem_df %>%
   group_by(Group) %>%
   count(health_self_report) 
+demo_IPAQ_df <- ghaem_df %>%
+  group_by(Group) %>%
+  count(IPAQ_group) 
 
 
 #plot data to visualise distribution
@@ -261,6 +301,12 @@ townsend_plot <- ggplot(ghaem_df, aes(x = townsend)) +
   geom_histogram(fill = "salmon2", colour = "black") +
   facet_grid(Group ~ ., scales = "free")
 
+
+# sleep duration - right skew
+sleepdur_plot <- ggplot(ghaem_df, aes(x = sleep_duration)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
 # plot in multi-plot
 figure <- ggarrange(age_plot,bmi_plot,age_edu_plot,imd_e_plot,imd_s_plot,imd_w_plot,outsummer_plot,outwinter_plot, fastingtime_plot,townsend_plot, labels = c("Age", "BMI", "Age Education", "IMD_E", "IMD_S", "IMD_W", "outdoors summer", "outdoors winter", "fasting time", "townsend"),
                     ncol = 5, nrow = 2)
@@ -299,6 +345,10 @@ yarrr::apa(chrono_chi)
 #health self-report
 health_chi <- chisq.test(x = table(ghaem_df$Group, ghaem_df$health_self_report))
 yarrr::apa(health_chi)
+
+#IPAQ
+IPAQ_chi <- chisq.test(x = table(ghaem_df$Group, ghaem_df$IPAQ_group))
+yarrr::apa(IPAQ_chi)
 
 # stats tests - t-test for parametric continous
 #age
@@ -341,6 +391,20 @@ fasting_wrs
 #townsend
 townsend_wrs <- wilcox.test(townsend ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
 townsend_wrs
+
+#sleep duration
+sleepdur_wrs <- wilcox.test(sleep_duration ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+sleepdur_wrs
+
+
+### our marker levels
+#hba1c
+ghaem_ttest <- t.test(ghaem_df$g_haem ~ ghaem_df$Group, na.rm=TRUE)
+yarrr::apa(ghaem_ttest)
+
+#glucose
+glucose_wrs <- wilcox.test(glucose ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+glucose_wrs
 ```
 
 ### 5. Explore blood samples - section in progress
@@ -382,13 +446,63 @@ marker_sd_df <- ghaem_df %>%
   group_by(Group) %>%
   summarise_at(c('g_haem', 'glucose'), sd, na.rm=TRUE)
 
-#hba1c
-ghaem_ttest <- t.test(ghaem_df$g_haem ~ ghaem_df$Group, na.rm=TRUE)
-yarrr::apa(ghaem_ttest)
 
-#glucose
-glucose_wrs <- wilcox.test(glucose ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
-glucose_wrs
+# plot blood levels against time of day
+
+#create groups with bloodtime_df to avoid excluding people from other df
+bloodtime_control <- bloodtime_df %>%  filter(Group=='control')
+bloodtime_bipolar <- bloodtime_df %>%  filter(Group=='bipolar')
+
+#plot glucose
+ggplot(bloodtime_df, aes(bs_time_collapsed,glucose)) + geom_point(colour='coral1', size=0.1) + geom_smooth()+
+scale_x_datetime(limits = ymd_hms(c('2024-04-19 07:00:00', '2024-04-19 20:00:00')))
+
+#plot ghaem
+dev.new()
+ggplot(bloodtime_df, aes(bs_time_collapsed,g_haem)) + geom_point(colour='coral1', size=0.1) + geom_smooth()+
+scale_x_datetime(limits = ymd_hms(c('2024-04-19 07:00:00', '2024-04-19 20:00:00')))
+
+
+
+#cosinor to look for circadian pattern - controls
+#run cosinor on ghaem
+hba1c_control_circcos <- cosinor(g_haem~1, date='bs_time_collapsed', type='hourly', data=bloodtime_control)
+summary(hba1c_control_circcos)
+plot(hba1c_control_circcos)
+summary(hba1c_control_circcos$glm)
+mesor_control <- mean(hba1c_control_circcos$glm$fitted.values) # for mesor
+#
+#seasrescheck(hba1c_control_circcos$residuals) # check the residuals
+
+#run cosinor on glucose
+glucose_control_circcos <- cosinor(glucose~1+ fasting_time, date='bs_time_collapsed', type='hourly', data=bloodtime_control)
+summary(glucose_control_circcos)
+plot(glucose_control_circcos)
+summary(glucose_control_circcos$glm)
+mesor_control <- mean(glucose_control_circcos$glm$fitted.values) # for mesor
+#
+#seasrescheck(hba1c_control_circcos$residuals) # check the residuals
+
+#cosinor to look for circadian pattern - bipolar
+#run cosinor on ghaem
+hba1c_bipolar_circcos <- cosinor(g_haem~1, date='bs_time_collapsed', type='hourly', data=bloodtime_bipolar)
+summary(hba1c_bipolar_circcos)
+plot(hba1c_bipolar_circcos)
+summary(hba1c_bipolar_circcos$glm)
+mesor_control <- mean(hba1c_bipolar_circcos$glm$fitted.values) # for mesor
+#
+#seasrescheck(hba1c_bipolar_circcos$residuals) # check the residuals
+
+#run cosinor on glucose
+glucose_bipolar_circcos <- cosinor(glucose~1 + fasting_time, date='bs_time_collapsed', type='hourly', data=bloodtime_bipolar)
+summary(glucose_bipolar_circcos)
+plot(glucose_bipolar_circcos)
+summary(glucose_bipolar_circcos$glm)
+mesor_control <- mean(glucose_bipolar_circcos$glm$fitted.values) # for mesor
+#
+#seasrescheck(glucose_bipolar_circcos$residuals) # check the residuals
+
+
 ```
 
 ### 6. Collapse marker data into seasons and months
@@ -590,7 +704,7 @@ namesshort <-c("J","F","M","A","M","J","J","A","S","O","N","D")
 ```{r HbA1c cosinor+plot}
 
 #run cosinor
-hba1c_control_cos <- cosinor(g_haem~1, date='bs_month', type='monthly', data=control_df)
+hba1c_control_cos <- cosinor(g_haem~1, date='bs_month', type='monthly', family=poisson,data=control_df, offsetmonth=TRUE)
 summary(hba1c_control_cos)
 summary(hba1c_control_cos$glm)
 mesor_control <- mean(hba1c_control_cos$glm$fitted.values) # for mesor
@@ -1182,10 +1296,10 @@ bipolar_df <- ghaem_df %>%  filter(Group=='bipolar')
 # https://stats.oarc.ucla.edu/r/modules/coding-for-categorical-variables-in-regression-models/
 library (olsrr)
 
-#plot
+#plot - is there a visible linear relationship?
 ggplot(ghaem_df, aes(x=daylength_min, y=g_haem, color=Group)) + 
   #geom_point()+
-  geom_smooth(method=lm)+  
+  geom_smooth(method=lm)#+  
   #ylim(20, 50)
 
   
@@ -1198,6 +1312,7 @@ model1 <- lm(g_haem ~ daylength_min +
   data = control_df
 )
 summary(model1)
+abline(model1, col="red", lwd=2) # fit line to plot
 
 # test for multicollinearity
 ols_vif_tol(model1)
@@ -1293,6 +1408,13 @@ ols_vif_tol(model3_b)
 #### Glucose
 
 ```{r glucose multivariable LM analysis}
+
+#plot - is there a visible linear relationship?
+dev.new()
+ggplot(ghaem_df, aes(x=daylength_min, y=glucose, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(20, 50)
 
 ####CONTROL
 #multivariate analysis - level 1
