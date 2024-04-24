@@ -453,6 +453,8 @@ marker_sd_df <- ghaem_df %>%
 bloodtime_control <- bloodtime_df %>%  filter(Group=='control')
 bloodtime_bipolar <- bloodtime_df %>%  filter(Group=='bipolar')
 
+bloodtime_control$bs_hour <- times(format(bloodtime_control$bs_time_collapsed, "%H"))
+
 #plot glucose
 ggplot(bloodtime_df, aes(bs_time_collapsed,glucose)) + geom_point(colour='coral1', size=0.1) + geom_smooth()+
 scale_x_datetime(limits = ymd_hms(c('2024-04-19 07:00:00', '2024-04-19 20:00:00')))
@@ -462,6 +464,10 @@ dev.new()
 ggplot(bloodtime_df, aes(bs_time_collapsed,g_haem)) + geom_point(colour='coral1', size=0.1) + geom_smooth()+
 scale_x_datetime(limits = ymd_hms(c('2024-04-19 07:00:00', '2024-04-19 20:00:00')))
 
+pirateplot(formula = glucose ~ bs_time_collapsed,
+           data = bloodtime_control,
+           theme = 4,
+           main = "theme = 4")
 
 
 #cosinor to look for circadian pattern - controls
@@ -704,7 +710,7 @@ namesshort <-c("J","F","M","A","M","J","J","A","S","O","N","D")
 ```{r HbA1c cosinor+plot}
 
 #run cosinor
-hba1c_control_cos <- cosinor(g_haem~1, date='bs_month', type='monthly', family=poisson,data=control_df, offsetmonth=TRUE)
+hba1c_control_cos <- cosinor(g_haem~1, date='bs_month', type='monthly',data=control_df)
 summary(hba1c_control_cos)
 summary(hba1c_control_cos$glm)
 mesor_control <- mean(hba1c_control_cos$glm$fitted.values) # for mesor
@@ -718,9 +724,9 @@ o = order(time_fit_control)
 
 # HbA1c - control
 
-pirateplot(formula =  g_haem ~ bs_month,
+pirateplot(formula =  g_haem ~ bs_month + average_temp,
            data = control_df,
-           #col = rgb(cr(daylen / max(daylen)), max=255)
+           #col = rgb(cr(daylen / max(daylen)), max=255),
            pal=col, #set to your own color palette created previously
            xlab = "Month",
            ylab = expression(bold(paste("Control HbA1c (mmol/mol)"))),
@@ -738,7 +744,8 @@ pirateplot(formula =  g_haem ~ bs_month,
            #bty=n,
            #point.cex = .5, # Points
            #quant = c(.1, .9), # Adjust quantiles
-           ylim=c(34.4,35),  # Adjust y axis limits
+           #ylim=c(34.4,35),  # Adjust y axis limits
+           ylim=c(32,36.5)
            #gl.col = gray(.2), # Gridline specifications
            #gl.lty = 1,
            #gl.lwd = c(0, .3))
@@ -787,6 +794,7 @@ pirateplot(formula =  g_haem ~ bs_month,
            #point.cex = .5, # Points
            #quant = c(.1, .9), # Adjust quantiles
            ylim=c(32,36.5) # Adjust y axis limits
+           #ylim=c(34.4,35)
            #gl.col = gray(.2), # Gridline specifications
            #gl.lty = 1,
            #gl.lwd = c(0, .3))
@@ -853,7 +861,8 @@ pirateplot(formula =  glucose ~ bs_month,
            #bty=n,
            #point.cex = .5, # Points
            #quant = c(.1, .9), # Adjust quantiles
-           ylim=c(4.85,5),  # Adjust y axis limits
+           #ylim=c(4.85,5),  # Adjust y axis limits
+           ylim=c(4.5,5.5)
            #gl.col = gray(.2), # Gridline specifications
            #gl.lty = 1,
            #gl.lwd = c(0, .3))
@@ -1302,6 +1311,30 @@ ggplot(ghaem_df, aes(x=daylength_min, y=g_haem, color=Group)) +
   geom_smooth(method=lm)#+  
   #ylim(20, 50)
 
+
+#test for interaction effects
+l1_c_anova <- aov(g_haem ~ daylength_min * 
+               #group_f +
+               #level 1
+               age * sex_f * townsend * ethnicity_f,
+  data = control_df)
+summary(l1_c_anova)  # sig sex:ethncity
+
+l2_c_anova <- aov(g_haem ~ daylength_min * 
+               #level 2
+               BMI * smoking_f*
+               alcohol_f * health_f * 
+               chrono_f,
+  data = control_df)
+summary(l2_c_anova)
+
+l3_c_anova <- aov(g_haem ~ daylength_min * 
+               #level 3
+               #bs_time + (NEED TO BIN BS_TIME)
+               photoperiod_roc_min * assess_latitude *
+               time_outdoors_summer * time_outdoors_winter,
+  data = control_df)
+summary(l3_c_anova)
   
 ####CONTROL
 #multivariate analysis - level 1
