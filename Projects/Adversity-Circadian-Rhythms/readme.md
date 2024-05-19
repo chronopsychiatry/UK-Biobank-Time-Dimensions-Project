@@ -20,7 +20,7 @@ This folder contains the following documents:
 
 4. Trauma and Insomnia R script - this contains the script for analysing the BioBank dataset for childhood/adulthood trauma and self-reported sleeplessness/insomnia. Author: Ezrie Samuel, includes script originally written by Amber Roguski.
 
-5. Powerpoint version of the scientific poster drawn up and presented for this project (April 2024).
+5. PDF version of the scientific poster presented for this project (April 2024).
    
 
    
