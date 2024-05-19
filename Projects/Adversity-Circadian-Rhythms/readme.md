@@ -1,4 +1,5 @@
 # Does childhood adversity have lifelong consequences for circadian and sleep health?
+# This project has been paused as of April 2024.
 This is the shared folder for the MScR project 'Does childhood adversity have lifelong consequences for circadian and sleep health?'.
 
 Key contacts for the project are: Amber Roguski & Ezrie Samuel & Raahat Manrai
