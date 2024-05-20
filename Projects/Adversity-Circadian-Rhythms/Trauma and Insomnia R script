@@ -1,0 +1,867 @@
+#Authors and credit:
+#Author: Ezrie Samuel (created January - April 2024)
+#The code below is amalgamated from Amber Roguski's scripts on GitHub
+
+#This script was written to look at the relationship between self-reported insomnia, 
+#child and adulthood trauma variables from the Thoughts & Feelings Questionnaire (TaFQ)
+#and confounding sociodemographic variables.
+
+#The packages needed for analysis:
+library(tidyverse)
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(data.table)
+
+#Reading the .tsv datafile downloaded from BioBank Research Analysis Platform (RAP)
+all_insom <- read_tsv("data_insomnia.tsv", col_names = TRUE)
+
+#renaming columns, any name can be chosen 
+#You can look up the original numerical codes in the search bar of the BioBank website
+all_insom <- all_insom %>% 
+  rename("age" = "21022-0.0",
+         "mm" = "52-0.0",
+         "yyyy" = "34-0.0",
+         "imde" = "26410-0.0",
+         "imds" = "26427-0.0",
+         "imdw" = "26426-0.0",
+         "sex" = "31-0.0",
+         "tdi" = "22189-0.0",
+         "ethnic" = "21000-0.0",
+         "sleep_i" = "1200-0.0",
+         "lchild_t" = "20489-0.0",
+         "pchild_t" = "20488-0.0",
+         "schild_t" = "20490-0.0",
+         "hchild_t" = "20487-0.0",
+         "dchild_t" = "20491-0.0",
+         "cradult_t" = "20522-0.0",         
+         "padult_t" = "20523-0.0",
+         "eadult_t" = "20521-0.0",
+         "siadult_t" = "20524-0.0",
+         "rmadult_t" = "20525-0.0",
+        "shift" = "826-0.0",
+        "bmi" = "21001-0.0",
+        "diab" = "2443-0.0",
+        "falco" = "20414-0.0",
+        "sixalco" = "20416-0.0",
+        "smoke" = "20116-0.0",
+        "sed" = "40043-0.0")
+
+#creating dataset with only those who answered Thoughts & Feelings Questionnaire
+all_df_insom <- dplyr::filter(all_insom, pchild_t >= -818)
+#all 'NA' will be dropped with this code
+#returned 157,298 participants
+
+#Removing all NA/missing data from the dataset
+all_df_insom <- all_df_insom %>% drop_na (age,sex,tdi,ethnic,sleep_i, 
+shift,bmi,diab,falco,smoke,sed)
+#returned 44,245 of present dataset
+
+#-818 indicates 'prefer not to answer' for trauma questions
+#Before calculating score you need to replace -818 with 0 in order to not skew the score
+all_df_insom [all_df_insom == -818] <- 0
+
+#Reverse coding positively phrased Likert-style trauma variables
+reverse_cols = c("lchild_t","dchild_t","cradult_t","rmadult_t")
+all_df_insom[ ,reverse_cols] = 4 - all_df_insom[ ,reverse_cols]
+
+#To create the trauma groups of interest you have to add the scores, 
+#and then select those who have a score of >= 1
+
+#Calculating composite childhood trauma score
+all_df_insom <- all_df_insom %>% mutate (sumrowc = lchild_t + pchild_t + schild_t +
+                                         hchild_t + dchild_t)
+#Calculating abuse and neglect childhood trauma scores
+all_df_insom <- all_df_insom %>% mutate (sumrowca = pchild_t + schild_t +
+                                           hchild_t)
+all_df_insom <- all_df_insom %>% mutate (sumrowcn = lchild_t + dchild_t)
+
+#Calculating composite adult trauma score
+all_df_insom <- all_df_insom %>% mutate(sumrowa = cradult_t + padult_t + eadult_t +
+                                          siadult_t + rmadult_t)
+#Calculating abuse and neglect adult trauma scores
+all_df_insom <- all_df_insom %>% mutate (sumrowaa = padult_t + eadult_t +
+                                           siadult_t)
+all_df_insom <- all_df_insom %>% mutate (sumrowan = cradult_t + rmadult_t)
+
+#For isolating control group (no trauma)
+all_df_insom <- all_df_insom %>% mutate(sumrow = lchild_t + pchild_t + schild_t +
+                                          hchild_t + dchild_t + cradult_t + 
+                                          padult_t + eadult_t + siadult_t + 
+                                          rmadult_t)
+all_df_control <- dplyr::filter(all_df_insom, sumrow == 0)
+
+#Dataset for isolating only childhood trauma group
+all_df_child <- dplyr::filter(all_df_insom, sumrowc > 0)
+all_df_child <- dplyr::filter(all_df_child, sumrowa == 0)
+all_df_child <- dplyr::filter(all_df_child, sumrow > 0)
+
+#Dataset for isolating only adult trauma group
+all_df_adult <- dplyr::filter(all_df_insom, sumrowa > 0)
+all_df_adult <- dplyr::filter(all_df_adult, sumrowc == 0)
+all_df_adult <- dplyr::filter(all_df_adult, sumrow > 0)
+
+#Thoughts and Feelings Questionnaire subscales:
+#Witt et al. (2022) DOI: 10.1186/s13034-022-00506-6
+#TaFQ included the 5-item Childhood Trauma Screener and bespoke matching adulthood screener
+#These covered questions on neglect and abuse - these are the subscales
+
+#Dataset for isolating childhood abuse and neglect subscales
+#Abuse
+all_a_child <- dplyr::filter(all_df_child, sumrowca > 0)
+all_a_child <- dplyr::filter(all_a_child, sumrowcn == 0)
+#Neglect
+all_n_child <- dplyr::filter(all_df_child, sumrowcn > 0)
+all_n_child <- dplyr::filter(all_n_child, sumrowca == 0)
+
+#Dataset for isolating adulthood abuse and neglect subscales
+#Abuse
+all_a_adult<- dplyr::filter(all_df_adult, sumrowaa > 0)
+all_a_adult <- dplyr::filter(all_a_adult, sumrowan == 0)
+#Neglect
+all_n_adult <- dplyr::filter(all_df_adult, sumrowan > 0)
+all_n_adult <- dplyr::filter(all_n_adult, sumrowaa == 0)
+
+#For isolating both childhood + adulthood trauma group 
+all_df_both <- dplyr::filter(all_df_insom, sumrowc > 0)
+all_df_both <- dplyr::filter(all_df_both, sumrowa > 0)
+
+#For isolating those with BOTH child and adulthood ABUSE group
+all_a_both <- dplyr::filter(all_df_insom, sumrowca > 0)
+all_a_both <- dplyr::filter(all_a_both, sumrowaa > 0)
+all_a_both <- dplyr::filter(all_a_both, sumrowcn == 0)
+all_a_both <- dplyr::filter(all_a_both, sumrowan == 0)
+
+#For isolating BOTH child and adulthood NEGLECT
+all_n_both <- dplyr::filter(all_df_insom, sumrowcn > 0)
+all_n_both <- dplyr::filter(all_n_both, sumrowan > 0)
+all_n_both <- dplyr::filter(all_n_both, sumrowca == 0)
+all_n_both <- dplyr::filter(all_n_both, sumrowaa == 0)
+
+#For isolating combined groups: childhood abuse and adulthood neglect
+all_caan_both <- dplyr::filter(all_df_insom, sumrowca > 0)
+all_caan_both <- dplyr::filter(all_caan_both, sumrowan > 0)
+all_caan_both <- dplyr::filter(all_caan_both, sumrowcn == 0)
+all_caan_both <- dplyr::filter(all_caan_both, sumrowaa == 0)
+
+#For isolating combined groups: childhood neglect and adulthood abuse
+all_cnaa_both <- dplyr::filter(all_df_insom, sumrowcn > 0)
+all_cnaa_both <- dplyr::filter(all_cnaa_both, sumrowaa > 0)
+all_cnaa_both <- dplyr::filter(all_cnaa_both, sumrowca == 0)
+all_cnaa_both <- dplyr::filter(all_cnaa_both, sumrowan == 0)
+
+#For isolating combined groups: childhood trauma and adulthood neglect
+all_ctan_both <- dplyr::filter(all_df_insom, sumrowca > 0)
+all_ctan_both <- dplyr::filter(all_ctan_both, sumrowcn > 0)
+all_ctan_both <- dplyr::filter(all_ctan_both, sumrowan > 0)
+all_ctan_both <- dplyr::filter(all_ctan_both, sumrowaa == 0)
+
+#For isolating combined groups: childhood trauma and adulthood abuse
+all_ctaa_both <- dplyr::filter(all_df_insom, sumrowca > 0)
+all_ctaa_both <- dplyr::filter(all_df_insom, sumrowcn > 0)
+all_ctaa_both <- dplyr::filter(all_ctaa_both, sumrowaa > 0)
+all_ctaa_both <- dplyr::filter(all_ctaa_both, sumrowan == 0)
+
+#For isolating combined groups: childhood abuse and adulthood trauma
+all_caat_both <- dplyr::filter(all_df_insom, sumrowaa > 0)
+all_caat_both <- dplyr::filter(all_caat_both, sumrowan > 0)
+all_caat_both <- dplyr::filter(all_caat_both, sumrowca > 0)
+all_caat_both <- dplyr::filter(all_caat_both, sumrowcn == 0)
+
+#For isolating combined groups: childhood neglect and adulthood trauma
+all_cnat_both <- dplyr::filter(all_df_insom, sumrowaa > 0)
+all_cnat_both <- dplyr::filter(all_cnat_both, sumrowan > 0)
+all_cnat_both <- dplyr::filter(all_cnat_both, sumrowcn > 0)
+all_cnat_both <- dplyr::filter(all_cnat_both, sumrowca == 0)
+
+#Checking all datasets add up to the total dataframe:
+sum(31871, 69662, 24579, 31186)
+#WOO! 157,298
+
+#After removing all 'NA' data
+sum(9101,19458,6991,8695)
+# Total 44245 which adds up to full insom df
+
+__________________________________________________________________________________________________________________
+
+#STILL A WORK IN PROGRESS APRIL 2024:
+#After creating subscales
+sum(1736,3105,1732,5367,789,5351,1136,829,894,2308,2089,3380,8695)
+#Adds up to 26755???
+#Added many more combinations for mixed trauma
+#37411???
+#This is a future problem to solve :)
+
+__________________________________________________________________________________________________________________
+
+#Summary sociodemographic data: 
+
+#CONTROL GROUP:
+
+#Age
+hist(all_df_control$age,
+     xlab = "age",
+     main = "Histogram of age",
+     breaks = sqrt(nrow(all_df_control))
+)
+#Age Range:
+range(all_df_control$age)
+#Mean +- sd
+c(mean(all_df_control$age), sd(all_df_control$age))
+#Number of NAs:
+sum(is.na(all_df_control$age))
+
+## Sex
+
+#create sex count dataframe
+sex_df_control <- all_df_control %>%
+  group_by(sex) %>%
+  summarise(counts = n())
+
+#plot sex as barplot
+ggplot(sex_df_control, aes(x = sex, y = counts)) +
+  geom_bar(fill = "#0073C2FF", stat = "identity") +
+  geom_text(aes(label = counts), vjust = -0.3)
+
+#Number of NAs:
+sum(is.na(sex_df_control$sex))
+#Percentage women:
+sex_df_control$counts[1]/sum(sex_df_control$counts)*100
+#Percentage men:
+sex_df_control$counts[2]/sum(sex_df_control$counts)*100
+
+## Diabetes 
+
+#create diabetes count dataframe
+diab_df_control <- all_df_control %>%
+  group_by(diab) %>%
+  summarise(counts = n())
+
+#plot diabetes as barplot
+ggplot(diab_df_control, aes(x = diab, y = counts)) +
+  geom_bar(fill = "#0073C2FF", stat = "identity") +
+  geom_text(aes(label = counts), vjust = -0.3)
+
+#Number of NAs:
+sum(is.na(diab_df_control$diab))
+#Percentage with:
+diab_df_control$counts[1]/sum(diab_df_control$counts)*100
+#Percentage without:
+diab_df_control$counts[2]/sum(diab_df_control$counts)*100
+
+## Ethnicity
+
+ethnicity_summary_control <- all_df_control %>%
+  group_by(ethnic) %>%
+  summarise(counts = n()) 
+
+ggplot(ethnicity_summary_control, aes(x = ethnicity_summary_control)) +
+         theme_bw() +
+         geom_bar(stat = "identity", 
+                  fill = "blue") +
+         labs(x = "ethnic",
+              y = counts,
+              title = "ethnicity")
+
+print(ethnicity_summary_control)
+
+#count number of NA 
+sum(is.na(all_df_control$ethnic), all_df_control$ethnic['Prefer not to answer'], all_df_control$ethnic['Do not know'])
+
+ethnic_subset <- c('Prefer not to answer', 'NA', 'Do not know')
+
+## Townsend Deprivation Index (REMOVED NA USING ABOVE CODE)
+hist(all_df_control$tdi,
+     xlab = "TDI score",
+     main = "Histogram of Townsend Deprivation Index Score",
+     breaks = sqrt(nrow(all_df_control))
+)
+#TDI score Range:
+range(all_df_control$tdi)
+#Mean +- sd
+c(mean(all_df_control$tdi), sd(all_df_control$tdi))
+#Number of NAs:
+sum(is.na(all_df_control$tdisum))
+
+summary.data.frame(all_df_control$tdisum)
+
+## BMI
+
+hist(all_df_control$bmi,
+     xlab = "BMI score",
+     main = "Histogram of Body-Mass Index Score",
+     breaks = sqrt(nrow(all_df_control))
+)
+#BMI score Range:
+range(all_df_control$bmi)
+#Mean +- sd
+c(mean(all_df_control$bmi), sd(all_df_control$bmi))
+#Number of NAs:
+sum(is.na(all_df_control$bmi))
+
+##Shiftwork
+
+#create "job involves shiftwork" count dataframe
+shift_df_control <- all_df_control %>%
+  group_by(shift) %>%
+  summarise(counts = n())
+#Percentage never/rarely:
+shift_df_control$counts[3]/sum(shift_df_control$counts)*100
+#Percentage sometimes:
+shift_df_control$counts[4]/sum(shift_df_control$counts)*100
+#Percentage usually:
+shift_df_control$counts[5]/sum(shift_df_control$counts)*100
+#Percentage always:
+shift_df_control$counts[6]/sum(shift_df_control$counts)*100
+
+##Alcohol consumption
+
+#create "frequencey of drinking" alcohol count dataframe
+falco_df_control <- all_df_control %>%
+  group_by(falco) %>%
+  summarise(counts = n())
+#Percentage never:
+falco_df_control$counts[1]/sum(falco_df_control$counts)*100
+#Percentage monthly or less:
+falco_df_control$counts[2]/sum(falco_df_control$counts)*100
+#Percentage 2 to 4 times a month:
+falco_df_control$counts[3]/sum(falco_df_control$counts)*100
+#Percentage 2 to 3 times a week:
+falco_df_control$counts[4]/sum(falco_df_control$counts)*100
+#Percentage 4 or more times a week:
+falco_df_control$counts[5]/sum(falco_df_control$counts)*100
+
+#create "Frequency of consuming 6 or more units of alcohol" count dataframe
+sixalco_df_control <- all_df_control %>%
+  group_by(sixalco) %>%
+  summarise(counts = n())
+#Percentage:
+#Never:
+sixalco_df_control$counts[2]/sum(sixalco_df_control$counts)*100
+#Less than monthly:
+sixalco_df_control$counts[3]/sum(sixalco_df_control$counts)*100
+#Monthly:
+sixalco_df_control$counts[4]/sum(sixalco_df_control$counts)*100
+#Weekly:
+sixalco_df_control$counts[5]/sum(sixalco_df_control$counts)*100
+#Daily or almost daily:
+sixalco_df_control$counts[6]/sum(sixalco_df_control$counts)*100
+
+##Smoking
+
+#create "smoking status" count dataframe
+smoke_df_control <- all_df_control %>%
+  group_by(smoke) %>%
+  summarise(counts = n())
+#Percentage:
+#Never:
+smoke_df_control$counts[2]/sum(smoke_df_control$counts)*100
+#Previous:
+smoke_df_control$counts[3]/sum(smoke_df_control$counts)*100
+#Current
+smoke_df_control$counts[4]/sum(smoke_df_control$counts)*100
+
+## Trauma score (mean of composite)
+#Trauma score Range:
+range(all_df_control$sumrow)
+#Mean +- sd
+c(mean(all_df_control$sumrow), sd(all_df_control$sumrow))
+#Number of NAs:
+sum(is.na(all_df_control$sumrow))
+
+#Summary data:
+
+#CHILDHOOD GROUP:
+
+#Age
+hist(all_df_child$age,
+     xlab = "age",
+     main = "Histogram of age",
+     breaks = sqrt(nrow(all_df_child))
+)
+#Age Range:
+range(all_df_child$age)
+#Mean +- sd
+c(mean(all_df_child$age), sd(all_df_child$age))
+#Number of NAs:
+sum(is.na(all_df_child$age))
+
+## Sex
+
+#create sex count dataframe
+sex_df_child <- all_df_child %>%
+  group_by(sex) %>%
+  summarise(counts = n())
+
+#plot sex as barplot
+ggplot(sex_df_child, aes(x = sex, y = counts)) +
+  geom_bar(fill = "#0073C2FF", stat = "identity") +
+  geom_text(aes(label = counts), vjust = -0.3)
+
+#Number of NAs:
+sum(is.na(sex_df_child$sex))
+#Percentage women:
+sex_df_child$counts[1]/sum(sex_df_child$counts)*100
+#Percentage men:
+sex_df_child$counts[2]/sum(sex_df_child$counts)*100
+
+## Diabetes 
+
+#create diabetes count dataframe
+diab_df_child <- all_df_child %>%
+  group_by(diab) %>%
+  summarise(counts = n())
+
+#plot diabetes as barplot
+ggplot(diab_df_child, aes(x = diab, y = counts)) +
+  geom_bar(fill = "#0073C2FF", stat = "identity") +
+  geom_text(aes(label = counts), vjust = -0.3)
+
+#Number of NAs:
+sum(is.na(diab_df_child$diab))
+#Percentage with:
+diab_df_child$counts[1]/sum(diab_df_child$counts)*100
+#Percentage without:
+diab_df_child$counts[2]/sum(diab_df_child$counts)*100
+
+## Ethnicity
+
+ethnicity_summary_child <- all_df_child %>%
+  group_by(ethnic) %>%
+  summarise(counts = n()) 
+
+print(ethnicity_summary_child)
+
+#count number of NA 
+sum(is.na(all_df_child$ethnic), all_df_child$ethnic['Prefer not to answer'], all_df_child$ethnic['Do not know'])
+
+ethnic_subset <- c('Prefer not to answer', 'NA', 'Do not know')
+
+## Townsend Deprivation Index
+hist(all_df_child$tdi,
+     xlab = "TDI score",
+     main = "Histogram of Townsend Deprivation Index Score",
+     breaks = sqrt(nrow(all_df_child))
+)
+#TDI score Range:
+range(all_df_child$tdi)
+#Mean +- sd
+c(mean(all_df_child$tdi), sd(all_df_child$tdi))
+#Number of NAs:
+sum(is.na(all_df_child$tdi))
+
+##Shiftwork
+
+#create "job involves shiftwork" count dataframe
+shift_df_child <- all_df_child %>%
+  group_by(shift) %>%
+  summarise(counts = n())
+#Percentage never/rarely:
+shift_df_child$counts[3]/sum(shift_df_child$counts)*100
+#Percentage sometimes:
+shift_df_child$counts[4]/sum(shift_df_child$counts)*100
+#Percentage usually:
+shift_df_child$counts[5]/sum(shift_df_child$counts)*100
+#Percentage always:
+shift_df_child$counts[6]/sum(shift_df_child$counts)*100
+
+##Alcohol consumption
+
+#create "frequencey of drinking" alcohol count dataframe
+falco_df_child <- all_df_child %>%
+  group_by(falco) %>%
+  summarise(counts = n())
+#Percentage never:
+falco_df_child$counts[1]/sum(falco_df_child$counts)*100
+#Percentage monthly or less:
+falco_df_child$counts[2]/sum(falco_df_child$counts)*100
+#Percentage 2 to 4 times a month:
+falco_df_child$counts[3]/sum(falco_df_child$counts)*100
+#Percentage 2 to 3 times a week:
+falco_df_child$counts[4]/sum(falco_df_child$counts)*100
+#Percentage 4 or more times a week:
+falco_df_child$counts[5]/sum(falco_df_child$counts)*100
+
+#create "Frequency of consuming 6 or more units of alcohol" count dataframe
+sixalco_df_child <- all_df_child %>%
+  group_by(sixalco) %>%
+  summarise(counts = n())
+#Percentage:
+#Never:
+sixalco_df_child$counts[2]/sum(sixalco_df_child$counts)*100
+#Less than monthly:
+sixalco_df_child$counts[3]/sum(sixalco_df_child$counts)*100
+#Monthly:
+sixalco_df_child$counts[4]/sum(sixalco_df_child$counts)*100
+#Weekly:
+sixalco_df_child$counts[5]/sum(sixalco_df_child$counts)*100
+#Daily or almost daily:
+sixalco_df_child$counts[6]/sum(sixalco_df_child$counts)*100
+
+##Smoking
+
+#create "smoking status" count dataframe
+smoke_df_child <- all_df_child %>%
+  group_by(smoke) %>%
+  summarise(counts = n())
+#Percentage:
+#Never:
+smoke_df_child$counts[2]/sum(smoke_df_child$counts)*100
+#Previous:
+smoke_df_child$counts[3]/sum(smoke_df_child$counts)*100
+#Current
+smoke_df_child$counts[4]/sum(smoke_df_child$counts)*100
+
+## BMI
+
+hist(all_df_child$bmi,
+     xlab = "BMI score",
+     main = "Histogram of Body-Mass Index Score",
+     breaks = sqrt(nrow(all_df_child))
+)
+#BMI score Range:
+range(all_df_child$bmi)
+#Mean +- sd
+c(mean(all_df_child$bmi), sd(all_df_child$bmi))
+#Number of NAs:
+sum(is.na(all_df_child$bmi))
+
+## Trauma score (mean of composite)
+#Trauma score Range:
+range(all_df_child$sumrowc)
+#Mean +- sd
+c(mean(all_df_child$sumrowc), sd(all_df_child$sumrowc))
+#Number of NAs:
+sum(is.na(all_df_child$sumrowc))
+
+#Summary data:
+
+#ADULT GROUP:
+
+#Age
+hist(all_df_adult$age,
+     xlab = "age",
+     main = "Histogram of age",
+     breaks = sqrt(nrow(all_df_adult))
+)
+#Age Range:
+range(all_df_adult$age)
+#Mean +- sd
+c(mean(all_df_adult$age), sd(all_df_adult$age))
+#Number of NAs:
+sum(is.na(all_df_adult$age))
+
+## Sex
+
+#create sex count dataframe
+sex_df_adult <- all_df_adult %>%
+  group_by(sex) %>%
+  summarise(counts = n())
+
+#plot sex as barplot
+ggplot(sex_df_adult, aes(x = sex, y = counts)) +
+  geom_bar(fill = "#0073C2FF", stat = "identity") +
+  geom_text(aes(label = counts), vjust = -0.3)
+
+#Number of NAs:
+sum(is.na(sex_df_adult$sex))
+#Percentage women:
+sex_df_adult$counts[1]/sum(sex_df_adult$counts)*100
+#Percentage men:
+sex_df_adult$counts[2]/sum(sex_df_adult$counts)*100
+
+## Diabetes 
+
+#create diabetes count dataframe
+diab_df_adult <- all_df_adult %>%
+  group_by(diab) %>%
+  summarise(counts = n())
+
+#plot diabetes as barplot
+ggplot(diab_df_adult, aes(x = diab, y = counts)) +
+  geom_bar(fill = "#0073C2FF", stat = "identity") +
+  geom_text(aes(label = counts), vjust = -0.3)
+
+#Number of NAs:
+sum(is.na(diab_df_adult$diab))
+#Percentage with:
+diab_df_adult$counts[1]/sum(diab_df_adult$counts)*100
+#Percentage without:
+diab_df_adult$counts[2]/sum(diab_df_adult$counts)*100
+
+## Ethnicity
+
+ethnicity_summary_adult <- all_df_adult %>%
+  group_by(ethnic) %>%
+  summarise(counts = n()) 
+
+print(ethnicity_summary_adult)
+
+#count number of NA 
+sum(is.na(all_df_adult$ethnic), all_df_adult$ethnic['Prefer not to answer'], all_df_adult$ethnic['Do not know'])
+
+ethnic_subset <- c('Prefer not to answer', 'NA', 'Do not know')
+
+## Townsend Deprivation Index
+hist(all_df_adult$tdi,
+     xlab = "TDI score",
+     main = "Histogram of Townsend Deprivation Index Score",
+     breaks = sqrt(nrow(all_df_adult))
+)
+
+## BMI
+
+hist(all_df_adult$bmi,
+     xlab = "BMI score",
+     main = "Histogram of Body-Mass Index Score",
+     breaks = sqrt(nrow(all_df_adult))
+)
+#BMI score Range:
+range(all_df_adult$bmi)
+#Mean +- sd
+c(mean(all_df_adult$bmi), sd(all_df_adult$bmi))
+#Number of NAs:
+sum(is.na(all_df_adult$bmi))
+
+#TDI score Range:
+range(all_df_adult$tdi)
+#Mean +- sd
+c(mean(all_df_adult$tdi), sd(all_df_adult$tdi))
+#Number of NAs:
+sum(is.na(all_df_adult$tdi))
+
+##Shiftwork
+
+#create "job involves shiftwork" count dataframe
+shift_df_adult <- all_df_adult %>%
+  group_by(shift) %>%
+  summarise(counts = n())
+#Percentage never/rarely:
+shift_df_adult$counts[3]/sum(shift_df_adult$counts)*100
+#Percentage sometimes:
+shift_df_adult$counts[4]/sum(shift_df_adult$counts)*100
+#Percentage usually:
+shift_df_adult$counts[5]/sum(shift_df_adult$counts)*100
+#Percentage always:
+shift_df_adult$counts[6]/sum(shift_df_adult$counts)*100
+
+##Alcohol consumption
+
+#create "frequencey of drinking" alcohol count dataframe
+falco_df_adult <- all_df_adult %>%
+  group_by(falco) %>%
+  summarise(counts = n())
+#Percentage never:
+falco_df_adult$counts[1]/sum(falco_df_adult$counts)*100
+#Percentage monthly or less:
+falco_df_adult$counts[2]/sum(falco_df_adult$counts)*100
+#Percentage 2 to 4 times a month:
+falco_df_adult$counts[3]/sum(falco_df_adult$counts)*100
+#Percentage 2 to 3 times a week:
+falco_df_adult$counts[4]/sum(falco_df_adult$counts)*100
+#Percentage 4 or more times a week:
+falco_df_adult$counts[5]/sum(falco_df_adult$counts)*100
+
+#create "Frequency of consuming 6 or more units of alcohol" count dataframe
+sixalco_df_adult <- all_df_adult %>%
+  group_by(sixalco) %>%
+  summarise(counts = n())
+#Percentage:
+#Never:
+sixalco_df_adult$counts[2]/sum(sixalco_df_adult$counts)*100
+#Less than monthly:
+sixalco_df_adult$counts[3]/sum(sixalco_df_adult$counts)*100
+#Monthly:
+sixalco_df_adult$counts[4]/sum(sixalco_df_adult$counts)*100
+#Weekly:
+sixalco_df_adult$counts[5]/sum(sixalco_df_adult$counts)*100
+#Daily or almost daily:
+sixalco_df_adult$counts[6]/sum(sixalco_df_adult$counts)*100
+
+##Smoking
+
+#create "smoking status" count dataframe
+smoke_df_adult <- all_df_adult %>%
+  group_by(smoke) %>%
+  summarise(counts = n())
+#Percentage:
+#Never:
+smoke_df_adult$counts[2]/sum(smoke_df_adult$counts)*100
+#Previous:
+smoke_df_adult$counts[3]/sum(smoke_df_adult$counts)*100
+#Current
+smoke_df_adult$counts[4]/sum(smoke_df_adult$counts)*100
+
+## Trauma score (mean of composite)
+#Trauma score Range:
+range(all_df_adult$sumrowa)
+#Mean +- sd
+c(mean(all_df_adult$sumrowa), sd(all_df_adult$sumrowa))
+#Number of NAs:
+sum(is.na(all_df_adult$sumrowa))
+
+#Summary data:
+
+#MIXED/BOTH CHILD AND ADULT TRAUMA GROUP:
+
+#Age
+hist(all_df_both$age,
+     xlab = "age",
+     main = "Histogram of age",
+     breaks = sqrt(nrow(all_df_both))
+)
+#Age Range:
+range(all_df_both$age)
+#Mean +- sd
+c(mean(all_df_both$age), sd(all_df_both$age))
+#Number of NAs:
+sum(is.na(all_df_both$age))
+
+## Sex
+
+#create sex count dataframe
+sex_df_both <- all_df_both %>%
+  group_by(sex) %>%
+  summarise(counts = n())
+
+#plot sex as barplot
+ggplot(sex_df_both, aes(x = sex, y = counts)) +
+  geom_bar(fill = "#0073C2FF", stat = "identity") +
+  geom_text(aes(label = counts), vjust = -0.3)
+
+#Number of NAs:
+sum(is.na(sex_df_both$sex))
+#Percentage women:
+sex_df_both$counts[1]/sum(sex_df_both$counts)*100
+#Percentage men:
+sex_df_both$counts[2]/sum(sex_df_both$counts)*100
+
+## Diabetes 
+
+#create diabetes count dataframe
+diab_df_both <- all_df_both %>%
+  group_by(diab) %>%
+  summarise(counts = n())
+
+#plot diabetes as barplot
+ggplot(diab_df_both, aes(x = diab, y = counts)) +
+  geom_bar(fill = "#0073C2FF", stat = "identity") +
+  geom_text(aes(label = counts), vjust = -0.3)
+
+#Number of NAs:
+sum(is.na(diab_df_both$diab))
+#Percentage with:
+diab_df_both$counts[1]/sum(diab_df_both$counts)*100
+#Percentage without:
+diab_df_both$counts[2]/sum(diab_df_both$counts)*100
+
+## Ethnicity
+
+ethnicity_summary_both <- all_df_both %>%
+  group_by(ethnic) %>%
+  summarise(counts = n()) 
+
+print(ethnicity_summary_both)
+
+#count number of NA 
+sum(is.na(all_df_both$ethnic), all_df_both$ethnic['Prefer not to answer'], all_df_both$ethnic['Do not know'])
+
+ethnic_subset <- c('Prefer not to answer', 'NA', 'Do not know')
+
+## Townsend Deprivation Index
+hist(all_df_both$tdi,
+     xlab = "TDI score",
+     main = "Histogram of Townsend Deprivation Index Score",
+     breaks = sqrt(nrow(all_df_both))
+)
+
+## BMI
+
+hist(all_df_both$bmi,
+     xlab = "BMI score",
+     main = "Histogram of Body-Mass Index Score",
+     breaks = sqrt(nrow(all_df_both))
+)
+#BMI score Range:
+range(all_df_both$bmi)
+#Mean +- sd
+c(mean(all_df_both$bmi), sd(all_df_both$bmi))
+#Number of NAs:
+sum(is.na(all_df_both$bmi))
+
+##Shiftwork
+
+#create "job involves shiftwork" count dataframe
+shift_df_both <- all_df_both %>%
+  group_by(shift) %>%
+  summarise(counts = n())
+#Percentage never/rarely:
+shift_df_both$counts[3]/sum(shift_df_both$counts)*100
+#Percentage sometimes:
+shift_df_both$counts[4]/sum(shift_df_both$counts)*100
+#Percentage usually:
+shift_df_both$counts[5]/sum(shift_df_both$counts)*100
+#Percentage always:
+shift_df_both$counts[6]/sum(shift_df_both$counts)*100
+
+##Alcohol consumption
+
+#create "frequency of drinking" alcohol count dataframe
+falco_df_both <- all_df_both %>%
+  group_by(falco) %>%
+  summarise(counts = n())
+#Percentage never:
+falco_df_both$counts[1]/sum(falco_df_both$counts)*100
+#Percentage monthly or less:
+falco_df_both$counts[2]/sum(falco_df_both$counts)*100
+#Percentage 2 to 4 times a month:
+falco_df_both$counts[3]/sum(falco_df_both$counts)*100
+#Percentage 2 to 3 times a week:
+falco_df_both$counts[4]/sum(falco_df_both$counts)*100
+#Percentage 4 or more times a week:
+falco_df_both$counts[5]/sum(falco_df_both$counts)*100
+
+#create "Frequency of consuming 6 or more units of alcohol" count dataframe
+sixalco_df_both <- all_df_both %>%
+  group_by(sixalco) %>%
+  summarise(counts = n())
+#Percentage:
+#Never:
+sixalco_df_both$counts[2]/sum(sixalco_df_both$counts)*100
+#Less than monthly:
+sixalco_df_both$counts[3]/sum(sixalco_df_both$counts)*100
+#Monthly:
+sixalco_df_both$counts[4]/sum(sixalco_df_both$counts)*100
+#Weekly:
+sixalco_df_both$counts[5]/sum(sixalco_df_both$counts)*100
+#Daily or almost daily:
+sixalco_df_both$counts[6]/sum(sixalco_df_both$counts)*100
+
+##Smoking
+
+#create "smoking status" count dataframe
+smoke_df_both <- all_df_both %>%
+  group_by(smoke) %>%
+  summarise(counts = n())
+#Percentage:
+#Never:
+smoke_df_both$counts[2]/sum(smoke_df_both$counts)*100
+#Previous:
+smoke_df_both$counts[3]/sum(smoke_df_both$counts)*100
+#Current
+smoke_df_both$counts[4]/sum(smoke_df_both$counts)*100
+
+#TDI score Range:
+range(all_df_both$tdi)
+#Mean +- sd
+c(mean(all_df_both$tdi), sd(all_df_both$tdi))
+#Number of NAs:
+sum(is.na(all_df_both$tdi))
+
+## Trauma score (mean of composite)
+#Trauma score Range:
+range(all_df_both$sumrow)
+#Mean +- sd
+c(mean(all_df_both$sumrow), sd(all_df_both$sumrow))
+#Number of NAs:
+sum(is.na(all_df_both$sumrow))
