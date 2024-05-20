@@ -34,6 +34,7 @@ library(plotrix)
 library(segmented)
 library(plot3D)
 library(season)
+library(cosinor2)
 ```
 
 ### 2: Load data
@@ -79,6 +80,8 @@ Remove:
 
 -   People with NA for glycated haemoglobin
 
+-   People with NA for glucose
+
 -   People with glycated haemoglobin levels outside of analytic
     reference range 15-184mmol/mol
 
@@ -106,6 +109,9 @@ Make:
 ```{r pressure, echo=FALSE}
 # remove people with NA glycated haemoglobin
 ghaem_df <- analysis_df %>%  filter(!is.na(g_haem))
+
+# remove people with NA glucose
+ghaem_df <- ghaem_df %>%  filter(!is.na(glucose))
 
 #remove people with glycated haemoglobin levels outside of manufacturer's reportable range
 ghaem_df<- ghaem_df %>%  filter(!g_haem>184)
@@ -227,6 +233,8 @@ demo_sex_df <- ghaem_df %>%
 demo_ethnicity_df <- ghaem_df %>%
   group_by(Group) %>%
   count(ethnicity_recode)
+#1=White, 2=Mixed, 3=Asian/Asian British, 4=Black/Black British, 5=Chinese, 6=Other ethnic group, 7=do not know/prefer not to answer
+
 demo_disabled_df <- ghaem_df %>%
   group_by(Group) %>%
   count(disability_self_report)    
@@ -699,7 +707,7 @@ as.data.frame(col)
 dayCOL<-c("#50576CFF", "#989278FF", "#ADA274FF", "#D8C563FF", "#EED654FF", "#FFEA46FF", "#EED654FF", "#D8C563FF", "#ADA274FF", "#858379FF", "#50576CFF", "#1B3B6DFF")
 
 
-SeasonPal <- c("#191500","#4C4000","#7F6B00","#B29600","#E5C100","#FFD700","#E5C100","#CCAC00","#998100","#4C4000","#191500","#000000") 
+SeasonPal <- c("darkseagreen3","darkseagreen3","darkseagreen3","lightgoldenrod2","lightgoldenrod2","lightgoldenrod2","indianred3","indianred3","indianred3","lightsteelblue2","lightsteelblue2","lightsteelblue2") 
 
 names <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
 namesshort <-c("J","F","M","A","M","J","J","A","S","O","N","D")
@@ -724,10 +732,10 @@ o = order(time_fit_control)
 
 # HbA1c - control
 
-pirateplot(formula =  g_haem ~ bs_month + average_temp,
+pirateplot(formula =  g_haem ~ bs_month,
            data = control_df,
            #col = rgb(cr(daylen / max(daylen)), max=255),
-           pal=col, #set to your own color palette created previously
+           pal=SeasonPal, #set to your own color palette created previously
            xlab = "Month",
            ylab = expression(bold(paste("Control HbA1c (mmol/mol)"))),
            yaxt="n",
@@ -738,7 +746,7 @@ pirateplot(formula =  g_haem ~ bs_month + average_temp,
            #point.o = .4, # Points
            inf.f.o = .8, # Inference fill
            inf.b.o = 1, # Inference border
-           inf.f.col = col,
+           inf.f.col = SeasonPal,
            inf.method = "ci",
            avg.line.o = 1, # Average line
            #bty=n,
@@ -776,7 +784,7 @@ dev.new() # open new plot
 pirateplot(formula =  g_haem ~ bs_month,
            data = bipolar_df,
            #col = rgb(cr(daylen / max(daylen)), max=255)
-           pal=col, #set to your own color palette created previously
+           pal=SeasonPal, #set to your own color palette created previously
            xlab = "Month",
            ylab = expression(bold(paste("Bipolar HbA1c (mmol/mol)"))),
            yaxt="n",
@@ -787,7 +795,7 @@ pirateplot(formula =  g_haem ~ bs_month,
            #point.o = .4, # Points
            inf.f.o = .8, # Inference fill
            inf.b.o = 1, # Inference border
-           inf.f.col = col,
+           inf.f.col = SeasonPal,
            inf.method = "ci",
            avg.line.o = 1, # Average line
            #bty=n,
@@ -807,20 +815,9 @@ points(time_fit_bipolar[o], hba1c_bipolar_cos$fitted.values[o], pch = 19)
 
 
 #run significance test between groups for: phase, nadir, amplitude, mesor
-#control
-#make glm summary object
-s_control = summary(hba1c_control_cos$glm)
+#using circacompare - alpha threshold set to 0.5 because bipolar group is non-rhythmic
+cos_stats_ghaem <- circacompare(x=ghaem_df, col_time="bs_month", col_group="Group", col_outcome="g_haem", period=12, alpha_threshold=0.5)
 
-cnames_c = row.names(s_control$coefficients)
-cindex_c = sum(as.numeric(cnames_c == "cosw") * (1:length(cnames_c)))
-sindex_c = sum(as.numeric(cnames_c == "sinw") * (1:length(cnames_c)))
-
-amp_c = sqrt((s_control$coefficients[cindex_c, 1]^2) + (s_control$coefficients[sindex_c, 1]^2))
-
-
-#bipolar
-
-s_bipolar = summary(hba1c_bipolar_cos$glm)
 ```
 
 #### [Glucose]{.underline}
@@ -844,7 +841,7 @@ dev.new()
 pirateplot(formula =  glucose ~ bs_month,
            data = control_df,
            #col = rgb(cr(daylen / max(daylen)), max=255)
-           pal=col, #set to your own color palette created previously
+           pal=SeasonPal, #set to your own color palette created previously
            xlab = "Month",
            ylab = expression(bold(paste("Control Glucose (mmol/L)"))),
            yaxt="n",
@@ -855,7 +852,7 @@ pirateplot(formula =  glucose ~ bs_month,
            #point.o = .4, # Points
            inf.f.o = .8, # Inference fill
            inf.b.o = 1, # Inference border
-           inf.f.col = col,
+           inf.f.col = SeasonPal,
            inf.method = "ci",
            avg.line.o = 1, # Average line
            #bty=n,
@@ -893,7 +890,7 @@ dev.new() # open new plot
 pirateplot(formula =  glucose ~ bs_month,
            data = bipolar_df,
            #col = rgb(cr(daylen / max(daylen)), max=255)
-           pal=col, #set to your own color palette created previously
+           pal=SeasonPal, #set to your own color palette created previously
            xlab = "Month",
            ylab = expression(bold(paste("Bipolar Glucose (mmol/L)"))),
            yaxt="n",
@@ -904,7 +901,7 @@ pirateplot(formula =  glucose ~ bs_month,
            #point.o = .4, # Points
            inf.f.o = .8, # Inference fill
            inf.b.o = 1, # Inference border
-           inf.f.col = col,
+           inf.f.col = SeasonPal,
            inf.method = "ci",
            avg.line.o = 1, # Average line
            #bty=n,
@@ -921,6 +918,9 @@ axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
 lines(time_fit_bipolar[o],glucose_bipolar_cos$fitted.values[o], lty=2,lwd=1, col="black")
 points(time_fit_bipolar[o], glucose_bipolar_cos$fitted.values[o], pch = 19)
 
+#run significance test between groups for: phase, nadir, amplitude, mesor
+#using circacompare - alpha threshold set to 0.7 because bipolar group is non-rhythmic
+cos_stats_glucose <- circacompare(x=ghaem_df, col_time="bs_month", col_group="Group", col_outcome="glucose", period=12, alpha_threshold=0.7)
 ```
 
 #### [Lactate]{.underline}
@@ -1227,6 +1227,8 @@ Increasing model adjustment to include:
     photoperiod rate of change, latitude, temperature, time outdoors in
     summer, time outdoors in winter)
 
+-   Level 4: analyser/location
+
 ```{r recode}
 
 library('plyr')
@@ -1285,10 +1287,16 @@ ghaem_df$chrono_f[ghaem_df$chrono_f == 'Prefer not to answer'] <- NA
 ghaem_df$chrono_f[ghaem_df$chrono_f == 'Do not know'] <- NA
 ghaem_df$chrono_f <- factor(ghaem_df$chrono_f, ordered=TRUE)
 
+### Level 4 
+#bs_time to integer
+library(data.table)
+ghaem_df$bs_itime <- as.ITime(ghaem_df$bs_time)
+ghaem_df$bs_itime <- as.integer(ghaem_df$bs_itime)
+
 
 #remove plyr package as has masking for later functions
 detach("package:plyr", unload=TRUE)
-
+detach("package:data.table", unload=TRUE)
 
 # re-make control and bipolar dataframes
 #ungroup main df
@@ -1345,7 +1353,7 @@ model1 <- lm(g_haem ~ daylength_min +
   data = control_df
 )
 summary(model1)
-abline(model1, col="red", lwd=2) # fit line to plot
+#abline(model1, col="red", lwd=2) # fit line to plot
 
 # test for multicollinearity
 ols_vif_tol(model1)
@@ -1377,7 +1385,6 @@ model3 <- lm(g_haem ~ daylength_min +
                alcohol_f + health_f + 
                chrono_f +
                #level 3
-               #bs_time + (NEED TO BIN BS_TIME)
                photoperiod_roc_min + assess_latitude +
                time_outdoors_summer + time_outdoors_winter, 
   data = control_df
@@ -1386,6 +1393,26 @@ summary(model3)
 
 # test for multicollinearity
 ols_vif_tol(model3)
+
+#multivariate analysis - level 4
+model4 <- lm(g_haem ~ daylength_min + 
+               #group_f +
+               #level 1
+               age + sex_f + townsend + ethnicity_f +
+               #level 2
+               BMI + smoking_f +
+               alcohol_f + health_f + 
+               chrono_f +
+               #level 3
+               photoperiod_roc_min + assess_latitude +
+               time_outdoors_summer + time_outdoors_winter +
+               #level 4
+               assess_centre + bs_itime,
+  data = control_df
+)
+summary(model4)
+# test for multicollinearity
+ols_vif_tol(model4)
 
 ####BIPOLAR
 #multivariate analysis - level 1
@@ -1396,7 +1423,6 @@ model1_b <- lm(g_haem ~ daylength_min +
   data = bipolar_df
 )
 summary(model1_b)
-
 # test for multicollinearity
 ols_vif_tol(model1_b)
 
@@ -1412,12 +1438,11 @@ model2_b <- lm(g_haem ~ daylength_min +
   data = bipolar_df
 )
 summary(model2_b)
-
 # test for multicollinearity
 ols_vif_tol(model2_b)
 
 #multivariate analysis - level 3
-# average temp removed due to high collinearity (VIF: 11.944)
+# average temp removed due to high collinearity (VIF: 13.166)
 model3_b <- lm(g_haem ~ daylength_min + 
                #group_f +
                #level 1
@@ -1427,15 +1452,33 @@ model3_b <- lm(g_haem ~ daylength_min +
                alcohol_f + health_f + 
                chrono_f +
                #level 3
-               #bs_time + (NEED TO BIN BS_TIME)
                photoperiod_roc_min + assess_latitude +
                time_outdoors_summer + time_outdoors_winter, 
   data = bipolar_df
 )
 summary(model3_b)
-
 # test for multicollinearity
 ols_vif_tol(model3_b)
+
+#multivariate analysis - level 4
+model4_b <- lm(g_haem ~ daylength_min + 
+               #group_f +
+               #level 1
+               age + sex_f + townsend + ethnicity_f +
+               #level 2
+               BMI + smoking_f +
+               alcohol_f + health_f + 
+               chrono_f +
+               #level 3
+               photoperiod_roc_min + assess_latitude +
+               time_outdoors_summer + time_outdoors_winter +
+               #level 4
+               assess_centre + bs_itime,
+  data = bipolar_df
+)
+summary(model4_b)
+# test for multicollinearity
+ols_vif_tol(model4_b)
 ```
 
 #### Glucose
@@ -1451,19 +1494,19 @@ ggplot(ghaem_df, aes(x=daylength_min, y=glucose, color=Group)) +
 
 ####CONTROL
 #multivariate analysis - level 1
-model1 <- lm(glucose ~ daylength_min +
+model1_glu <- lm(glucose ~ daylength_min +
                #group +
                #level 1
                age + sex_f + townsend + ethnicity_f,
   data = control_df
 )
-summary(model1)
+summary(model1_glu)
 
 # test for multicollinearity
-ols_vif_tol(model1)
+ols_vif_tol(model1_glu)
 
 #multivariate analysis - level 2
-model2 <- lm(glucose ~ daylength_min + 
+model2_glu <- lm(glucose ~ daylength_min + 
                #group +
                #level 1
                age + sex_f + townsend + ethnicity_f +
@@ -1473,14 +1516,14 @@ model2 <- lm(glucose ~ daylength_min +
                chrono_f,
   data = control_df
 )
-summary(model2)
+summary(model2_glu)
 
 # test for multicollinearity
-ols_vif_tol(model2)
+ols_vif_tol(model2_glu)
 
 #multivariate analysis - level 3
 # average temp removed due to high collinearity (VIF: 11.944)
-model3 <- lm(glucose ~ daylength_min + 
+model3_glu <- lm(glucose ~ daylength_min + 
                #group_f +
                #level 1
                age + sex_f + townsend + ethnicity_f +
@@ -1489,31 +1532,50 @@ model3 <- lm(glucose ~ daylength_min +
                alcohol_f + health_f + 
                chrono_f +
                #level 3
-               #bs_time + (NEED TO BIN BS_TIME)
                photoperiod_roc_min + assess_latitude +
                time_outdoors_summer + time_outdoors_winter, 
   data = control_df
 )
-summary(model3)
-
+summary(model3_glu)
 # test for multicollinearity
-ols_vif_tol(model3)
+ols_vif_tol(model3_glu)
+
+
+#multivariate analysis - level 4
+model4_glu <- lm(glucose ~ daylength_min + 
+               #group_f +
+               #level 1
+               age + sex_f + townsend + ethnicity_f +
+               #level 2
+               BMI + smoking_f +
+               alcohol_f + health_f + 
+               chrono_f +
+               #level 3
+               photoperiod_roc_min + assess_latitude +
+               time_outdoors_summer + time_outdoors_winter +
+               #level 4
+               assess_centre + bs_itime,
+  data = control_df
+)
+summary(model4_glu)
+# test for multicollinearity
+ols_vif_tol(model4_glu)
+
 
 ####BIPOLAR
 #multivariate analysis - level 1
-model1_b <- lm(glucose ~ daylength_min +
+model1_glu_b <- lm(glucose ~ daylength_min +
                #group +
                #level 1
                age + sex_f + townsend + ethnicity_f,
   data = bipolar_df
 )
-summary(model1_b)
-
+summary(model1_glu_b)
 # test for multicollinearity
-ols_vif_tol(model1_b)
+ols_vif_tol(model1_glu_b)
 
 #multivariate analysis - level 2
-model2_b <- lm(glucose ~ daylength_min + 
+model2_glu_b <- lm(glucose ~ daylength_min + 
                #group +
                #level 1
                age + sex_f + townsend + ethnicity_f +
@@ -1523,14 +1585,13 @@ model2_b <- lm(glucose ~ daylength_min +
                chrono_f,
   data = bipolar_df
 )
-summary(model2_b)
-
+summary(model2_glu_b)
 # test for multicollinearity
-ols_vif_tol(model2_b)
+ols_vif_tol(model2_glu_b)
 
 #multivariate analysis - level 3
 # average temp removed due to high collinearity (VIF: 11.944)
-model3_b <- lm(glucose ~ daylength_min + 
+model3_glu_b <- lm(glucose ~ daylength_min + 
                #group_f +
                #level 1
                age + sex_f + townsend + ethnicity_f +
@@ -1544,10 +1605,29 @@ model3_b <- lm(glucose ~ daylength_min +
                time_outdoors_summer + time_outdoors_winter, 
   data = bipolar_df
 )
-summary(model3_b)
-
+summary(model3_glu_b)
 # test for multicollinearity
-ols_vif_tol(model3_b)
+ols_vif_tol(model3_glu_b)
+
+#multivariate analysis - level 4
+model4_glu_b <- lm(glucose ~ daylength_min + 
+               #group_f +
+               #level 1
+               age + sex_f + townsend + ethnicity_f +
+               #level 2
+               BMI + smoking_f +
+               alcohol_f + health_f + 
+               chrono_f +
+               #level 3
+               photoperiod_roc_min + assess_latitude +
+               time_outdoors_summer + time_outdoors_winter +
+               #level 4
+               assess_centre + bs_itime,
+  data = bipolar_df
+)
+summary(model4_glu_b)
+# test for multicollinearity
+ols_vif_tol(model4_glu_b)
 ```
 
 ## Extra code for different tasks
@@ -1873,21 +1953,27 @@ CURRENT DEFAULT: do not run this code section. for optional future use
 # convert matching variables to type 'factor' for matchit function to work
 
 for_match_df <- ghaem_df
-for_match_df$Group<- as.factor(as.character(for_match_df$Group))
-
+for_match_df$group <- replace(for_match_df$group, for_match_df$group == 1, 0) 
+for_match_df$group <- replace(for_match_df$group, for_match_df$group == 2, 1)
+for_match_df$group <- as.integer(for_match_df$group)
 # remove people with NA variables: ethnicity
 for_match_df<- for_match_df %>%  filter(!is.na(ethnicity))
 #for_match_df<- for_match_df %>%  filter(!is.na(BMI))
 
 #use 1:1 nearest neighbour matching (Matchit default) without replacement on a propensity score estimated using a
 # logistic regression of the treatment on the covariates
-m.out1 <- matchit(Group ~ age + sex + ethnicity + assess_centre + bs_month + bs_year, data = for_match_df)
+m.out1 <- matchit(group ~ age + sex + ethnicity + assess_centre + bs_month + bs_year, data = for_match_df)
 
 match_control_df <- match.data(m.out1)
 
 #try different matching method: exact
-m.out_exact <- matchit(Group ~ age + sex + ethnicity + assess_centre + bs_month + bs_year, data = for_match_df, method="nearest", exact= ~ bs_month + age + sex + assess_centre)
+m.out_exact <- matchit(group ~ age + sex + ethnicity + assess_centre + bs_month + bs_year +bs_itime, data = for_match_df, method="nearest", 
+                       exact= ~ bs_month + age + sex + assess_centre, 
+                       ratio=3)
 match_exact_df <- match.data(m.out_exact)
+table(match_exact_df$Group)
+
+table(match_exact_df$sex, match_exact_df$Group)
 ```
 
 #### extra: dummy coding
