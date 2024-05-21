@@ -8,7 +8,7 @@ editor_options:
     wrap: 72
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, verbose=TRUE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### 1: Import libs
 
-```{r load, echo=FALSE, verbose=FALSE}
+```{r load, echo=FALSE, verbose=TRUE}
 #load libraries
 library(tidyverse)
 library(dplyr)
@@ -39,7 +39,7 @@ library(cosinor2)
 
 ### 2: Load data
 
-```{r load data}
+```{r load data, echo=FALSE, verbose=TRUE}
 
 # load participant dataframe for analysis
 load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\Final study participant dataframe\\analysis_df.Rda")
@@ -106,7 +106,7 @@ Make:
 
 -   recode blood sample time to collapse into one day
 
-```{r pressure, echo=FALSE}
+```{r pressure, echo=FALSE, verbose=TRUE}
 # remove people with NA glycated haemoglobin
 ghaem_df <- analysis_df %>%  filter(!is.na(g_haem))
 
@@ -1338,11 +1338,16 @@ summary(l2_c_anova)
 
 l3_c_anova <- aov(g_haem ~ daylength_min * 
                #level 3
-               #bs_time + (NEED TO BIN BS_TIME)
                photoperiod_roc_min * assess_latitude *
                time_outdoors_summer * time_outdoors_winter,
   data = control_df)
 summary(l3_c_anova)
+
+l4_c_anova <- aov(g_haem ~ daylength_min * 
+               #level 4
+               assess_centre * bs_itime,
+  data = control_df)
+summary(l4_c_anova)
   
 ####CONTROL
 #multivariate analysis - level 1
@@ -1962,9 +1967,9 @@ for_match_df<- for_match_df %>%  filter(!is.na(ethnicity))
 
 #use 1:1 nearest neighbour matching (Matchit default) without replacement on a propensity score estimated using a
 # logistic regression of the treatment on the covariates
-m.out1 <- matchit(group ~ age + sex + ethnicity + assess_centre + bs_month + bs_year, data = for_match_df)
+#m.out1 <- matchit(group ~ age + sex + ethnicity + assess_centre + bs_month + #bs_year, data = for_match_df)
 
-match_control_df <- match.data(m.out1)
+#match_control_df <- match.data(m.out1)
 
 #try different matching method: exact
 m.out_exact <- matchit(group ~ age + sex + ethnicity + assess_centre + bs_month + bs_year +bs_itime, data = for_match_df, method="nearest", 
@@ -1974,6 +1979,124 @@ match_exact_df <- match.data(m.out_exact)
 table(match_exact_df$Group)
 
 table(match_exact_df$sex, match_exact_df$Group)
+
+mc_df <- match_exact_df %>%  filter(Group=='control')
+
+
+# match 1:1
+m.out_exact <- matchit(group ~ age + sex + ethnicity + assess_centre + bs_month + bs_year +bs_itime, data = for_match_df, method="nearest", 
+                       exact= ~ bs_month + age + sex + assess_centre, 
+                       ratio=1)
+match_exact_df_1 <- match.data(m.out_exact)
+table(match_exact_df_1$Group)
+
+table(match_exact_df_1$sex, match_exact_df_1$Group)
+
+mc_df_1 <- match_exact_df_1 %>%  filter(Group=='control')
+```
+
+```{r matched cosinor}
+#HbA1c - matched control cosinor
+hba1c_mc_cos <- cosinor(g_haem~1, date='bs_month', type='monthly',data=mc_df)
+summary(hba1c_mc_cos)
+summary(hba1c_mc_cos$glm)
+mesor_mc <- mean(hba1c_mc_cos$glm$fitted.values) # for mesor
+
+#plot(hba1c_mc_cos)
+#seasrescheck(hba1c_mc_cos$residuals) # check the residuals
+
+
+#create new vars for plotting fitted sinusoid from a Cosinor object
+time_fit_mc = subset(hba1c_mc_cos$glm$data, select = hba1c_mc_cos$date)[, 1]
+o = order(time_fit_mc)
+
+# HbA1c - control
+
+pirateplot(formula =  g_haem ~ bs_month,
+           data = mc_df,
+           #col = rgb(cr(daylen / max(daylen)), max=255),
+           pal=SeasonPal, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("Control HbA1c (mmol/mol)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = SeasonPal,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           #ylim=c(34.4,35),  # Adjust y axis limits
+           ylim=c(32,36.5)
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3))
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_mc[o],hba1c_mc_cos$fitted.values[o], lty=2,lwd=1, col="black")
+points(time_fit_mc[o], hba1c_mc_cos$fitted.values[o], pch = 19)
+
+
+## glucose - matched control cosinor 3:1
+glucose_mc_cos <- cosinor(glucose~1, date='bs_month', type='monthly', data=mc_df)
+summary(glucose_mc_cos)
+summary(glucose_mc_cos$glm)
+mesor_control <- mean(glucose_mc_cos$glm$fitted.values)
+#plot(glucose_mc_cos)
+#seasrescheck(glucose_mc_cos$residuals) # check the residuals
+
+#1:1
+glucose_mc1_cos <- cosinor(glucose~1, date='bs_month', type='monthly', data=mc_df_1)
+summary(glucose_mc1_cos)
+summary(glucose_mc1_cos$glm)
+mesor_control1 <- mean(glucose_mc1_cos$glm$fitted.values)
+
+#create new vars for plotting fitted sinusoid from a Cosinor object
+time_fit_mc = subset(glucose_mc_cos$glm$data, select = glucose_mc_cos$date)[, 1]
+o = order(time_fit_mc)
+
+# Glucose - matched control
+dev.new()
+pirateplot(formula =  glucose ~ bs_month,
+           data = mc_df,
+           #col = rgb(cr(daylen / max(daylen)), max=255)
+           pal=SeasonPal, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("Control Glucose (mmol/L)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = SeasonPal,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           #ylim=c(4.85,5),  # Adjust y axis limits
+           ylim=c(4.5,5.5)
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3))
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_mc[o],glucose_mc_cos$fitted.values[o], lty=2,lwd=1, col="black")
+points(time_fit_mc[o], glucose_mc_cos$fitted.values[o], pch = 19)
+       
 ```
 
 #### extra: dummy coding
