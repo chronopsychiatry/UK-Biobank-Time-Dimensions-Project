@@ -923,6 +923,10 @@ points(time_fit_bipolar[o], glucose_bipolar_cos$fitted.values[o], pch = 19)
 cos_stats_glucose <- circacompare(x=ghaem_df, col_time="bs_month", col_group="Group", col_outcome="glucose", period=12, alpha_threshold=0.7)
 ```
 
+#### -\>New method: 22/05/24 - use 'cosinor' package
+
+<https://cran.r-project.org/web/packages/cosinor/cosinor.pdf>
+
 #### [Lactate]{.underline}
 
 ```{r Lactate cosinor+plot}
