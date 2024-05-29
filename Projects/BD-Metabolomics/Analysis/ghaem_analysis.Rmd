@@ -97,14 +97,18 @@ Make:
 
 -   Tidy 'time_outdoors...' variables to remove '-10', '-3', '-1' values
 
--   2x new dfs: control_df and bipolar_df for later analysis use
-
 -   Recode ethnicity to new collapsed variable + dummy vars for
     regression
 
 -   Recode employment into new collapsed variable
 
 -   recode blood sample time to collapse into one day
+
+-   recode blood sample date into Date format
+
+-   refactor vars for use in multivariable linear regression
+
+-   2x new dfs: control_df and bipolar_df for later analysis use
 
 ```{r pressure, echo=FALSE, verbose=TRUE}
 # remove people with NA glycated haemoglobin
@@ -196,7 +200,93 @@ exclude_time_range <- as.POSIXct(exclude_time_range)
     bloodtime_df <- ghaem_df %>%
       filter(!bs_time_collapsed %in% exclude_time_range)
 
+#create new date var
+ghaem_df$bs_date <- as.Date(ghaem_df$BS_datetime)
+#remove people with wrong datetime
+ghaem_df<- ghaem_df %>%  filter(!bs_itime<1)
+   
+    
 # make control and bipolar dataframes
+#ungroup main df
+ghaem_df = as.data.frame(ghaem_df)
+
+#create groups
+control_df <- ghaem_df %>%  filter(Group=='control')
+bipolar_df <- ghaem_df %>%  filter(Group=='bipolar')
+```
+
+```{r recode for multivar lr}
+
+library('plyr')
+
+##Group
+#control
+ghaem_df$group <- revalue(ghaem_df$Group, c("control"="1", "bipolar"="2"))
+ghaem_df$group_f <- factor(ghaem_df$group, levels= c("1", "2"), labels= c("control", "bipolar"), ordered=FALSE)
+
+### LEVEL 1
+#Sex
+#sex
+#ghaem_df$sex_recode <- revalue(ghaem_df$sex, c("Male"="1", "Female"="2"))
+ghaem_df$sex_f <- factor(ghaem_df$sex, ordered=FALSE)
+
+#ghaem_df$sex_fact <- factor(ghaem_df$sex_recode, levels= c("Male", "Female"), labels=c("male", "female"))
+
+#ethnicity
+# set values to NA if not relevant
+ghaem_df$ethnicity_recode[ghaem_df$ethnicity_recode == -1] <- NA
+ghaem_df$ethnicity_recode[ghaem_df$ethnicity_recode == -3] <- NA
+#1=White, 2=Mixed, 3=Asian/Asian British, 4=Black/Black British, 5=Chinese, 6=Other ethnic group, 7=do not know/prefer not to answer
+ghaem_df$ethnicity_f <- factor(ghaem_df$ethnicity_recode, levels= c("1", "2", "3", "4", "5", "6"), labels= c("white", "mixed", "asian", "black", "chinese", "other"), ordered=FALSE)
+
+### LEVEL 2 
+#smoking
+# set values to NA if not relevant
+ghaem_df$smoking_f <- ghaem_df$smoking_status
+ghaem_df$smoking_f[ghaem_df$smoking_f == -3] <- NA
+ghaem_df$smoking_f <- factor(ghaem_df$smoking_f, levels= c("Never", "Previous", "Current"), labels= c("Never", "Previous", "Current"), ordered=FALSE)
+
+#alcohol - showing up strange!
+#recode: never/special occasions=1 (LOW), 1-3month/1-2week=2 (MODERATE), 3-4week/daily=3 (HIGH)
+ghaem_df$alcohol_f <- as.character(ghaem_df$alcohol_intake)
+#ghaem_df$alcohol_f[ghaem_df$alcohol_f == 'Prefer not to answer'] <- NA
+ghaem_df$alcohol_f <- revalue(ghaem_df$alcohol_f, c("Never"="Low", "Special occasions only"="Low", "One to three times a month"="Moderate", "Once or twice a week"="Moderate","Three or four times a week"="High", "Daily or almost daily"="High", "Prefer not to answer"=NA))
+ghaem_df$alcohol_f <- factor(ghaem_df$alcohol_f, levels= c("Low", "Moderate", "High"), labels= c("Low", "Moderate", "High"), ordered=TRUE)
+
+#health self-report
+ghaem_df$health_f <- as.character(ghaem_df$health_self_report)
+ghaem_df$health_f[ghaem_df$health_f == 'Prefer not to answer'] <- NA
+ghaem_df$health_f[ghaem_df$health_f == 'Do not know'] <- NA
+ghaem_df$health_f <- factor(ghaem_df$health_f, levels= c("Excellent", "Good", "Fair", "Poor"), labels= c("Excellent", "Good", "Fair", "Poor"), ordered=TRUE)
+
+
+#disbility
+ghaem_df$disability_f <- as.character(ghaem_df$disability_self_report)
+ghaem_df$disability_f[ghaem_df$disability_f == 'Prefer not to answer'] <- NA
+ghaem_df$disability_f[ghaem_df$disability_f == 'Do not know'] <- NA
+ghaem_df$disability_f <- factor(ghaem_df$disability_f, levels= c("No", "Yes"), labels= c("No", "Yes"), ordered=FALSE)
+
+
+#chronotype
+ghaem_df$chrono_f <- as.character(ghaem_df$chronotype)
+ghaem_df$chrono_f[ghaem_df$chrono_f == 'Prefer not to answer'] <- NA
+ghaem_df$chrono_f[ghaem_df$chrono_f == 'Do not know'] <- NA
+ghaem_df$chrono_f <- factor(ghaem_df$chrono_f, ordered=TRUE)
+
+### Level 4 
+#bs_time to integer
+library(data.table)
+ghaem_df$bs_itime <- as.ITime(ghaem_df$bs_time)
+ghaem_df$bs_itime <- as.integer(ghaem_df$bs_itime)
+
+#assess_centre to factor
+ghaem_df$centre_f <- factor(ghaem_df$assess_centre, ordered=FALSE)
+
+#remove plyr package as has masking for later functions
+detach("package:plyr", unload=TRUE)
+detach("package:data.table", unload=TRUE)
+
+# re-make control and bipolar dataframes
 #ungroup main df
 ghaem_df = as.data.frame(ghaem_df)
 
@@ -717,8 +807,9 @@ namesshort <-c("J","F","M","A","M","J","J","A","S","O","N","D")
 
 ```{r HbA1c cosinor+plot}
 
+
 #run cosinor
-hba1c_control_cos <- cosinor(g_haem~1, date='bs_month', type='monthly',data=control_df)
+hba1c_control_cos <- cosinor(g_haem~1 + control_df$age + control_df$BMI + control_df$sex_f + control_df$bs_itime + control_df$ethnicity_f + control_df$alcohol_f + control_df$health_f, date='bs_month', type='monthly',data=control_df)
 summary(hba1c_control_cos)
 summary(hba1c_control_cos$glm)
 mesor_control <- mean(hba1c_control_cos$glm$fitted.values) # for mesor
@@ -768,7 +859,7 @@ points(time_fit_control[o], hba1c_control_cos$fitted.values[o], pch = 19)
 # HbA1c - bipolar
 
 #run cosinor
-hba1c_bipolar_cos <- cosinor(g_haem~1, date='bs_month', type='monthly', data=bipolar_df)
+hba1c_bipolar_cos <- cosinor(g_haem~1 + bipolar_df$age + bipolar_df$BMI + bipolar_df$sex_f + bipolar_df$bs_itime + bipolar_df$ethnicity_f + bipolar_df$alcohol_f + bipolar_df$health_f, date='bs_month', type='monthly', data=bipolar_df, cycles=1)
 summary(hba1c_bipolar_cos)
 summary(hba1c_bipolar_cos$glm)
 mesor_bipolar <- mean(hba1c_bipolar_cos$glm$fitted.values) # for mesor
@@ -818,6 +909,8 @@ points(time_fit_bipolar[o], hba1c_bipolar_cos$fitted.values[o], pch = 19)
 #using circacompare - alpha threshold set to 0.5 because bipolar group is non-rhythmic
 cos_stats_ghaem <- circacompare(x=ghaem_df, col_time="bs_month", col_group="Group", col_outcome="g_haem", period=12, alpha_threshold=0.5)
 
+
+#create plot with fitted sinusoid
 ```
 
 #### [Glucose]{.underline}
@@ -923,301 +1016,6 @@ points(time_fit_bipolar[o], glucose_bipolar_cos$fitted.values[o], pch = 19)
 cos_stats_glucose <- circacompare(x=ghaem_df, col_time="bs_month", col_group="Group", col_outcome="glucose", period=12, alpha_threshold=0.7)
 ```
 
-#### -\>New method: 22/05/24 - use 'cosinor' package
-
-<https://cran.r-project.org/web/packages/cosinor/cosinor.pdf>
-
-#### [Lactate]{.underline}
-
-```{r Lactate cosinor+plot}
-
-#run cosinor
-lactate_control_cos <- cosinor(lactate~1, date='bs_month', type='monthly', data=control_df)
-summary(lactate_control_cos)
-summary(lactate_control_cos$glm)
-#plot(lactate_control_cos)
-#seasrescheck(lactate_control_cos$residuals) # check the residuals
-
-#create new vars for plotting fitted sinusoid from a Cosinor object
-time_fit_control = subset(lactate_control_cos$glm$data, select = lactate_control_cos$date)[, 1]
-o = order(time_fit_control)
-
-# Lactate - control
-dev.new() # open new plot
-pirateplot(formula =  lactate ~ bs_month,
-           data = control_df,
-           #col = rgb(cr(daylen / max(daylen)), max=255)
-           pal=col, #set to your own color palette created previously
-           xlab = "Month",
-           ylab = expression(bold(paste("Control Lactate (mmol/L)"))),
-           yaxt="n",
-           xaxt = "n",
-           theme=0, #set theme to 0
-           bty="n",
-           #bean.f.o = .4, # Bean fill
-           #point.o = .4, # Points
-           inf.f.o = .8, # Inference fill
-           inf.b.o = 1, # Inference border
-           inf.f.col = col,
-           inf.method = "ci",
-           avg.line.o = 1, # Average line
-           #bty=n,
-           #point.cex = .5, # Points
-           #quant = c(.1, .9), # Adjust quantiles
-           ylim=c(3.5,4.5),  # Adjust y axis limits
-           #gl.col = gray(.2), # Gridline specifications
-           #gl.lty = 1,
-           #gl.lwd = c(0, .3))
-           )
-
-axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
-axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
-lines(time_fit_control[o],lactate_control_cos$fitted.values[o], lty=2,lwd=1, col="black")
-points(time_fit_control[o], lactate_control_cos$fitted.values[o], pch = 19)
-       
-
-# Lactate - bipolar
-
-#run cosinor
-lactate_bipolar_cos <- cosinor(lactate~1, date='bs_month', type='monthly', data=bipolar_df)
-summary(lactate_bipolar_cos)
-summary(lactate_bipolar_cos$glm)
-#plot(lactate_bipolar_cos)
-#seasrescheck(lactate_bipolar_cos$residuals) # check the residuals
-
-#create new vars for plotting fitted sinusoid from a Cosinor object
-time_fit_bipolar = subset(lactate_bipolar_cos$glm$data, select = lactate_bipolar_cos$date)[, 1]
-o = order(time_fit_bipolar)
-
-dev.new() # open new plot
-
-pirateplot(formula =  lactate ~ bs_month,
-           data = bipolar_df,
-           #col = rgb(cr(daylen / max(daylen)), max=255)
-           pal=col, #set to your own color palette created previously
-           xlab = "Month",
-           ylab = expression(bold(paste("Bipolar Lactate (mmol/L)"))),
-           yaxt="n",
-           xaxt = "n",
-           theme=0, #set theme to 0
-           bty="n",
-           #bean.f.o = .4, # Bean fill
-           #point.o = .4, # Points
-           inf.f.o = .8, # Inference fill
-           inf.b.o = 1, # Inference border
-           inf.f.col = col,
-           inf.method = "ci",
-           avg.line.o = 1, # Average line
-           #bty=n,
-           #point.cex = .5, # Points
-           #quant = c(.1, .9), # Adjust quantiles
-           ylim=c(3,5) # Adjust y axis limits
-           #gl.col = gray(.2), # Gridline specifications
-           #gl.lty = 1,
-           #gl.lwd = c(0, .3))
-           )
-
-axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
-axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
-lines(time_fit_bipolar[o],lactate_bipolar_cos$fitted.values[o], lty=2,lwd=1, col="black")
-points(time_fit_bipolar[o], lactate_bipolar_cos$fitted.values[o], pch = 19)
-
-```
-
-#### [Pyruvate]{.underline}
-
-```{r Pyruvate cosinor+plot}
-
-#run cosinor
-pyruvate_control_cos <- cosinor(pyruvate~1, date='bs_month', type='monthly', data=control_df)
-summary(pyruvate_control_cos)
-summary(pyruvate_control_cos$glm)
-#plot(pyruvate_control_cos)
-#seasrescheck(pyruvate_control_cos$residuals) # check the residuals
-
-#create new vars for plotting fitted sinusoid from a Cosinor object
-time_fit_control = subset(pyruvate_control_cos$glm$data, select = pyruvate_control_cos$date)[, 1]
-o = order(time_fit_control)
-
-# Pyruvate - control
-dev.new() # open new plot
-pirateplot(formula =  pyruvate ~ bs_month,
-           data = control_df,
-           #col = rgb(cr(daylen / max(daylen)), max=255)
-           pal=col, #set to your own color palette created previously
-           xlab = "Month",
-           ylab = expression(bold(paste("Control Pyruvate (mmol/L)"))),
-           yaxt="n",
-           xaxt = "n",
-           theme=0, #set theme to 0
-           bty="n",
-           #bean.f.o = .4, # Bean fill
-           #point.o = .4, # Points
-           inf.f.o = .8, # Inference fill
-           inf.b.o = 1, # Inference border
-           inf.f.col = col,
-           inf.method = "ci",
-           avg.line.o = 1, # Average line
-           #bty=n,
-           #point.cex = .5, # Points
-           #quant = c(.1, .9), # Adjust quantiles
-           ylim=c(0.07,0.09),  # Adjust y axis limits
-           #gl.col = gray(.2), # Gridline specifications
-           #gl.lty = 1,
-           #gl.lwd = c(0, .3))
-           )
-
-axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
-axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
-lines(time_fit_control[o],pyruvate_control_cos$fitted.values[o], lty=2,lwd=1, col="black")
-points(time_fit_control[o], pyruvate_control_cos$fitted.values[o], pch = 19)
-       
-
-# Pyruvate - bipolar
-
-#run cosinor
-pyruvate_bipolar_cos <- cosinor(pyruvate~1, date='bs_month', type='monthly', data=bipolar_df)
-summary(pyruvate_bipolar_cos)
-summary(pyruvate_bipolar_cos$glm)
-#plot(pyruvate_bipolar_cos)
-#seasrescheck(pyruvate_bipolar_cos$residuals) # check the residuals
-
-#create new vars for plotting fitted sinusoid from a Cosinor object
-time_fit_bipolar = subset(pyruvate_bipolar_cos$glm$data, select = pyruvate_bipolar_cos$date)[, 1]
-o = order(time_fit_bipolar)
-
-dev.new() # open new plot
-
-pirateplot(formula =  pyruvate ~ bs_month,
-           data = bipolar_df,
-           #col = rgb(cr(daylen / max(daylen)), max=255)
-           pal=col, #set to your own color palette created previously
-           xlab = "Month",
-           ylab = expression(bold(paste("Bipolar Pyruvate (mmol/L)"))),
-           yaxt="n",
-           xaxt = "n",
-           theme=0, #set theme to 0
-           bty="n",
-           #bean.f.o = .4, # Bean fill
-           #point.o = .4, # Points
-           inf.f.o = .8, # Inference fill
-           inf.b.o = 1, # Inference border
-           inf.f.col = col,
-           inf.method = "ci",
-           avg.line.o = 1, # Average line
-           #bty=n,
-           #point.cex = .5, # Points
-           #quant = c(.1, .9), # Adjust quantiles
-           ylim=c(0.05,0.12) # Adjust y axis limits
-           #gl.col = gray(.2), # Gridline specifications
-           #gl.lty = 1,
-           #gl.lwd = c(0, .3))
-           )
-
-axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
-axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
-lines(time_fit_bipolar[o],pyruvate_bipolar_cos$fitted.values[o], lty=2,lwd=1, col="black")
-points(time_fit_bipolar[o], pyruvate_bipolar_cos$fitted.values[o], pch = 19)
-
-```
-
-#### [Citrate]{.underline}
-
-```{r Citrate cosinor+plot}
-
-#run cosinor
-citrate_control_cos <- cosinor(citrate~1, date='bs_month', type='monthly', data=control_df)
-summary(citrate_control_cos)
-summary(citrate_control_cos$glm)
-#plot(citrate_control_cos)
-#seasrescheck(citrate_control_cos$residuals) # check the residuals
-
-#create new vars for plotting fitted sinusoid from a Cosinor object
-time_fit_control = subset(citrate_control_cos$glm$data, select = citrate_control_cos$date)[, 1]
-o = order(time_fit_control)
-
-# Citrate - control
-dev.new() # open new plot
-pirateplot(formula =  citrate ~ bs_month,
-           data = control_df,
-           #col = rgb(cr(daylen / max(daylen)), max=255)
-           pal=col, #set to your own color palette created previously
-           xlab = "Month",
-           ylab = expression(bold(paste("Control Citrate (mmol/L)"))),
-           yaxt="n",
-           xaxt = "n",
-           theme=0, #set theme to 0
-           bty="n",
-           #bean.f.o = .4, # Bean fill
-           #point.o = .4, # Points
-           inf.f.o = .8, # Inference fill
-           inf.b.o = 1, # Inference border
-           inf.f.col = col,
-           inf.method = "ci",
-           avg.line.o = 1, # Average line
-           #bty=n,
-           #point.cex = .5, # Points
-           #quant = c(.1, .9), # Adjust quantiles
-           ylim=c(0.062,0.068),  # Adjust y axis limits
-           #gl.col = gray(.2), # Gridline specifications
-           #gl.lty = 1,
-           #gl.lwd = c(0, .3))
-           )
-
-axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
-axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
-lines(time_fit_control[o],citrate_control_cos$fitted.values[o], lty=2,lwd=1, col="black")
-points(time_fit_control[o], citrate_control_cos$fitted.values[o], pch = 19)
-       
-
-# Citrate - bipolar
-
-#run cosinor
-citrate_bipolar_cos <- cosinor(citrate~1, date='bs_month', type='monthly', data=bipolar_df)
-summary(citrate_bipolar_cos)
-summary(citrate_bipolar_cos$glm)
-#plot(citrate_bipolar_cos)
-#seasrescheck(citrate_bipolar_cos$residuals) # check the residuals
-
-#create new vars for plotting fitted sinusoid from a Cosinor object
-time_fit_bipolar = subset(citrate_bipolar_cos$glm$data, select = citrate_bipolar_cos$date)[, 1]
-o = order(time_fit_bipolar)
-
-dev.new() # open new plot
-
-pirateplot(formula =  citrate ~ bs_month,
-           data = bipolar_df,
-           #col = rgb(cr(daylen / max(daylen)), max=255)
-           pal=col, #set to your own color palette created previously
-           xlab = "Month",
-           ylab = expression(bold(paste("Bipolar Citrate (mmol/L)"))),
-           yaxt="n",
-           xaxt = "n",
-           theme=0, #set theme to 0
-           bty="n",
-           #bean.f.o = .4, # Bean fill
-           #point.o = .4, # Points
-           inf.f.o = .8, # Inference fill
-           inf.b.o = 1, # Inference border
-           inf.f.col = col,
-           inf.method = "ci",
-           avg.line.o = 1, # Average line
-           #bty=n,
-           #point.cex = .5, # Points
-           #quant = c(.1, .9), # Adjust quantiles
-           ylim=c(0.05,0.08) # Adjust y axis limits
-           #gl.col = gray(.2), # Gridline specifications
-           #gl.lty = 1,
-           #gl.lwd = c(0, .3))
-           )
-
-axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
-axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
-lines(time_fit_bipolar[o],citrate_bipolar_cos$fitted.values[o], lty=2,lwd=1, col="black")
-points(time_fit_bipolar[o], citrate_bipolar_cos$fitted.values[o], pch = 19)
-
-```
-
 ### 9. Multivariable analysis between marker & daylength ( proxy season marker)
 
 Increasing model adjustment to include:
@@ -1233,82 +1031,7 @@ Increasing model adjustment to include:
 
 -   Level 4: analyser/location
 
-```{r recode}
-
-library('plyr')
-
-##Group
-#control
-ghaem_df$group <- revalue(ghaem_df$Group, c("control"="1", "bipolar"="2"))
-ghaem_df$group_f <- factor(ghaem_df$group, levels= c("1", "2"), labels= c("control", "bipolar"), ordered=FALSE)
-
-### LEVEL 1
-#Sex
-#sex
-#ghaem_df$sex_recode <- revalue(ghaem_df$sex, c("Male"="1", "Female"="2"))
-ghaem_df$sex_f <- factor(ghaem_df$sex, ordered=FALSE)
-
-#ghaem_df$sex_fact <- factor(ghaem_df$sex_recode, levels= c("Male", "Female"), labels=c("male", "female"))
-
-#ethnicity
-# set values to NA if not relevant
-ghaem_df$ethnicity_recode[ghaem_df$ethnicity_recode == -1] <- NA
-ghaem_df$ethnicity_recode[ghaem_df$ethnicity_recode == -3] <- NA
-#1=White, 2=Mixed, 3=Asian/Asian British, 4=Black/Black British, 5=Chinese, 6=Other ethnic group, 7=do not know/prefer not to answer
-ghaem_df$ethnicity_f <- factor(ghaem_df$ethnicity_recode, levels= c("1", "2", "3", "4", "5", "6"), labels= c("white", "mixed", "asian", "black", "chinese", "other"), ordered=FALSE)
-
-### LEVEL 2 
-#smoking
-# set values to NA if not relevant
-ghaem_df$smoking_f <- ghaem_df$smoking_status
-ghaem_df$smoking_f[ghaem_df$smoking_f == -3] <- NA
-ghaem_df$smoking_f <- factor(ghaem_df$smoking_f, levels= c("Never", "Previous", "Current"), labels= c("Never", "Previous", "Current"), ordered=FALSE)
-
-#alcohol - showing up strange!
-#recode: never/special occasions=1 (LOW), 1-3month/1-2week=2 (MODERATE), 3-4week/daily=3 (HIGH)
-ghaem_df$alcohol_f <- as.character(ghaem_df$alcohol_intake)
-#ghaem_df$alcohol_f[ghaem_df$alcohol_f == 'Prefer not to answer'] <- NA
-ghaem_df$alcohol_f <- revalue(ghaem_df$alcohol_f, c("Never"="Low", "Special occasions only"="Low", "One to three times a month"="Moderate", "Once or twice a week"="Moderate","Three or four times a week"="High", "Daily or almost daily"="High", "Prefer not to answer"=NA))
-ghaem_df$alcohol_f <- factor(ghaem_df$alcohol_f, levels= c("Low", "Moderate", "High"), labels= c("Low", "Moderate", "High"), ordered=TRUE)
-
-#health self-report
-ghaem_df$health_f <- as.character(ghaem_df$health_self_report)
-ghaem_df$health_f[ghaem_df$health_f == 'Prefer not to answer'] <- NA
-ghaem_df$health_f[ghaem_df$health_f == 'Do not know'] <- NA
-ghaem_df$health_f <- factor(ghaem_df$health_f, levels= c("Excellent", "Good", "Fair", "Poor"), labels= c("Excellent", "Good", "Fair", "Poor"), ordered=TRUE)
-
-
-#disbility
-ghaem_df$disability_f <- as.character(ghaem_df$disability_self_report)
-ghaem_df$disability_f[ghaem_df$disability_f == 'Prefer not to answer'] <- NA
-ghaem_df$disability_f[ghaem_df$disability_f == 'Do not know'] <- NA
-ghaem_df$disability_f <- factor(ghaem_df$disability_f, levels= c("No", "Yes"), labels= c("No", "Yes"), ordered=FALSE)
-
-
-#chronotype
-ghaem_df$chrono_f <- as.character(ghaem_df$chronotype)
-ghaem_df$chrono_f[ghaem_df$chrono_f == 'Prefer not to answer'] <- NA
-ghaem_df$chrono_f[ghaem_df$chrono_f == 'Do not know'] <- NA
-ghaem_df$chrono_f <- factor(ghaem_df$chrono_f, ordered=TRUE)
-
-### Level 4 
-#bs_time to integer
-library(data.table)
-ghaem_df$bs_itime <- as.ITime(ghaem_df$bs_time)
-ghaem_df$bs_itime <- as.integer(ghaem_df$bs_itime)
-
-
-#remove plyr package as has masking for later functions
-detach("package:plyr", unload=TRUE)
-detach("package:data.table", unload=TRUE)
-
-# re-make control and bipolar dataframes
-#ungroup main df
-ghaem_df = as.data.frame(ghaem_df)
-
-#create groups
-control_df <- ghaem_df %>%  filter(Group=='control')
-bipolar_df <- ghaem_df %>%  filter(Group=='bipolar')
+```{}
 ```
 
 #### HbA1c
@@ -1416,7 +1139,7 @@ model4 <- lm(g_haem ~ daylength_min +
                photoperiod_roc_min + assess_latitude +
                time_outdoors_summer + time_outdoors_winter +
                #level 4
-               assess_centre + bs_itime,
+               centre_f + bs_itime,
   data = control_df
 )
 summary(model4)
@@ -1482,7 +1205,7 @@ model4_b <- lm(g_haem ~ daylength_min +
                photoperiod_roc_min + assess_latitude +
                time_outdoors_summer + time_outdoors_winter +
                #level 4
-               assess_centre + bs_itime,
+               centre_f + bs_itime,
   data = bipolar_df
 )
 summary(model4_b)
@@ -1563,7 +1286,7 @@ model4_glu <- lm(glucose ~ daylength_min +
                photoperiod_roc_min + assess_latitude +
                time_outdoors_summer + time_outdoors_winter +
                #level 4
-               assess_centre + bs_itime,
+               centre_f + bs_itime,
   data = control_df
 )
 summary(model4_glu)
@@ -1631,7 +1354,7 @@ model4_glu_b <- lm(glucose ~ daylength_min +
                photoperiod_roc_min + assess_latitude +
                time_outdoors_summer + time_outdoors_winter +
                #level 4
-               assess_centre + bs_itime,
+               centre_f + bs_itime,
   data = bipolar_df
 )
 summary(model4_glu_b)
@@ -1928,7 +1651,7 @@ ggplot(citrate_season, aes(bs_season, mean, color=Group))+
   scale_x_continuous("bs_season", labels = as.character(citrate_season$bs_season), breaks = citrate_season$bs_season)
 
 # plot temp correlation
-ggplot(ghaem_df, aes(x=daylength_min, y=g_haem, color=Group)) + 
+ggplot(ghaem_df, aes(x=photoperiod_roc, y=glucose, color=Group)) + 
   #geom_point()+
   geom_smooth(method=lm)+  
   ylim(20, 50)
@@ -2001,7 +1724,7 @@ mc_df_1 <- match_exact_df_1 %>%  filter(Group=='control')
 
 ```{r matched cosinor}
 #HbA1c - matched control cosinor
-hba1c_mc_cos <- cosinor(g_haem~1, date='bs_month', type='monthly',data=mc_df)
+hba1c_mc_cos <- cosinor(g_haem~1 + mc_df$age + mc_df$BMI + mc_df$sex_f + mc_df$bs_itime + mc_df$ethnicity_f + mc_df$alcohol_f + mc_df$health_f, date='bs_month', type='monthly',data=mc_df)
 summary(hba1c_mc_cos)
 summary(hba1c_mc_cos$glm)
 mesor_mc <- mean(hba1c_mc_cos$glm$fitted.values) # for mesor
@@ -2166,3 +1889,298 @@ ghaem_df$chrono_moreeve <- revalue(ghaem_df$chronotype, c("Definitely a 'morning
 ghaem_df$chrono_defeve <- revalue(ghaem_df$chronotype, c("Definitely a 'morning' person"="0", "More a 'morning' than 'evening' person"="0", "More an 'evening' than a 'morning' person"="0", "Definitely an 'evening' person"="1","Do not know"="0", "Prefer not to answer"="0"))
 
 ```
+
+#### extra: cosinor for lactate/pyruvate/citrate
+
+##### [Lactate]{.underline}
+
+```{r Lactate cosinor+plot}
+
+#run cosinor
+lactate_control_cos <- cosinor(lactate~1, date='bs_month', type='monthly', data=control_df)
+summary(lactate_control_cos)
+summary(lactate_control_cos$glm)
+#plot(lactate_control_cos)
+#seasrescheck(lactate_control_cos$residuals) # check the residuals
+
+#create new vars for plotting fitted sinusoid from a Cosinor object
+time_fit_control = subset(lactate_control_cos$glm$data, select = lactate_control_cos$date)[, 1]
+o = order(time_fit_control)
+
+# Lactate - control
+dev.new() # open new plot
+pirateplot(formula =  lactate ~ bs_month,
+           data = control_df,
+           #col = rgb(cr(daylen / max(daylen)), max=255)
+           pal=col, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("Control Lactate (mmol/L)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = col,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           ylim=c(3.5,4.5),  # Adjust y axis limits
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3))
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_control[o],lactate_control_cos$fitted.values[o], lty=2,lwd=1, col="black")
+points(time_fit_control[o], lactate_control_cos$fitted.values[o], pch = 19)
+       
+
+# Lactate - bipolar
+
+#run cosinor
+lactate_bipolar_cos <- cosinor(lactate~1, date='bs_month', type='monthly', data=bipolar_df)
+summary(lactate_bipolar_cos)
+summary(lactate_bipolar_cos$glm)
+#plot(lactate_bipolar_cos)
+#seasrescheck(lactate_bipolar_cos$residuals) # check the residuals
+
+#create new vars for plotting fitted sinusoid from a Cosinor object
+time_fit_bipolar = subset(lactate_bipolar_cos$glm$data, select = lactate_bipolar_cos$date)[, 1]
+o = order(time_fit_bipolar)
+
+dev.new() # open new plot
+
+pirateplot(formula =  lactate ~ bs_month,
+           data = bipolar_df,
+           #col = rgb(cr(daylen / max(daylen)), max=255)
+           pal=col, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("Bipolar Lactate (mmol/L)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = col,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           ylim=c(3,5) # Adjust y axis limits
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3))
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_bipolar[o],lactate_bipolar_cos$fitted.values[o], lty=2,lwd=1, col="black")
+points(time_fit_bipolar[o], lactate_bipolar_cos$fitted.values[o], pch = 19)
+
+```
+
+##### [Pyruvate]{.underline}
+
+```{r Pyruvate cosinor+plot}
+
+#run cosinor
+pyruvate_control_cos <- cosinor(pyruvate~1, date='bs_month', type='monthly', data=control_df)
+summary(pyruvate_control_cos)
+summary(pyruvate_control_cos$glm)
+#plot(pyruvate_control_cos)
+#seasrescheck(pyruvate_control_cos$residuals) # check the residuals
+
+#create new vars for plotting fitted sinusoid from a Cosinor object
+time_fit_control = subset(pyruvate_control_cos$glm$data, select = pyruvate_control_cos$date)[, 1]
+o = order(time_fit_control)
+
+# Pyruvate - control
+dev.new() # open new plot
+pirateplot(formula =  pyruvate ~ bs_month,
+           data = control_df,
+           #col = rgb(cr(daylen / max(daylen)), max=255)
+           pal=col, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("Control Pyruvate (mmol/L)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = col,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           ylim=c(0.07,0.09),  # Adjust y axis limits
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3))
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_control[o],pyruvate_control_cos$fitted.values[o], lty=2,lwd=1, col="black")
+points(time_fit_control[o], pyruvate_control_cos$fitted.values[o], pch = 19)
+       
+
+# Pyruvate - bipolar
+
+#run cosinor
+pyruvate_bipolar_cos <- cosinor(pyruvate~1, date='bs_month', type='monthly', data=bipolar_df)
+summary(pyruvate_bipolar_cos)
+summary(pyruvate_bipolar_cos$glm)
+#plot(pyruvate_bipolar_cos)
+#seasrescheck(pyruvate_bipolar_cos$residuals) # check the residuals
+
+#create new vars for plotting fitted sinusoid from a Cosinor object
+time_fit_bipolar = subset(pyruvate_bipolar_cos$glm$data, select = pyruvate_bipolar_cos$date)[, 1]
+o = order(time_fit_bipolar)
+
+dev.new() # open new plot
+
+pirateplot(formula =  pyruvate ~ bs_month,
+           data = bipolar_df,
+           #col = rgb(cr(daylen / max(daylen)), max=255)
+           pal=col, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("Bipolar Pyruvate (mmol/L)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = col,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           ylim=c(0.05,0.12) # Adjust y axis limits
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3))
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_bipolar[o],pyruvate_bipolar_cos$fitted.values[o], lty=2,lwd=1, col="black")
+points(time_fit_bipolar[o], pyruvate_bipolar_cos$fitted.values[o], pch = 19)
+
+```
+
+##### [Citrate]{.underline}
+
+```{r Citrate cosinor+plot}
+
+#run cosinor
+citrate_control_cos <- cosinor(citrate~1, date='bs_month', type='monthly', data=control_df)
+summary(citrate_control_cos)
+summary(citrate_control_cos$glm)
+#plot(citrate_control_cos)
+#seasrescheck(citrate_control_cos$residuals) # check the residuals
+
+#create new vars for plotting fitted sinusoid from a Cosinor object
+time_fit_control = subset(citrate_control_cos$glm$data, select = citrate_control_cos$date)[, 1]
+o = order(time_fit_control)
+
+# Citrate - control
+dev.new() # open new plot
+pirateplot(formula =  citrate ~ bs_month,
+           data = control_df,
+           #col = rgb(cr(daylen / max(daylen)), max=255)
+           pal=col, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("Control Citrate (mmol/L)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = col,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           ylim=c(0.062,0.068),  # Adjust y axis limits
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3))
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_control[o],citrate_control_cos$fitted.values[o], lty=2,lwd=1, col="black")
+points(time_fit_control[o], citrate_control_cos$fitted.values[o], pch = 19)
+       
+
+# Citrate - bipolar
+
+#run cosinor
+citrate_bipolar_cos <- cosinor(citrate~1, date='bs_month', type='monthly', data=bipolar_df)
+summary(citrate_bipolar_cos)
+summary(citrate_bipolar_cos$glm)
+#plot(citrate_bipolar_cos)
+#seasrescheck(citrate_bipolar_cos$residuals) # check the residuals
+
+#create new vars for plotting fitted sinusoid from a Cosinor object
+time_fit_bipolar = subset(citrate_bipolar_cos$glm$data, select = citrate_bipolar_cos$date)[, 1]
+o = order(time_fit_bipolar)
+
+dev.new() # open new plot
+
+pirateplot(formula =  citrate ~ bs_month,
+           data = bipolar_df,
+           #col = rgb(cr(daylen / max(daylen)), max=255)
+           pal=col, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("Bipolar Citrate (mmol/L)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = col,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           ylim=c(0.05,0.08) # Adjust y axis limits
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3))
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_bipolar[o],citrate_bipolar_cos$fitted.values[o], lty=2,lwd=1, col="black")
+points(time_fit_bipolar[o], citrate_bipolar_cos$fitted.values[o], pch = 19)
+
+```
+
+### 
