@@ -1,5 +1,5 @@
 ---
-title: "UKB_ghaem"
+title: "UKB_diabetic"
 author: "agpr141"
 date: "2024-03-18"
 output: html_document
@@ -34,7 +34,6 @@ library(plotrix)
 library(segmented)
 library(plot3D)
 library(season)
-library(cosinor2)
 ```
 
 ### 2: Load data
@@ -730,60 +729,56 @@ citrate_season <- ghaem_df %>%
 
 ```
 
-### 7. Test for significant differences in marker levels between groups (per month)
+### 7. create matched control group
 
-```{r}
+1:1 matching based on sex, age, ethnicity, BMI, assess_centre, bs_month,
+bs_year
 
-# is there a significant difference between marker level between groups per month?
+CURRENT DEFAULT: do not run this code section. for optional future use
+(sensitivity analyses)
 
-jan <- ghaem_df %>%  filter(bs_month==1) 
-jan_wrs <-  wilcox.test(citrate ~ Group, data=jan, exact = FALSE, conf.int = TRUE)
-jan_wrs
+```{r match, eval=FALSE, include=FALSE, verbose=FALSE}
+# convert matching variables to type 'factor' for matchit function to work
 
-feb <- ghaem_df %>%  filter(bs_month==2) 
-feb_wrs <-  wilcox.test(citrate ~ Group, data=feb, exact = FALSE, conf.int = TRUE)
-feb_wrs
+for_match_df <- ghaem_df
+for_match_df$group <- replace(for_match_df$group, for_match_df$group == 1, 0) 
+for_match_df$group <- replace(for_match_df$group, for_match_df$group == 2, 1)
+for_match_df$group <- as.integer(for_match_df$group)
+# remove people with NA variables: ethnicity
+for_match_df<- for_match_df %>%  filter(!is.na(ethnicity))
+#for_match_df<- for_match_df %>%  filter(!is.na(BMI))
 
-march <- ghaem_df %>%  filter(bs_month==3) 
-march_wrs <-  wilcox.test(citrate ~ Group, data=march, exact = FALSE, conf.int = TRUE)
-march_wrs
+#use 1:1 nearest neighbour matching (Matchit default) without replacement on a propensity score estimated using a
+# logistic regression of the treatment on the covariates
+#m.out1 <- matchit(group ~ age + sex + ethnicity + assess_centre + bs_month + #bs_year, data = for_match_df)
 
-april <- ghaem_df %>%  filter(bs_month==4) 
-april_wrs <-  wilcox.test(citrate ~ Group, data=april, exact = FALSE, conf.int = TRUE)
-april_wrs
+#match_control_df <- match.data(m.out1)
 
-may <- ghaem_df %>%  filter(bs_month==5) 
-may_wrs <-  wilcox.test(citrate ~ Group, data=may, exact = FALSE, conf.int = TRUE)
-may_wrs
+#try different matching method: exact
+m.out_exact <- matchit(group ~ age + sex + ethnicity + assess_centre + bs_month + bs_year +bs_itime, data = for_match_df, method="nearest", 
+                       exact= ~ bs_month + age + sex + assess_centre, 
+                       ratio=3)
+match_exact_df <- match.data(m.out_exact)
+table(match_exact_df$Group)
 
-june <- ghaem_df %>%  filter(bs_month==6) 
-june_wrs <-  wilcox.test(citrate ~ Group, data=june, exact = FALSE, conf.int = TRUE)
-june_wrs
+table(match_exact_df$sex, match_exact_df$Group)
 
-july <- ghaem_df %>%  filter(bs_month==7) 
-july_wrs <-  wilcox.test(citrate ~ Group, data=july, exact = FALSE, conf.int = TRUE)
-july_wrs
+mc_df <- match_exact_df %>%  filter(Group=='control')
 
-aug <- ghaem_df %>%  filter(bs_month==8) 
-aug_wrs <-  wilcox.test(citrate ~ Group, data=aug, exact = FALSE, conf.int = TRUE)
-aug_wrs
 
-sept <- ghaem_df %>%  filter(bs_month==9) 
-sept_wrs <-  wilcox.test(citrate ~ Group, data=sept, exact = FALSE, conf.int = TRUE)
-sept_wrs
+# match 1:1
+m.out_exact <- matchit(group ~ age + sex + ethnicity + assess_centre + bs_month + bs_year +bs_itime, data = for_match_df, method="nearest", 
+                       exact= ~ bs_month + age + sex + assess_centre, 
+                       ratio=1)
+match_exact_df_1 <- match.data(m.out_exact)
+table(match_exact_df_1$Group)
 
-oct <- ghaem_df %>%  filter(bs_month==10) 
-oct_wrs <-  wilcox.test(citrate ~ Group, data=oct, exact = FALSE, conf.int = TRUE)
-oct_wrs
+table(match_exact_df_1$sex, match_exact_df_1$Group)
 
-nov <- ghaem_df %>%  filter(bs_month==11) 
-nov_wrs <-  wilcox.test(citrate ~ Group, data=nov, exact = FALSE, conf.int = TRUE)
-nov_wrs
+mc_df_1 <- match_exact_df_1 %>%  filter(Group=='control')
+```
 
-dec <- ghaem_df %>%  filter(bs_month==12) 
-dec_wrs <-  wilcox.test(citrate ~ Group, data=dec, exact = FALSE, conf.int = TRUE)
-dec_wrs
-
+```{}
 ```
 
 ### 8. Calculate cosinor and plot marker levels using pirate plot
@@ -803,10 +798,9 @@ names <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","De
 namesshort <-c("J","F","M","A","M","J","J","A","S","O","N","D")
 ```
 
-#### [HbA1c]{.underline}
+#### [HbA1c - control cosinor]{.underline}
 
-```{r HbA1c cosinor+plot}
-
+```{r HbA1c all control}
 
 #run cosinor
 hba1c_control_cos <- cosinor(g_haem~1 + control_df$age + control_df$BMI + control_df$sex_f + control_df$bs_itime + control_df$ethnicity_f + control_df$alcohol_f + control_df$health_f, date='bs_month', type='monthly',data=control_df)
@@ -819,7 +813,7 @@ mesor_control <- mean(hba1c_control_cos$glm$fitted.values) # for mesor
 
 #create new vars for plotting fitted sinusoid from a Cosinor object
 time_fit_control = subset(hba1c_control_cos$glm$data, select = hba1c_control_cos$date)[, 1]
-o = order(time_fit_control)
+o_c = order(time_fit_control)
 
 # HbA1c - control
 
@@ -844,7 +838,7 @@ pirateplot(formula =  g_haem ~ bs_month,
            #point.cex = .5, # Points
            #quant = c(.1, .9), # Adjust quantiles
            #ylim=c(34.4,35),  # Adjust y axis limits
-           ylim=c(32,36.5)
+           #ylim=c(32,36.5)
            #gl.col = gray(.2), # Gridline specifications
            #gl.lty = 1,
            #gl.lwd = c(0, .3))
@@ -852,10 +846,68 @@ pirateplot(formula =  g_haem ~ bs_month,
 
 axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
 axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
-lines(time_fit_control[o],hba1c_control_cos$fitted.values[o], lty=2,lwd=1, col="black")
-points(time_fit_control[o], hba1c_control_cos$fitted.values[o], pch = 19)
-       
+lines(time_fit_control[o_c],hba1c_control_cos$fitted.values[o_c], lty=2,lwd=1, col="black")
+points(time_fit_control[o_c], hba1c_control_cos$fitted.values[o_c], pch = 19)
+```
 
+#### HbA1c - matched cosinors
+
+```{r matched cosinor}
+#HbA1c - matched control cosinor
+hba1c_mc_cos <- cosinor(g_haem~1 + mc_df$age + mc_df$BMI + mc_df$sex_f + mc_df$bs_itime + mc_df$ethnicity_f + mc_df$alcohol_f + mc_df$health_f, date='bs_month', type='monthly',data=mc_df)
+summary(hba1c_mc_cos)
+summary(hba1c_mc_cos$glm)
+mesor_mc <- mean(hba1c_mc_cos$glm$fitted.values) # for mesor
+
+#plot(hba1c_mc_cos)
+#seasrescheck(hba1c_mc_cos$residuals) # check the residuals
+
+
+#create new vars for plotting fitted sinusoid from a Cosinor object
+time_fit_mc_3 = subset(hba1c_mc_cos$glm$data, select = hba1c_mc_cos$date)[, 1]
+o_mc3 = order(time_fit_mc_3)
+
+# HbA1c - control
+
+pirateplot(formula =  g_haem ~ bs_month,
+           data = mc_df,
+           #col = rgb(cr(daylen / max(daylen)), max=255),
+           pal=SeasonPal, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("Control HbA1c (mmol/mol)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = SeasonPal,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           #ylim=c(34.4,35),  # Adjust y axis limits
+           #ylim=c(32,36.5)
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3))
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_mc_3[o_mc3],hba1c_mc_cos$fitted.values[o_mc3], lty=2,lwd=1, col="black")
+points(time_fit_mc_3[o_mc3], hba1c_mc_cos$fitted.values[o_mc3], pch = 19)
+
+
+
+```
+
+#### HbA1c - bipolar cosinor
+
+```{r}
 # HbA1c - bipolar
 
 #run cosinor
@@ -868,7 +920,7 @@ mesor_bipolar <- mean(hba1c_bipolar_cos$glm$fitted.values) # for mesor
 
 #create new vars for plotting fitted sinusoid from a Cosinor object
 time_fit_bipolar = subset(hba1c_bipolar_cos$glm$data, select = hba1c_bipolar_cos$date)[, 1]
-o = order(time_fit_bipolar)
+o_bd = order(time_fit_bipolar)
 
 dev.new() # open new plot
 
@@ -892,7 +944,7 @@ pirateplot(formula =  g_haem ~ bs_month,
            #bty=n,
            #point.cex = .5, # Points
            #quant = c(.1, .9), # Adjust quantiles
-           ylim=c(32,36.5) # Adjust y axis limits
+           #ylim=c(32,36.5) # Adjust y axis limits
            #ylim=c(34.4,35)
            #gl.col = gray(.2), # Gridline specifications
            #gl.lty = 1,
@@ -901,16 +953,43 @@ pirateplot(formula =  g_haem ~ bs_month,
 
 axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
 axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
-lines(time_fit_bipolar[o],hba1c_bipolar_cos$fitted.values[o], lty=2,lwd=1, col="black")
-points(time_fit_bipolar[o], hba1c_bipolar_cos$fitted.values[o], pch = 19)
+lines(time_fit_bipolar[o_bd],hba1c_bipolar_cos$fitted.values[o_bd], lty=2,lwd=1, col="black")
+points(time_fit_bipolar[o_bd], hba1c_bipolar_cos$fitted.values[o_bd], pch = 19)
 
 
+
+```
+
+#### HbA1c - plot all groups
+
+```{r}
 #run significance test between groups for: phase, nadir, amplitude, mesor
 #using circacompare - alpha threshold set to 0.5 because bipolar group is non-rhythmic
 cos_stats_ghaem <- circacompare(x=ghaem_df, col_time="bs_month", col_group="Group", col_outcome="g_haem", period=12, alpha_threshold=0.5)
 
 
 #create plot with fitted sinusoid
+pirateplot(formula = g_haem ~ time_fit_control,
+           data = control_df,
+           theme = 0, # set theme to 0 for blank plot
+           xlab = "Month", # add x axis label
+           ylab = expression(bold(paste("HbA1c (mmol/mol)"))), # add y axis label
+           xaxt = "n", # remove x axis check marks
+           yaxt = "n", # remove y axis check markers
+           ylim=c(23,27), # define y axis limits
+           main = "HbA1c fitted sinusoids")
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+#add lines for control
+lines(time_fit_control[o_c],hba1c_control_cos$fitted.values[o_c], lty=2,lwd=1, col="red")
+points(time_fit_control[o_c], hba1c_control_cos$fitted.values[o_c], pch = 19, col="red")
+#add lines for matched control (3:1)
+lines(time_fit_mc_3[o_mc3],hba1c_mc_cos$fitted.values[o_mc3], lty=2,lwd=1, col="blue")
+points(time_fit_mc_3[o_mc3], hba1c_mc_cos$fitted.values[o_mc3], pch = 19, col="blue")
+#add lines for bipolar
+lines(time_fit_bipolar[o_bd],hba1c_bipolar_cos$fitted.values[o_bd], lty=2,lwd=1, col="black")
+points(time_fit_bipolar[o_bd], hba1c_bipolar_cos$fitted.values[o_bd], pch = 19, col="black")
 ```
 
 #### [Glucose]{.underline}
@@ -1016,6 +1095,61 @@ points(time_fit_bipolar[o], glucose_bipolar_cos$fitted.values[o], pch = 19)
 cos_stats_glucose <- circacompare(x=ghaem_df, col_time="bs_month", col_group="Group", col_outcome="glucose", period=12, alpha_threshold=0.7)
 ```
 
+```{r}
+## glucose - matched control cosinor 3:1
+glucose_mc_cos <- cosinor(glucose~1, date='bs_month', type='monthly', data=mc_df)
+summary(glucose_mc_cos)
+summary(glucose_mc_cos$glm)
+mesor_control <- mean(glucose_mc_cos$glm$fitted.values)
+#plot(glucose_mc_cos)
+#seasrescheck(glucose_mc_cos$residuals) # check the residuals
+
+#1:1
+glucose_mc1_cos <- cosinor(glucose~1, date='bs_month', type='monthly', data=mc_df_1)
+summary(glucose_mc1_cos)
+summary(glucose_mc1_cos$glm)
+mesor_control1 <- mean(glucose_mc1_cos$glm$fitted.values)
+
+#create new vars for plotting fitted sinusoid from a Cosinor object
+time_fit_mc = subset(glucose_mc_cos$glm$data, select = glucose_mc_cos$date)[, 1]
+o = order(time_fit_mc)
+
+# Glucose - matched control
+dev.new()
+pirateplot(formula =  glucose ~ bs_month,
+           data = mc_df,
+           #col = rgb(cr(daylen / max(daylen)), max=255)
+           pal=SeasonPal, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("Control Glucose (mmol/L)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = SeasonPal,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           #ylim=c(4.85,5),  # Adjust y axis limits
+           ylim=c(4.5,5.5)
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3))
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_mc[o],glucose_mc_cos$fitted.values[o], lty=2,lwd=1, col="black")
+points(time_fit_mc[o], glucose_mc_cos$fitted.values[o], pch = 19)
+       
+```
+
 ### 9. Multivariable analysis between marker & daylength ( proxy season marker)
 
 Increasing model adjustment to include:
@@ -1031,7 +1165,8 @@ Increasing model adjustment to include:
 
 -   Level 4: analyser/location
 
-```{}
+```{=html}
+<!-- -->
 ```
 
 #### HbA1c
@@ -1671,159 +1806,6 @@ model <- ghaem_df %>%
   lm(g_haem~average_temp, data=ghaem_df)
 check_model(ghaem_df$age)
 
-```
-
-#### extra: create matched control group
-
-1:1 matching based on sex, age, ethnicity, BMI, assess_centre, bs_month,
-bs_year
-
-CURRENT DEFAULT: do not run this code section. for optional future use
-(sensitivity analyses)
-
-```{r match, eval=FALSE, include=FALSE, verbose=FALSE}
-# convert matching variables to type 'factor' for matchit function to work
-
-for_match_df <- ghaem_df
-for_match_df$group <- replace(for_match_df$group, for_match_df$group == 1, 0) 
-for_match_df$group <- replace(for_match_df$group, for_match_df$group == 2, 1)
-for_match_df$group <- as.integer(for_match_df$group)
-# remove people with NA variables: ethnicity
-for_match_df<- for_match_df %>%  filter(!is.na(ethnicity))
-#for_match_df<- for_match_df %>%  filter(!is.na(BMI))
-
-#use 1:1 nearest neighbour matching (Matchit default) without replacement on a propensity score estimated using a
-# logistic regression of the treatment on the covariates
-#m.out1 <- matchit(group ~ age + sex + ethnicity + assess_centre + bs_month + #bs_year, data = for_match_df)
-
-#match_control_df <- match.data(m.out1)
-
-#try different matching method: exact
-m.out_exact <- matchit(group ~ age + sex + ethnicity + assess_centre + bs_month + bs_year +bs_itime, data = for_match_df, method="nearest", 
-                       exact= ~ bs_month + age + sex + assess_centre, 
-                       ratio=3)
-match_exact_df <- match.data(m.out_exact)
-table(match_exact_df$Group)
-
-table(match_exact_df$sex, match_exact_df$Group)
-
-mc_df <- match_exact_df %>%  filter(Group=='control')
-
-
-# match 1:1
-m.out_exact <- matchit(group ~ age + sex + ethnicity + assess_centre + bs_month + bs_year +bs_itime, data = for_match_df, method="nearest", 
-                       exact= ~ bs_month + age + sex + assess_centre, 
-                       ratio=1)
-match_exact_df_1 <- match.data(m.out_exact)
-table(match_exact_df_1$Group)
-
-table(match_exact_df_1$sex, match_exact_df_1$Group)
-
-mc_df_1 <- match_exact_df_1 %>%  filter(Group=='control')
-```
-
-```{r matched cosinor}
-#HbA1c - matched control cosinor
-hba1c_mc_cos <- cosinor(g_haem~1 + mc_df$age + mc_df$BMI + mc_df$sex_f + mc_df$bs_itime + mc_df$ethnicity_f + mc_df$alcohol_f + mc_df$health_f, date='bs_month', type='monthly',data=mc_df)
-summary(hba1c_mc_cos)
-summary(hba1c_mc_cos$glm)
-mesor_mc <- mean(hba1c_mc_cos$glm$fitted.values) # for mesor
-
-#plot(hba1c_mc_cos)
-#seasrescheck(hba1c_mc_cos$residuals) # check the residuals
-
-
-#create new vars for plotting fitted sinusoid from a Cosinor object
-time_fit_mc = subset(hba1c_mc_cos$glm$data, select = hba1c_mc_cos$date)[, 1]
-o = order(time_fit_mc)
-
-# HbA1c - control
-
-pirateplot(formula =  g_haem ~ bs_month,
-           data = mc_df,
-           #col = rgb(cr(daylen / max(daylen)), max=255),
-           pal=SeasonPal, #set to your own color palette created previously
-           xlab = "Month",
-           ylab = expression(bold(paste("Control HbA1c (mmol/mol)"))),
-           yaxt="n",
-           xaxt = "n",
-           theme=0, #set theme to 0
-           bty="n",
-           #bean.f.o = .4, # Bean fill
-           #point.o = .4, # Points
-           inf.f.o = .8, # Inference fill
-           inf.b.o = 1, # Inference border
-           inf.f.col = SeasonPal,
-           inf.method = "ci",
-           avg.line.o = 1, # Average line
-           #bty=n,
-           #point.cex = .5, # Points
-           #quant = c(.1, .9), # Adjust quantiles
-           #ylim=c(34.4,35),  # Adjust y axis limits
-           ylim=c(32,36.5)
-           #gl.col = gray(.2), # Gridline specifications
-           #gl.lty = 1,
-           #gl.lwd = c(0, .3))
-           )
-
-axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
-axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
-lines(time_fit_mc[o],hba1c_mc_cos$fitted.values[o], lty=2,lwd=1, col="black")
-points(time_fit_mc[o], hba1c_mc_cos$fitted.values[o], pch = 19)
-
-
-## glucose - matched control cosinor 3:1
-glucose_mc_cos <- cosinor(glucose~1, date='bs_month', type='monthly', data=mc_df)
-summary(glucose_mc_cos)
-summary(glucose_mc_cos$glm)
-mesor_control <- mean(glucose_mc_cos$glm$fitted.values)
-#plot(glucose_mc_cos)
-#seasrescheck(glucose_mc_cos$residuals) # check the residuals
-
-#1:1
-glucose_mc1_cos <- cosinor(glucose~1, date='bs_month', type='monthly', data=mc_df_1)
-summary(glucose_mc1_cos)
-summary(glucose_mc1_cos$glm)
-mesor_control1 <- mean(glucose_mc1_cos$glm$fitted.values)
-
-#create new vars for plotting fitted sinusoid from a Cosinor object
-time_fit_mc = subset(glucose_mc_cos$glm$data, select = glucose_mc_cos$date)[, 1]
-o = order(time_fit_mc)
-
-# Glucose - matched control
-dev.new()
-pirateplot(formula =  glucose ~ bs_month,
-           data = mc_df,
-           #col = rgb(cr(daylen / max(daylen)), max=255)
-           pal=SeasonPal, #set to your own color palette created previously
-           xlab = "Month",
-           ylab = expression(bold(paste("Control Glucose (mmol/L)"))),
-           yaxt="n",
-           xaxt = "n",
-           theme=0, #set theme to 0
-           bty="n",
-           #bean.f.o = .4, # Bean fill
-           #point.o = .4, # Points
-           inf.f.o = .8, # Inference fill
-           inf.b.o = 1, # Inference border
-           inf.f.col = SeasonPal,
-           inf.method = "ci",
-           avg.line.o = 1, # Average line
-           #bty=n,
-           #point.cex = .5, # Points
-           #quant = c(.1, .9), # Adjust quantiles
-           #ylim=c(4.85,5),  # Adjust y axis limits
-           ylim=c(4.5,5.5)
-           #gl.col = gray(.2), # Gridline specifications
-           #gl.lty = 1,
-           #gl.lwd = c(0, .3))
-           )
-
-axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
-axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
-lines(time_fit_mc[o],glucose_mc_cos$fitted.values[o], lty=2,lwd=1, col="black")
-points(time_fit_mc[o], glucose_mc_cos$fitted.values[o], pch = 19)
-       
 ```
 
 #### extra: dummy coding
