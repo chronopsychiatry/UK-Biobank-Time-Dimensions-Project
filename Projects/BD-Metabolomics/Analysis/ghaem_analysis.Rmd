@@ -804,7 +804,7 @@ namesshort <-c("J","F","M","A","M","J","J","A","S","O","N","D")
 
 #run cosinor
 hba1c_control_cos <- cosinor(g_haem~1 + control_df$age + control_df$BMI + control_df$sex_f + control_df$bs_itime + control_df$ethnicity_f + control_df$alcohol_f + control_df$health_f, date='bs_month', type='monthly',data=control_df)
-summary(hba1c_control_cos)
+cobtrol_cos_summary <- summary(hba1c_control_cos)
 summary(hba1c_control_cos$glm)
 mesor_control <- mean(hba1c_control_cos$glm$fitted.values) # for mesor
 #plot(hba1c_control_cos)
@@ -855,7 +855,7 @@ points(time_fit_control[o_c], hba1c_control_cos$fitted.values[o_c], pch = 19)
 ```{r matched cosinor}
 #HbA1c - matched control cosinor
 hba1c_mc_cos <- cosinor(g_haem~1 + mc_df$age + mc_df$BMI + mc_df$sex_f + mc_df$bs_itime + mc_df$ethnicity_f + mc_df$alcohol_f + mc_df$health_f, date='bs_month', type='monthly',data=mc_df)
-summary(hba1c_mc_cos)
+mc3_cos_summary <- summary(hba1c_mc_cos)
 summary(hba1c_mc_cos$glm)
 mesor_mc <- mean(hba1c_mc_cos$glm$fitted.values) # for mesor
 
@@ -912,7 +912,7 @@ points(time_fit_mc_3[o_mc3], hba1c_mc_cos$fitted.values[o_mc3], pch = 19)
 
 #run cosinor
 hba1c_bipolar_cos <- cosinor(g_haem~1 + bipolar_df$age + bipolar_df$BMI + bipolar_df$sex_f + bipolar_df$bs_itime + bipolar_df$ethnicity_f + bipolar_df$alcohol_f + bipolar_df$health_f, date='bs_month', type='monthly', data=bipolar_df, cycles=1)
-summary(hba1c_bipolar_cos)
+bd_cos_summary <- summary(hba1c_bipolar_cos)
 summary(hba1c_bipolar_cos$glm)
 mesor_bipolar <- mean(hba1c_bipolar_cos$glm$fitted.values) # for mesor
 #plot(hba1c_bipolar_cos)
@@ -984,6 +984,8 @@ axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
 #add lines for control
 lines(time_fit_control[o_c],hba1c_control_cos$fitted.values[o_c], lty=2,lwd=1, col="red")
 points(time_fit_control[o_c], hba1c_control_cos$fitted.values[o_c], pch = 19, col="red")
+#control_cos_summary$phase <-  as.integer(control_cos_summary$phase)
+#points(time_fit_control[control_cos_summary$phase], hba1c_control_cos$fitted.values[o_c], pch = 19, col="red")
 #add lines for matched control (3:1)
 lines(time_fit_mc_3[o_mc3],hba1c_mc_cos$fitted.values[o_mc3], lty=2,lwd=1, col="blue")
 points(time_fit_mc_3[o_mc3], hba1c_mc_cos$fitted.values[o_mc3], pch = 19, col="blue")
