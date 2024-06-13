@@ -787,6 +787,14 @@ as.data.frame(col)
 
 dayCOL<-c("#50576CFF", "#989278FF", "#ADA274FF", "#D8C563FF", "#EED654FF", "#FFEA46FF", "#EED654FF", "#D8C563FF", "#ADA274FF", "#858379FF", "#50576CFF", "#1B3B6DFF")
 
+#create palette for average photoperiod ROC for each month
+#photoperiod_avg <- ghaem_df %>%
+#  group_by(bs_month)%>%
+#  summarise(mean = mean(ROC_pos, na.rm=TRUE))
+
+#my_palette <- grDevices::colorRampPalette(c('#073763', '#9fc5e8'))(30)
+#roc_pal <- data.frame(value = photoperiod_avg$mean,
+ #                   color = cut(photoperiod_avg$mean, 30, labels = my_palette))
 
 SeasonPal <- c("darkseagreen3","darkseagreen3","darkseagreen3","lightgoldenrod2","lightgoldenrod2","lightgoldenrod2","indianred3","indianred3","indianred3","lightsteelblue2","lightsteelblue2","lightsteelblue2") 
 
@@ -794,14 +802,36 @@ names <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","De
 namesshort <-c("J","F","M","A","M","J","J","A","S","O","N","D")
 ```
 
+#### code to compare AICs from cosinor GLM
+
+```{r compare AICs}
+# run cosinor - example code below
+glu_bipolar_cos_2 <- cosinor(glucose~1+ bipolar_df$age + bipolar_df$BMI + bipolar_df$sex_f + bipolar_df$bs_itime + bipolar_df$ethnicity_f , date='bs_month', type='monthly', data=bipolar_df, cycles=2) # change cycles to compare models
+
+#view aic
+glu_control_cos_2$glm$aic
+
+# compare AICs between models
+# exp(model_x_AIC - model_y_AIC/2) = value
+# put 'best' model as model_y_AIC; value = how many times as probable as the first model is second model to minimse information loss
+# lower AIC = better model (generally)
+exp((glu_bipolar_cos_2$glm$aic-glu_bipolar_cos_1$glm$aic)/2)
+```
+
 #### [HbA1c - control cosinor]{.underline}
 
 ```{r HbA1c all control}
 
-#run cosinor
-hba1c_control_cos <- cosinor(g_haem~1 + control_df$age + control_df$BMI + control_df$sex_f + control_df$bs_itime + control_df$ethnicity_f + control_df$alcohol_f + control_df$health_f, date='bs_month', type='monthly',data=control_df)
+#cosinor for plotting
+hba1c_control_cos <- cosinor(g_haem~1, date='bs_month', type='monthly',data=control_df)
 control_cos_summary <- summary(hba1c_control_cos)
-summary(hba1c_control_cos$glm)
+time_fit_control = subset(hba1c_control_cos$glm$data, select = hba1c_control_cos$date)[, 1]
+o_c = order(time_fit_control)
+
+#run cosinor for analysis
+hba1c_control_cos <- cosinor(g_haem~1 + control_df$age + control_df$BMI + control_df$sex_f + control_df$bs_itime + control_df$ethnicity_f, date='bs_month', type='monthly',data=control_df)
+control_cos_summary <- summary(hba1c_control_cos)
+summary(hba1c_control_cos)
 mesor_control <- mean(hba1c_control_cos$glm$fitted.values) # for mesor
 #plot(hba1c_control_cos)
 #seasrescheck(hba1c_control_cos$residuals) # check the residuals
@@ -811,12 +841,12 @@ mesor_control <- mean(hba1c_control_cos$glm$fitted.values) # for mesor
 time_fit_control = subset(hba1c_control_cos$glm$data, select = hba1c_control_cos$date)[, 1]
 o_c = order(time_fit_control)
 
-# HbA1c - control
 
 pirateplot(formula =  g_haem ~ bs_month,
            data = control_df,
-           #col = rgb(cr(daylen / max(daylen)), max=255),
-           pal=SeasonPal, #set to your own color palette created previously
+           #pal = rgb(cr(photoperiod_roc_min / max(photoperiod_roc_min)), max=10),
+           #pal=roc_pal$color, #set to your own color palette created previously
+           pal=SeasonPal,
            xlab = "Month",
            ylab = expression(bold(paste("Control HbA1c (mmol/mol)"))),
            yaxt="n",
@@ -834,23 +864,26 @@ pirateplot(formula =  g_haem ~ bs_month,
            #point.cex = .5, # Points
            #quant = c(.1, .9), # Adjust quantiles
            #ylim=c(34.4,35),  # Adjust y axis limits
-           #ylim=c(32,36.5)
+           ylim=c(32.5,36),
            #gl.col = gray(.2), # Gridline specifications
            #gl.lty = 1,
            #gl.lwd = c(0, .3))
+           main = "HbA1c Seasonal Profile - Control"
            )
 
 axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
 axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
 lines(time_fit_control[o_c],hba1c_control_cos$fitted.values[o_c], lty=2,lwd=1, col="black")
 points(time_fit_control[o_c], hba1c_control_cos$fitted.values[o_c], pch = 19)
+legend(10, 36, legend=c("Spring", "Summer","Autumn", "Winter"),
+       col=c("darkseagreen3", "lightgoldenrod2", "indianred3","lightsteelblue2"), lty=1, lwd=5, cex=0.8)
 ```
 
 #### HbA1c - matched cosinors
 
 ```{r matched cosinor}
 #HbA1c - matched control cosinor
-hba1c_mc_cos <- cosinor(g_haem~1 + mc_df$age + mc_df$BMI + mc_df$sex_f + mc_df$bs_itime + mc_df$ethnicity_f + mc_df$alcohol_f + mc_df$health_f, date='bs_month', type='monthly',data=mc_df)
+hba1c_mc_cos <- cosinor(g_haem~1 + mc_df$age + mc_df$BMI + mc_df$sex_f + mc_df$bs_itime + mc_df$ethnicity_f, date='bs_month', type='monthly',data=mc_df)
 mc3_cos_summary <- summary(hba1c_mc_cos)
 summary(hba1c_mc_cos$glm)
 mesor_mc <- mean(hba1c_mc_cos$glm$fitted.values) # for mesor
@@ -896,8 +929,8 @@ axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
 axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
 lines(time_fit_mc_3[o_mc3],hba1c_mc_cos$fitted.values[o_mc3], lty=2,lwd=1, col="black")
 points(time_fit_mc_3[o_mc3], hba1c_mc_cos$fitted.values[o_mc3], pch = 19)
-
-
+legend(10, 60, legend=c("Spring", "Summer","Autumn", "Winter"),
+       col=c("darkseagreen3", "lightgoldenrod2", "indianred3","lightsteelblue2"), lty=1, lwd=5, cex=0.8)
 
 ```
 
@@ -907,16 +940,18 @@ points(time_fit_mc_3[o_mc3], hba1c_mc_cos$fitted.values[o_mc3], pch = 19)
 # HbA1c - bipolar
 
 #run cosinor
-hba1c_bipolar_cos <- cosinor(g_haem~1 + bipolar_df$age + bipolar_df$BMI + bipolar_df$sex_f + bipolar_df$bs_itime + bipolar_df$ethnicity_f + bipolar_df$alcohol_f + bipolar_df$health_f, date='bs_month', type='monthly', data=bipolar_df, cycles=1)
+hba1c_bipolar_cos <- cosinor(g_haem~1 + bipolar_df$age + bipolar_df$BMI + bipolar_df$sex_f + bipolar_df$bs_itime + bipolar_df$ethnicity_f , date='bs_month', type='monthly', data=bipolar_df, cycles=2)
 bd_cos_summary <- summary(hba1c_bipolar_cos)
 summary(hba1c_bipolar_cos$glm)
 mesor_bipolar <- mean(hba1c_bipolar_cos$glm$fitted.values) # for mesor
 #plot(hba1c_bipolar_cos)
 #seasrescheck(hba1c_bipolar_cos$residuals) # check the residuals
 
+hba1c_bipolar_cos2 <- cosinor(g_haem~1 , date='bs_month', type='monthly', data=bipolar_df, cycles=2)
+
 #create new vars for plotting fitted sinusoid from a Cosinor object
-time_fit_bipolar = subset(hba1c_bipolar_cos$glm$data, select = hba1c_bipolar_cos$date)[, 1]
-o_bd = order(time_fit_bipolar)
+time_fit_bipolar2 = subset(hba1c_bipolar_cos2$glm$data, select = hba1c_bipolar_cos2$date)[, 1]
+o_bd2 = order(time_fit_bipolar2)
 
 dev.new() # open new plot
 
@@ -937,10 +972,11 @@ pirateplot(formula =  g_haem ~ bs_month,
            inf.f.col = SeasonPal,
            inf.method = "ci",
            avg.line.o = 1, # Average line
+           main = "HbA1c Seasonal Profile - Bipolar",
            #bty=n,
            #point.cex = .5, # Points
            #quant = c(.1, .9), # Adjust quantiles
-           #ylim=c(32,36.5) # Adjust y axis limits
+           ylim=c(32.5,36.5) # Adjust y axis limits
            #ylim=c(34.4,35)
            #gl.col = gray(.2), # Gridline specifications
            #gl.lty = 1,
@@ -949,11 +985,10 @@ pirateplot(formula =  g_haem ~ bs_month,
 
 axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
 axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
-lines(time_fit_bipolar[o_bd],hba1c_bipolar_cos$fitted.values[o_bd], lty=2,lwd=1, col="black")
-points(time_fit_bipolar[o_bd], hba1c_bipolar_cos$fitted.values[o_bd], pch = 19)
-
-
-
+lines(time_fit_bipolar2[o_bd2],hba1c_bipolar_cos2$fitted.values[o_bd2], lty=2,lwd=1, col="black")
+points(time_fit_bipolar2[o_bd2], hba1c_bipolar_cos2$fitted.values[o_bd2], pch = 19)
+legend(9, 36.5, legend=c("Spring", "Summer","Autumn", "Winter"),
+       col=c("darkseagreen3", "lightgoldenrod2", "indianred3","lightsteelblue2"), lty=1, lwd=5, cex=0.8)
 ```
 
 #### HbA1c - plot all groups (year collapsed)
@@ -983,7 +1018,7 @@ pirateplot(formula = g_haem ~ time_fit_control,
            ylab = expression(bold(paste("HbA1c (mmol/mol)"))), # add y axis label
            xaxt = "n", # remove x axis check marks
            yaxt = "n", # remove y axis check markers
-           ylim=c(23.8,26), # define y axis limits
+           ylim=c(23.5,26.5), # define y axis limits
            main = "HbA1c Seasonal Profile")
 
 axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
@@ -994,14 +1029,14 @@ points(time_fit_control[o_c], hba1c_control_cos$fitted.values[o_c], pch = 16, co
 points(control_phase, max(hba1c_control_cos$fitted.values)+0.05, pch =25, col="black", bg="#D05F5F", cex=1.3) # phase
 text(control_phase, max(hba1c_control_cos$fitted.values)+0.05, sprintf("Phase: %s",control_phase), cex=0.7, pos=3, col="black") # add text to phase point
 segments(x0=control_phase, x1=control_phase, y0=max(hba1c_control_cos$fitted.values), y1=(max(hba1c_control_cos$fitted.values))-control_cos_summary$amp, lty=2, lwd=1, col="#D05F5F") # add amplitude vertical line
-text(control_phase, ((max(hba1c_control_cos$fitted.values))-control_cos_summary$amp), sprintf("Amplitude: %s",round(control_cos_summary$amp, digits=2)), cex=0.7, pos=1, offset=-0.05,col="black") # add text to phase point
+text(control_phase, ((max(hba1c_control_cos$fitted.values))-control_cos_summary$amp), sprintf("Amplitude: %s",round(control_cos_summary$amp, digits=2)), cex=0.7, pos=2, offset=-0.05,col="black") # add text to phase point
 text(1, hba1c_control_cos$fitted.values[1], "Control", cex=1, pos=3,col="#D05F5F") # add text to label line
 
 #add matched control (3:1)
 lines(time_fit_mc_3[o_mc3],hba1c_mc_cos$fitted.values[o_mc3], lty=2,lwd=1.2, col="#EA6535") #line
 points(time_fit_mc_3[o_mc3], hba1c_mc_cos$fitted.values[o_mc3], pch = 16, col="#EA6535") #points for each month
 points(mc3_phase, max(hba1c_mc_cos$fitted.values)+0.05, pch =25, col="black", bg="#EA6535", cex=1.3) # phase
-text(mc3_phase, max(hba1c_mc_cos$fitted.values)+0.05, sprintf("Phase: %s", mc3_phase), cex=0.7, pos=3, col="black") # add text to phase point
+text(mc3_phase, max(hba1c_mc_cos$fitted.values)+0.05, sprintf("Phase: %s", mc3_phase), cex=0.7, pos=4, col="black") # add text to phase point
 segments(x0=mc3_phase, x1=mc3_phase, y0=max(hba1c_mc_cos$fitted.values), y1=(max(hba1c_mc_cos$fitted.values))-mc3_cos_summary$amp, lty=2,lwd=1, col="#EA6535") # add amplitude vertical line
 text(mc3_phase, ((max(hba1c_mc_cos$fitted.values))-mc3_cos_summary$amp), sprintf("Amplitude: %s",round(mc3_cos_summary$amp, digits=2)), cex=0.7, pos=1, offset=-0.05,col="black") # add text to phase point
 text(1, hba1c_mc_cos$fitted.values[1], "Matched\ncontrol", cex=1, pos=3,col="#EA6535") # add text to label line
@@ -1009,11 +1044,15 @@ text(1, hba1c_mc_cos$fitted.values[1], "Matched\ncontrol", cex=1, pos=3,col="#EA
 #add bipolar
 lines(time_fit_bipolar[o_bd],hba1c_bipolar_cos$fitted.values[o_bd], lty=2,lwd=1.2, col="#196AA9")
 points(time_fit_bipolar[o_bd], hba1c_bipolar_cos$fitted.values[o_bd], pch = 16, col="#196AA9")
-points(bd_phase, max(hba1c_bipolar_cos$fitted.values)+0.05, pch =25, col="black", bg="#196AA9", cex=1.3) # phase
-text(bd_phase, max(hba1c_bipolar_cos$fitted.values)+0.05, sprintf("Phase: %s",bd_phase), cex=0.7, pos=3, col="black") # add text to phase point
-segments(x0=bd_phase, x1=bd_phase, y0=max(hba1c_bipolar_cos$fitted.values), y1=(max(hba1c_bipolar_cos$fitted.values))-bd_cos_summary$amp, lty=2,lwd=1, col="#196AA9") # add amplitude vertical line
-text(bd_phase, ((max(hba1c_bipolar_cos$fitted.values))-bd_cos_summary$amp), sprintf("Amplitude: %s",round(bd_cos_summary$amp, digits=2)), cex=0.7, pos=1, offset=-0.05,col="black") # add text to phase point
-text(1, hba1c_bipolar_cos$fitted.values[1], "Bipolar", cex=1, pos=3,col="#196AA9") # add text to label line
+#points(bd_phase, max(hba1c_bipolar_cos$fitted.values)+0.05, pch =25, col="black", bg="#196AA9", cex=1.3) # phase
+#text(bd_phase, max(hba1c_bipolar_cos$fitted.values)+0.05, sprintf("Phase: %s",bd_phase), cex=0.7, pos=3, col="black") # add text to phase point
+#segments(x0=bd_phase, x1=bd_phase, y0=max(hba1c_bipolar_cos$fitted.values), y1=(max(hba1c_bipolar_cos$fitted.values))-bd_cos_summary$amp, lty=2,lwd=1, col="#196AA9") # add amplitude vertical line
+#text(bd_phase, ((max(hba1c_bipolar_cos$fitted.values))-bd_cos_summary$amp), sprintf("Amplitude: %s",round(bd_cos_summary$amp, digits=2)), cex=0.7, pos=1, offset=-0.05,col="black") # add text to phase point
+text(1, hba1c_bipolar_cos$fitted.values[1], "Bipolar", cex=1, pos=3,offset=2,col="#196AA9") # add text to label line
+
+#text(10, 25, "Phase: 1.2", cex=0.7, col="black")
+#text(10, 25.3, "Phase: 6.9", cex=0.7, col="black")
+#text(10, 24.8, "Amplitude 0.29", cex=0.7, col="black")
 
 #legend(x="topright", legend=c("Control", "Matched Control", "Bipolar"), col=c("#D05F5F", "#EA6535", "#196AA9"), lty=1, cex=0.8)
 ```
@@ -1021,16 +1060,56 @@ text(1, hba1c_bipolar_cos$fitted.values[1], "Bipolar", cex=1, pos=3,col="#196AA9
 #### HbA1c - plot all groups (years expanded)
 
 ```{r}
+#make df with no 2006 dates
+control_07 <- control_df %>%  filter(assess_year>2006 & bs_year>2006)
+#make new column for date all same year
+control_07d <- control_07
+control_07d$date_yrsame <- update(control_07d$assess_date, year = 2024)
+
+ggplot(control_07d, aes(x=date_yrsame, y=g_haem)) +
+  geom_point(colour="lightgrey")+
+  geom_smooth()
+
+ggplot(control_07, aes(x=date_yrsame, y=g_haem)) +
+  #geom_line(colour="lightgrey")+
+  geom_smooth()
+
 #control
-hb_control_cos_y <- cosinor(glucose~1 + control_df$age + control_df$BMI + control_df$sex_f + control_df$bs_itime + control_df$ethnicity_f + control_df$alcohol_f + control_df$health_f, date='bs_date', type='daily', data=control_df)
+hb_control_cos_y <- cosinor(g_haem~1 + control_07$age + control_07$BMI + control_07$sex_f + control_07$bs_itime + control_07$ethnicity_f, date='bs_date', type='daily', data=control_07, cycles=1)
 hb_control_cos_y_summ <- summary(hb_control_cos_y)
 
 #matched control (3:1)
-hb_mc3_cos_y <- cosinor(glucose~1 + mc_df$age + mc_df$BMI + mc_df$sex_f + mc_df$bs_itime + mc_df$ethnicity_f + mc_df$alcohol_f + mc_df$health_f, date='bs_date', type='daily', data=mc_df)
+match_07 <- mc_df %>%  filter(assess_year>2006 & bs_year>2006)
+match_07d <- match_07
+match_07d$date_yrsame <- update(match_07d$assess_date, year = 2024)
+
+ggplot(match_07d, aes(x=date_yrsame, y=g_haem)) +
+  geom_point(colour="lightgrey")+
+  geom_smooth()
+
+ggplot(match_07d, aes(x=date_yrsame, y=g_haem)) +
+  #geom_line(colour="lightgrey")+
+  geom_smooth()
+
+
+hb_mc3_cos_y <- cosinor(g_haem~1 + match_07$age + match_07$BMI + match_07$sex_f + match_07$bs_itime + match_07$ethnicity_f, date='bs_date', type='daily', data=match_07)
 hb_mc3_cos_y_summ <- summary(hb_mc3_cos_y)
 
 #bipolar
-hb_bd_cos_y <- cosinor(glucose~1 + bipolar_df$age + bipolar_df$BMI + bipolar_df$sex_f + bipolar_df$bs_itime + bipolar_df$ethnicity_f + bipolar_df$alcohol_f + bipolar_df$health_f, date='bs_date', type='daily', data=bipolar_df)
+bipolar_07 <- bipolar_df %>%  filter(assess_year>2006 & bs_year>2006)
+#make new column for date all same year
+bipolar_07d <- bipolar_07
+bipolar_07d$date_yrsame <- update(bipolar_07d$assess_date, year = 2024)
+
+ggplot(bipolar_07d, aes(x=date_yrsame, y=g_haem)) +
+  geom_point(colour="lightgrey")+
+  geom_smooth()
+
+ggplot(bipolar_07d, aes(x=date_yrsame, y=g_haem)) +
+  #geom_line(colour="lightgrey")+
+  geom_smooth()
+
+hb_bd_cos_y <- cosinor(g_haem~1 + bipolar_07$age + bipolar_07$BMI + bipolar_07$sex_f + bipolar_07$bs_itime + bipolar_07$ethnicity_f , date='bs_date', type='daily', data=bipolar_07, cycles=1)
 hb_bd_cos_y_summ <- summary(hb_bd_cos_y)
 
 #plot - to do!
@@ -1061,13 +1140,17 @@ text(1, hba1c_control_cos$fitted.values[1], "Control", cex=1, pos=3,col="#D05F5F
 ```{r Glucose cosinor+plot}
 
 #run cosinor
-glu_control_cos <- cosinor(glucose~1 + control_df$age + control_df$BMI + control_df$sex_f + control_df$bs_itime + control_df$ethnicity_f + control_df$alcohol_f + control_df$health_f, date='bs_month', type='monthly', data=control_df)
+glu_control_cos <- cosinor(glucose~1 + control_df$age + control_df$BMI + control_df$sex_f + control_df$bs_itime + control_df$ethnicity_f, date='bs_month', type='monthly', data=control_df)
 glu_control_summary <- summary(glu_control_cos)
 #summary(glu_control_cos$glm)
 #glu_control_mesor <- mean(glu_control_cos$glm$fitted.values)
 #plot(glucose_control_cos)
 #seasrescheck(glucose_control_cos$residuals) # check the residuals
 
+
+#cosinor for plotting
+glu_control_cos <- cosinor(glucose~1, date='bs_month', type='monthly', data=control_df)
+glu_control_summary <- summary(glu_control_cos)
 #create new vars for plotting fitted sinusoid from a Cosinor object
 glu_time_fit_control = subset(glu_control_cos$glm$data, select = glu_control_cos$date)[, 1]
 glu_o_control = order(glu_time_fit_control)
@@ -1095,7 +1178,8 @@ pirateplot(formula =  glucose ~ bs_month,
            #point.cex = .5, # Points
            #quant = c(.1, .9), # Adjust quantiles
            #ylim=c(4.85,5),  # Adjust y axis limits
-           ylim=c(4.5,5.5)
+           ylim=c(4.6,5.4),
+           main = "Glucose Seasonal Profile - Control"
            #gl.col = gray(.2), # Gridline specifications
            #gl.lty = 1,
            #gl.lwd = c(0, .3))
@@ -1103,10 +1187,11 @@ pirateplot(formula =  glucose ~ bs_month,
 
 axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
 axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
-lines(time_fit_control[o],glucose_control_cos$fitted.values[o], lty=2,lwd=1, col="black")
-points(time_fit_control[o], glucose_control_cos$fitted.values[o], pch = 19)
+lines(glu_time_fit_control[glu_o_control],glu_control_cos$fitted.values[glu_o_control], lty=2,lwd=1, col="black")
+points(glu_time_fit_control[glu_o_control], glu_control_cos$fitted.values[glu_o_control], pch = 19)
        
-
+legend(10, 5.4, legend=c("Spring", "Summer","Autumn", "Winter"),
+       col=c("darkseagreen3", "lightgoldenrod2", "indianred3","lightsteelblue2"), lty=1, lwd=5, cex=0.8)
 
 ```
 
@@ -1114,7 +1199,7 @@ points(time_fit_control[o], glucose_control_cos$fitted.values[o], pch = 19)
 
 ```{r glucose matched control cosinor}
 ## glucose - matched control cosinor 3:1
-glu_mc3_cos <- cosinor(glucose~1+ mc_df$age + mc_df$BMI + mc_df$sex_f + mc_df$bs_itime + mc_df$ethnicity_f + mc_df$alcohol_f + mc_df$health_f, date='bs_month', type='monthly', data=mc_df)
+glu_mc3_cos <- cosinor(glucose~1+ mc_df$age + mc_df$BMI + mc_df$sex_f + mc_df$bs_itime + mc_df$ethnicity_f, date='bs_month', type='monthly', data=mc_df)
 glu_mc3_summary <- summary(glu_mc3_cos)
 #summary(glu_mc3_cos$glm)
 #glu_control_mesor <- mean(glu_mc_cos$glm$fitted.values)
@@ -1166,7 +1251,8 @@ axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
 axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
 lines(time_fit_mc[o],glucose_mc_cos$fitted.values[o], lty=2,lwd=1, col="black")
 points(time_fit_mc[o], glucose_mc_cos$fitted.values[o], pch = 19)
-       
+legend(10, 60, legend=c("Spring", "Summer","Autumn", "Winter"),
+       col=c("darkseagreen3", "lightgoldenrod2", "indianred3","lightsteelblue2"), lty=1, lwd=5, cex=0.8)       
 ```
 
 #### Glucose - bipolar cosinor
@@ -1175,13 +1261,16 @@ points(time_fit_mc[o], glucose_mc_cos$fitted.values[o], pch = 19)
 # Glucose - bipolar
 
 #run cosinor
-glu_bipolar_cos <- cosinor(glucose~1+ bipolar_df$age + bipolar_df$BMI + bipolar_df$sex_f + bipolar_df$bs_itime + bipolar_df$ethnicity_f + bipolar_df$alcohol_f + bipolar_df$health_f, date='bs_month', type='monthly', data=bipolar_df)
+glu_bipolar_cos <- cosinor(glucose~1+ bipolar_df$age + bipolar_df$BMI + bipolar_df$sex_f + bipolar_df$bs_itime + bipolar_df$ethnicity_f , date='bs_month', type='monthly', data=bipolar_df, cycles=2)
 glu_bd_summary <- summary(glu_bipolar_cos)
 #summary(glu_bipolar_cos$glm)
 #glu_bd_mesor <- mean(glu_bipolar_cos$glm$fitted.values)
 #plot(glucose_bipolar_cos)
 #seasrescheck(glucose_bipolar_cos$residuals) # check the residuals
 
+# cosinor for plotting
+glu_bipolar_cos <- cosinor(glucose~1 , date='bs_month', type='monthly', data=bipolar_df, cycles=2)
+glu_bd_summary2 <- summary(glu_bipolar_cos)
 #create new vars for plotting fitted sinusoid from a Cosinor object
 glu_time_fit_bipolar = subset(glu_bipolar_cos$glm$data, select = glu_bipolar_cos$date)[, 1]
 glu_o_bipolar = order(glu_time_fit_bipolar)
@@ -1208,7 +1297,8 @@ pirateplot(formula =  glucose ~ bs_month,
            #bty=n,
            #point.cex = .5, # Points
            #quant = c(.1, .9), # Adjust quantiles
-           ylim=c(4.5,5.5) # Adjust y axis limits
+           ylim=c(4.6,5.5), # Adjust y axis limits
+           main = "Glucose Seasonal Profile - Bipolar"
            #gl.col = gray(.2), # Gridline specifications
            #gl.lty = 1,
            #gl.lwd = c(0, .3))
@@ -1216,9 +1306,10 @@ pirateplot(formula =  glucose ~ bs_month,
 
 axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
 axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
-lines(time_fit_bipolar[o],glucose_bipolar_cos$fitted.values[o], lty=2,lwd=1, col="black")
-points(time_fit_bipolar[o], glucose_bipolar_cos$fitted.values[o], pch = 19)
-
+lines(glu_time_fit_bipolar[glu_o_bipolar],glu_bipolar_cos$fitted.values[glu_o_bipolar], lty=2,lwd=1, col="black")
+points(glu_time_fit_bipolar[glu_o_bipolar], glu_bipolar_cos$fitted.values[glu_o_bipolar], pch = 19)
+legend(10, 5.4, legend=c("Spring", "Summer","Autumn", "Winter"),
+       col=c("darkseagreen3", "lightgoldenrod2", "indianred3","lightsteelblue2"), lty=1, lwd=5, cex=0.8)
 #run significance test between groups for: phase, nadir, amplitude, mesor
 #using circacompare - alpha threshold set to 0.7 because bipolar group is non-rhythmic
 cos_stats_glucose <- circacompare(x=ghaem_df, col_time="bs_month", col_group="Group", col_outcome="glucose", period=12, alpha_threshold=0.7)
@@ -1230,7 +1321,8 @@ cos_stats_glucose <- circacompare(x=ghaem_df, col_time="bs_month", col_group="Gr
 #pull out phase and nadir information as numeric
 glu_control_phase <- parse_number(glu_control_summary$phase)
 glu_mc3_phase <- parse_number(glu_mc3_summary$phase)
-glu_bd_phase <- parse_number(glu_bd_summary$phase)
+glu_bd_phase1 <- parse_number(glu_bd_summary$phase)
+glu_bd_phase2 <- parse_number(glu_bd_summary$phase)
 
 #create plot with fitted sinusoid
 pirateplot(formula = glucose ~ glu_time_fit_control,
@@ -1246,13 +1338,13 @@ pirateplot(formula = glucose ~ glu_time_fit_control,
 axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
 axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
 #add control
-lines(glu_time_fit_control[glu_o_control],glucose_control_cos$fitted.values[glu_o_control], lty=2,lwd=1.2, col="#D05F5F") # line
-points(glu_time_fit_control[glu_o_control], glucose_control_cos$fitted.values[glu_o_control], pch = 16, col="#D05F5F") # points for each month
-points(glu_control_phase, max(glucose_control_cos$fitted.values)+0.02, pch =25, col="black", bg="#D05F5F", cex=1.3) # phase
-text(glu_control_phase, max(glucose_control_cos$fitted.values)+0.02, sprintf("Phase: %s",glu_control_phase), cex=0.7, pos=3, col="black") # add text to phase point
-segments(x0=glu_control_phase, x1=glu_control_phase, y0=max(glucose_control_cos$fitted.values), y1=(max(glucose_control_cos$fitted.values))-glu_control_summary$amp, lty=2, lwd=1, col="#D05F5F") # add amplitude vertical line
-text(glu_control_phase, ((max(glucose_control_cos$fitted.values))-glu_control_summary$amp), sprintf("Amplitude: %s",round(glu_control_summary$amp, digits=2)), cex=0.7, pos=1, offset=-0.05,col="black") # add text to phase point
-text(1, glucose_control_cos$fitted.values[1]+0.02, "Control", cex=1, pos=3,col="#D05F5F") # add text to label line
+lines(glu_time_fit_control[glu_o_control],glu_control_cos$fitted.values[glu_o_control], lty=2,lwd=1.2, col="#D05F5F") # line
+points(glu_time_fit_control[glu_o_control], glu_control_cos$fitted.values[glu_o_control], pch = 16, col="#D05F5F") # points for each month
+points(glu_control_phase, max(glu_control_cos$fitted.values)+0.02, pch =25, col="black", bg="#D05F5F", cex=1.3) # phase
+text(glu_control_phase, max(glu_control_cos$fitted.values)+0.02, sprintf("Phase: %s",glu_control_phase), cex=0.7, pos=3, col="black") # add text to phase point
+segments(x0=glu_control_phase, x1=glu_control_phase, y0=max(glu_control_cos$fitted.values), y1=(max(glu_control_cos$fitted.values))-glu_control_summary$amp, lty=2, lwd=1, col="#D05F5F") # add amplitude vertical line
+text(glu_control_phase, ((max(glu_control_cos$fitted.values))-glu_control_summary$amp), sprintf("Amplitude: %s",round(glu_control_summary$amp, digits=2)), cex=0.7, pos=1, offset=-0.05,col="black") # add text to phase point
+text(1, glu_control_cos$fitted.values[1]+0.02, "Control", cex=1, pos=3,col="#D05F5F") # add text to label line
 
 #add matched control (3:1)
 lines(glu_time_fit_mc3[glu_o_mc3],glu_mc3_cos$fitted.values[glu_o_mc3], lty=2,lwd=1.2, col="#EA6535") #line
@@ -1266,11 +1358,19 @@ text(1, glu_mc3_cos$fitted.values[1], "Matched\ncontrol", cex=1, pos=3,col="#EA6
 #add bipolar
 lines(glu_time_fit_bipolar[glu_o_bipolar],glu_bipolar_cos$fitted.values[glu_o_bipolar], lty=2,lwd=1.2, col="#196AA9")
 points(glu_time_fit_bipolar[glu_o_bipolar], glu_bipolar_cos$fitted.values[glu_o_bipolar], pch = 16, col="#196AA9")
-points(glu_bd_phase, max(glu_bipolar_cos$fitted.values)+0.02, pch =25, col="black", bg="#196AA9", cex=1.3) # phase
-text(glu_bd_phase, max(glu_bipolar_cos$fitted.values)+0.02, sprintf("Phase: %s",glu_bd_phase), cex=0.7, pos=3, col="black") # add text to phase point
-segments(x0=glu_bd_phase, x1=glu_bd_phase, y0=max(glu_bipolar_cos$fitted.values), y1=(max(glu_bipolar_cos$fitted.values))-glu_bd_summary$amp, lty=2,lwd=1, col="#196AA9") # add amplitude vertical line
-text(glu_bd_phase, ((max(glu_bipolar_cos$fitted.values))-glu_bd_summary$amp), sprintf("Amplitude: %s",round(glu_bd_summary$amp, digits=2)), cex=0.7, pos=1, offset=-0.05,col="black") # add text to phase point
-text(1, glu_bipolar_cos$fitted.values[1], "Bipolar", cex=1, pos=3,col="#196AA9") # add text to label line
+#points(glu_bd_phase, max(glu_bipolar_cos$fitted.values)+0.02, pch =25, col="black", bg="#196AA9", cex=1.3) # phase
+#text(glu_bd_phase, max(glu_bipolar_cos$fitted.values)+0.05, sprintf("Phase:\n%s",glu_bd_phase), cex=0.7, pos=2, col="black") # add text to phase point
+
+#segments(x0=glu_bd_phase, x1=glu_bd_phase, y0=max(glu_bipolar_cos$fitted.values), y1=(max(glu_bipolar_cos$fitted.values))-glu_bd_summary$amp, lty=2,lwd=1, col="#196AA9") # add amplitude vertical line
+#text(10, 3.8, "Amplitude:0.06",cex=0.7,col="black") # add text to phase point
+text(1, glu_bipolar_cos$fitted.values[1], "Bipolar", cex=1, pos=1,col="#196AA9") # add text to label line
+#text(10, 4.6, "Phase: 7.1", cex=0.7, col="black")
+#text(10, 4.5, "Phase: 12.9", cex=0.7, col="black")# add text to phase point
+
+
+
+######
+text(glu_bd_phase, ((max(glu_bipolar_cos$fitted.values))-glu_bd_summary$amp), sprintf("Amplitude:%s",round(glu_bd_summary$amp, digits=2)), cex=0.7, pos=2, offset=-0.05, adj=c(0.1,2),col="black") # add text to phase point
 ```
 
 #### Glucose - circadian rhythm
@@ -1303,8 +1403,6 @@ Increasing model adjustment to include:
     summer, time outdoors in winter)
 
 -   Level 4: analyser/location
-
-<!-- -->
 
 #### HbA1c
 
@@ -1624,6 +1722,358 @@ model4_glu_b <- lm(glucose ~ daylength_min +
                chrono_f +
                #level 3
                photoperiod_roc_min + assess_latitude +
+               time_outdoors_summer + time_outdoors_winter +
+               #level 4
+               centre_f + bs_itime,
+  data = bipolar_df
+)
+summary(model4_glu_b)
+# test for multicollinearity
+ols_vif_tol(model4_glu_b)
+```
+
+### 10. Multivariable analysis between marker & photoperiod rate of change ( proxy season marker)
+
+Adapt ROC to be all pos values
+
+```{r}
+ghaem_df$ROC_pos <- abs(ghaem_df$photoperiod_roc_min)
+control_df$ROC_pos <- abs(control_df$photoperiod_roc_min)
+bipolar_df$ROC_pos <- abs(bipolar_df$photoperiod_roc_min)
+mc_df$ROC_pos <- abs(mc_df$photoperiod_roc_min)
+```
+
+Increasing model adjustment to include:
+
+-   Level 1: sociodemographic factors (sex, age, ethnicity, townsend)
+
+-   Level 2: health & lifestyle/behavioural factors (BMI, smoking,
+    alcohol, health self report, disability, chronotype)
+
+-   Level 3: environmental & seasonal factors (sample time of day,
+    daylength, latitude, temperature, time outdoors in summer, time
+    outdoors in winter)
+
+-   Level 4: analyser/location
+
+#### HbA1c - ROC
+
+```{r HbA1c multivariable LM analysis}
+# https://stats.oarc.ucla.edu/r/modules/coding-for-categorical-variables-in-regression-models/
+library (olsrr)
+
+#plot - is there a visible linear relationship?
+ggplot(ghaem_df, aes(x=ROC_pos, y=g_haem, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(20, 50)
+
+
+#test for interaction effects
+l1_c_anova <- aov(g_haem ~ ROC_pos * 
+               #group_f +
+               #level 1
+               age * sex_f * townsend * ethnicity_f,
+  data = control_df)
+summary(l1_c_anova)  # sig sex:ethncity
+
+l2_c_anova <- aov(g_haem ~ ROC_pos * 
+               #level 2
+               BMI * smoking_f*
+               alcohol_f * health_f * 
+               chrono_f,
+  data = control_df)
+summary(l2_c_anova)
+
+l3_c_anova <- aov(g_haem ~ ROC_pos * 
+               #level 3
+               photoperiod_roc_min * assess_latitude *
+               time_outdoors_summer * time_outdoors_winter,
+  data = control_df)
+summary(l3_c_anova)
+
+l4_c_anova <- aov(g_haem ~ ROC_pos * 
+               #level 4
+               assess_centre * bs_itime,
+  data = control_df)
+summary(l4_c_anova)
+  
+####CONTROL
+#multivariate analysis - level 1
+model1 <- lm(g_haem ~ ROC_pos +
+               #group +
+               #level 1
+               age + sex_f + townsend + ethnicity_f,
+  data = control_df
+)
+summary(model1)
+#abline(model1, col="red", lwd=2) # fit line to plot
+
+# test for multicollinearity
+ols_vif_tol(model1)
+
+#multivariate analysis - level 2
+model2 <- lm(g_haem ~ ROC_pos + 
+               #group +
+               #level 1
+               age + sex_f + townsend + ethnicity_f +
+               #level 2
+               BMI + smoking_f +
+               alcohol_f + health_f + 
+               chrono_f,
+  data = control_df
+)
+summary(model2)
+
+# test for multicollinearity
+ols_vif_tol(model2)
+
+#multivariate analysis - level 3
+# average temp removed due to high collinearity (VIF: 11.944)
+model3 <- lm(g_haem ~ ROC_pos + 
+               #group_f +
+               #level 1
+               age + sex_f + townsend + ethnicity_f +
+               #level 2
+               BMI + smoking_f +
+               alcohol_f + health_f + 
+               chrono_f +
+               #level 3
+               daylength_min + assess_latitude +
+               time_outdoors_summer + time_outdoors_winter, 
+  data = control_df
+)
+summary(model3)
+
+# test for multicollinearity
+ols_vif_tol(model3)
+
+#multivariate analysis - level 4
+model4 <- lm(g_haem ~ ROC_pos + 
+               #group_f +
+               #level 1
+               age + sex_f + townsend + ethnicity_f +
+               #level 2
+               BMI + smoking_f +
+               alcohol_f + health_f + 
+               chrono_f +
+               #level 3
+               daylength_min + assess_latitude +
+               time_outdoors_summer + time_outdoors_winter +
+               #level 4
+               centre_f + bs_itime,
+  data = control_df
+)
+summary(model4)
+# test for multicollinearity
+ols_vif_tol(model4)
+
+####BIPOLAR
+#multivariate analysis - level 1
+model1_b <- lm(g_haem ~ ROC_pos +
+               #group +
+               #level 1
+               age + sex_f + townsend + ethnicity_f,
+  data = bipolar_df
+)
+summary(model1_b)
+# test for multicollinearity
+ols_vif_tol(model1_b)
+
+#multivariate analysis - level 2
+model2_b <- lm(g_haem ~ ROC_pos + 
+               #group +
+               #level 1
+               age + sex_f + townsend + ethnicity_f +
+               #level 2
+               BMI + smoking_f +
+               alcohol_f + health_f + 
+               chrono_f,
+  data = bipolar_df
+)
+summary(model2_b)
+# test for multicollinearity
+ols_vif_tol(model2_b)
+
+#multivariate analysis - level 3
+# average temp removed due to high collinearity (VIF: 13.166)
+model3_b <- lm(g_haem ~ ROC_pos + 
+               #group_f +
+               #level 1
+               age + sex_f + townsend + ethnicity_f +
+               #level 2
+               BMI + smoking_f +
+               alcohol_f + health_f + 
+               chrono_f +
+               #level 3
+               daylength_min + assess_latitude +
+               time_outdoors_summer + time_outdoors_winter, 
+  data = bipolar_df
+)
+summary(model3_b)
+# test for multicollinearity
+ols_vif_tol(model3_b)
+
+#multivariate analysis - level 4
+model4_b <- lm(g_haem ~ ROC_pos + 
+               #group_f +
+               #level 1
+               age + sex_f + townsend + ethnicity_f +
+               #level 2
+               BMI + smoking_f +
+               alcohol_f + health_f + 
+               chrono_f +
+               #level 3
+               daylength_min + assess_latitude +
+               time_outdoors_summer + time_outdoors_winter +
+               #level 4
+               centre_f + bs_itime,
+  data = bipolar_df
+)
+summary(model4_b)
+# test for multicollinearity
+ols_vif_tol(model4_b)
+```
+
+#### Glucose- ROC
+
+```{r glucose multivariable LM analysis}
+
+#plot - is there a visible linear relationship?
+dev.new()
+ggplot(ghaem_df, aes(x=photoperiod_roc_min, y=glucose, color=Group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(20, 50)
+
+####CONTROL
+#multivariate analysis - level 1
+model1_glu <- lm(glucose ~ ROC_pos +
+               #group +
+               #level 1
+               age + sex_f + townsend + ethnicity_f,
+  data = control_df
+)
+summary(model1_glu)
+
+# test for multicollinearity
+ols_vif_tol(model1_glu)
+
+#multivariate analysis - level 2
+model2_glu <- lm(glucose ~ ROC_pos + 
+               #group +
+               #level 1
+               age + sex_f + townsend + ethnicity_f +
+               #level 2
+               BMI + smoking_f +
+               alcohol_f + health_f + 
+               chrono_f,
+  data = control_df
+)
+summary(model2_glu)
+
+# test for multicollinearity
+ols_vif_tol(model2_glu)
+
+#multivariate analysis - level 3
+# average temp removed due to high collinearity (VIF: 11.944)
+model3_glu <- lm(glucose ~ ROC_pos + 
+               #group_f +
+               #level 1
+               age + sex_f + townsend + ethnicity_f +
+               #level 2
+               BMI + smoking_f +
+               alcohol_f + health_f + 
+               chrono_f +
+               #level 3
+               daylength_min + assess_latitude +
+               time_outdoors_summer + time_outdoors_winter, 
+  data = control_df
+)
+summary(model3_glu)
+# test for multicollinearity
+ols_vif_tol(model3_glu)
+
+
+#multivariate analysis - level 4
+model4_glu <- lm(glucose ~ ROC_pos + 
+               #group_f +
+               #level 1
+               age + sex_f + townsend + ethnicity_f +
+               #level 2
+               BMI + smoking_f +
+               alcohol_f + health_f + 
+               chrono_f +
+               #level 3
+               daylength_min + assess_latitude +
+               time_outdoors_summer + time_outdoors_winter +
+               #level 4
+               centre_f + bs_itime,
+  data = control_df
+)
+summary(model4_glu)
+# test for multicollinearity
+ols_vif_tol(model4_glu)
+
+
+####BIPOLAR
+#multivariate analysis - level 1
+model1_glu_b <- lm(glucose ~ ROC_pos +
+               #group +
+               #level 1
+               age + sex_f + townsend + ethnicity_f,
+  data = bipolar_df
+)
+summary(model1_glu_b)
+# test for multicollinearity
+ols_vif_tol(model1_glu_b)
+
+#multivariate analysis - level 2
+model2_glu_b <- lm(glucose ~ ROC_pos + 
+               #group +
+               #level 1
+               age + sex_f + townsend + ethnicity_f +
+               #level 2
+               BMI + smoking_f +
+               alcohol_f + health_f + 
+               chrono_f,
+  data = bipolar_df
+)
+summary(model2_glu_b)
+# test for multicollinearity
+ols_vif_tol(model2_glu_b)
+
+#multivariate analysis - level 3
+# average temp removed due to high collinearity (VIF: 11.944)
+model3_glu_b <- lm(glucose ~ ROC_pos + 
+               #group_f +
+               #level 1
+               age + sex_f + townsend + ethnicity_f +
+               #level 2
+               BMI + smoking_f +
+               alcohol_f + health_f + 
+               chrono_f +
+               #level 3
+               #bs_time + (NEED TO BIN BS_TIME)
+               daylength_min + assess_latitude +
+               time_outdoors_summer + time_outdoors_winter, 
+  data = bipolar_df
+)
+summary(model3_glu_b)
+# test for multicollinearity
+ols_vif_tol(model3_glu_b)
+
+#multivariate analysis - level 4
+model4_glu_b <- lm(glucose ~ photoperiod_roc_min + 
+               #group_f +
+               #level 1
+               age + sex_f + townsend + ethnicity_f +
+               #level 2
+               BMI + smoking_f +
+               alcohol_f + health_f + 
+               chrono_f +
+               #level 3
+               daylength_min + assess_latitude +
                time_outdoors_summer + time_outdoors_winter +
                #level 4
                centre_f + bs_itime,
