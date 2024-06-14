@@ -47,7 +47,12 @@ comment(MS_UKB$MS_year) <-"Data field 131042"
 
 MS_UKB$MS_YN <- ifelse(!is.na(MS_UKB$MS_source), 1, 0)
 table(MS_UKB$MS_YN, useNA = "always")
+head(MS_UKB)
+MS_pheno <- MS_UKB[,c("eid","eid", "MS_YN")]
+names(MS_pheno)<-c("FID","IID","pheno1")
 
+write.csv(MS_pheno, file = "pheno.csv")
+getwd()
 ##############################################################################################
 # Parkinsons Disease
 ##############################################################################################
@@ -184,6 +189,34 @@ remove3 <- UKB_master$eid[!is.na(UKB_master$dementia_age) & UKB_master$dementia_
 #eids to remove
 UKB_master <- subset(UKB_master, !(eid %in% remove1 | eid %in% remove2 | eid %in% remove3))
 
+
+#########################################################################################################
+# merge to UKB Master and remove diagnosis after 2015
+#########################################################################################################
+
+MS_diag2015 <- MS_UKB$eid[(!is.na(MS_UKB$MS_year) & MS_UKB$MS_year > 2015) ]
+PD_diag2015 <- PD_dementia$eid[(!is.na(PD_dementia$PD_year) & PD_dementia$PD_year > 2015) ]
+dementia_diag2015 <- PD_dementia$eid[(!is.na(PD_dementia$PD_year) & PD_dementia$PD_year > 2015) ]
+
+diag_2015 <- c (MS_diag2015, PD_diag2015, dementia_diag2015)
+
+# #get a time to event variable - MS_year - age started work, or 2015 -  age started work
+# 
+# UKB_masterSW_cum$time_to_eventdementia <- UKB_masterSW_cum$dementia_year - (UKB_masterSW_cum$year_born +18) #if ms
+# UKB_masterSW_cum$time_to_eventdementia <- ifelse (is.na(UKB_masterSW_cum$dementia_year), (2015 - UKB_masterSW_cum$year_born), UKB_masterSW_cum$time_to_eventdementia)
+# table(UKB_masterSW_cum$time_to_eventdementia)
+# 
+# 
+# library(survival)
+# UKB_masterSW_cum$SW
+# # Create a survival object
+# surv_obj <- Surv(UKB_masterSW_cum$time_to_eventdementia, UKB_masterSW_cum$dementia_YN)
+# 
+# # Fit the Cox proportional hazards model
+# cox_model <- coxph(surv_obj ~ dementia_YN + SW + age, data = UKB_masterSW_cum)
+# 
+# # Display summary of Cox model
+# summary(cox_model)
 
 
 
