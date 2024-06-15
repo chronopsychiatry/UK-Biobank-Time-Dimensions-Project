@@ -233,7 +233,7 @@ shiftwork_years <- merge(UKB_masterSW,shiftwork_years, by = "eid")  # merge the 
 
 #make a dataset to test early life shiftwork regardless of age bracket
 x<-shiftwork_years %>%
-  select(eid, sex, age, ethnicity_5, smoking_status, centre, alcohol_intake, time_outdoors_summer, sleep_duration,                chronotype,  BMI_cat, townsend,   child_obesity, smoker, smoke_start,  smoke_20yr, birth_latitude,mnd_YN, PD_YN           ,dementia_YN, MS_YN,NDD, bracket_SW_YN, bracket_NSW_YN) 
+  select(eid, sex, age, ethnicity_5, smoking_status, centre, alcohol_intake, time_outdoors_summer, sleep_duration,                chronotype,  BMI_cat, townsend, maternal_smoke, sunburn,  child_obesity, smoker, smoke_start,  smoke_20yr, birth_latitude,mnd_YN, PD_YN,dementia_YN, MS_YN,NDD, early_SW_YN, early_NSW_YN, bracket_SW_YN, bracket_NSW_YN, NDD) 
 
 # Define a function to calculate mode
 get_mode <- function(x) {
@@ -250,26 +250,27 @@ summary_data <- x %>%
     ethnicity_5 = get_mode(ethnicity_5),
     smoking_status = get_mode(smoking_status),
     alcohol_intake = get_mode(alcohol_intake),
-    time_outdoors_summer = max(time_outdoors_summer),
-    sleep_duration = max(sleep_duration),
+    time_outdoors_summer = max(time_outdoors_summer, na.rm=TRUE),
+    sleep_duration = max(sleep_duration, na.rm=TRUE),
     chronotype = get_mode(chronotype),
     BMI_cat = get_mode(BMI_cat),
-    townsend = max(townsend),
+    townsend = max(townsend, na.rm=TRUE),
     child_obesity = get_mode(child_obesity),
+    maternal_smoke = get_mode(maternal_smoke),
+    sunburn = max(sunburn, na.rm=TRUE),
     smoker = get_mode(smoker),
-    smoke_start = max(smoke_start),
-    centre = get_mode(centre),
-    smoke_20yr = max(smoke_20yr),
-    birth_latitude = max(birth_latitude),
+    smoke_start = max(smoke_start, na.rm=TRUE),
+    smoke_20yr = max(smoke_20yr, na.rm=TRUE),
+    birth_latitude = max(birth_latitude, na.rm=TRUE),
     mnd_YN = get_mode(mnd_YN),
     PD_YN = get_mode(PD_YN),
     dementia_YN = get_mode(dementia_YN),
     MS_YN = get_mode(MS_YN),
-    early_SW_YN = max(as.numeric(early_SW_YN),na.rm = TRUE),
-    early_NSW_YN = max(as.numeric(early_NSW_YN),na.rm = TRUE),
-    bracket_SW_YN = max(as.numeric(bracket_SW_YN),na.rm = TRUE),
-    bracket_NSW_YN = max(as.numeric(bracket_NSW_YN),na.rm = TRUE),
-    NDD = get_mode(NDD)
+    early_SW_YN = max(early_SW_YN,na.rm = TRUE),
+    early_NSW_YN = max(early_NSW_YN,na.rm = TRUE),
+    #bracket_SW_YN = max(bracket_SW_YN, na.rm=TRUE),
+    #bracket_NSW_YN = max(as.numeric(bracket_NSW_YN),na.rm = TRUE),
+    NDD = get_mode(NDD, na.rm=TRUE)
   )
 
 summary_data$early_SW_YN = factor(summary_data$early_SW_YN)
@@ -277,8 +278,14 @@ summary_data$early_NSW_YN = factor(summary_data$early_NSW_YN)
 summary_data$bracket_SW_YN = factor(summary_data$bracket_SW_YN)
 summary_data$bracket_NSW_YN = factor(summary_data$bracket_NSW_YN)
 
+max(x$bracket_SW_YN, na.rm=TRUE)
+any(x$bracket_NSW_YN == -Inf)
+any(x$bracket_SW_YN == -Inf)
+ max(x$bracket_SW_YN, na.rm=TRUE)
+max(x$bracket_SW_YN==-Inf, na.rm=TRUE)
+
 # Remove rows where bracket_SW_YN is equal to -Inf
-summary_data <- summary_data[summary_data$bracket_SW_YN != -Inf, ]
+summary_data[summary_data$bracket_SW_YN != -Inf, ]
 summary_data$bracket_SW_YN <- droplevels(summary_data$bracket_SW_YN)
 table(summary_data$bracket_NSW_YN, useNA = "always")
 summary_data <- summary_data[summary_data$bracket_NSW_YN != -Inf, ]
