@@ -22,7 +22,24 @@ UKB_master <- read.csv("C:/Users/Admin/OneDrive - Maynooth University/UK Biobank
 # add sunburn data
 sunburn <- read.delim("C:/Users/Admin/OneDrive - Maynooth University/UK Biobank Shiftwork/sunburn.tsv")
 names(sunburn) <- c("eid", "sunburn")
-sunburn[sunburn$sunburn == -3] <- NA #-3	Prefer not to answer
+sunburn[sunburn$sunburn == "Prefer not to answer",] <- NA #-3	Prefer not to answer
+
+# Ensure sunburn column is treated as character
+sunburn$sunburn <- as.character(sunburn$sunburn)
+
+# Initialize the new column with NA
+sunburn$sunburn_cat <- NA
+
+# Assign categories based on string comparisons
+sunburn$sunburn_cat[sunburn$sunburn == "Do not know"] <- "Do not know"
+sunburn$sunburn_cat[sunburn$sunburn == "0"] <- "none"
+sunburn$sunburn_cat[sunburn$sunburn == "1" | sunburn$sunburn == "2"] <- "once or twice"
+sunburn$sunburn_cat[sunburn$sunburn == "3" | sunburn$sunburn == "4" | sunburn$sunburn == "5"] <- "three to five times"
+sunburn$sunburn_cat[as.numeric(sunburn$sunburn) >= 6] <- "more than 5 times"
+
+# Create a frequency table of the categories
+table(sunburn$sunburn_cat)
+
 UKB_master <- merge(UKB_master,sunburn,by="eid")
 # unit are occasions
 # -1	Do not know
@@ -233,65 +250,59 @@ shiftwork_years <- merge(UKB_masterSW,shiftwork_years, by = "eid")  # merge the 
 
 #make a dataset to test early life shiftwork regardless of age bracket
 x<-shiftwork_years %>%
-  select(eid, sex, age, ethnicity_5, smoking_status, centre, alcohol_intake, time_outdoors_summer, sleep_duration,                chronotype,  BMI_cat, townsend, maternal_smoke, sunburn,  child_obesity, smoker, smoke_start,  smoke_20yr, birth_latitude,mnd_YN, PD_YN,dementia_YN, MS_YN,NDD, early_SW_YN, early_NSW_YN, bracket_SW_YN, bracket_NSW_YN, NDD) 
+  select(eid, sex, age, ethnicity_5, smoking_status, centre, alcohol_intake, time_outdoors_summer, sleep_duration,                chronotype,  BMI_cat, townsend, maternal_smoke, sunburn_cat,  child_obesity, smoker, smoke_start,  smoke_20yr, birth_latitude, MS_YN, NDD, early_SW_YN, early_NSW_YN, bracket_SW_YN, bracket_NSW_YN, NDD) 
 
-# Define a function to calculate mode
+
+# define a function to get max even if all values are missing
+safe_max <- function(x) {
+  if (all(is.na(x))) {
+    return(NA)
+  } else {
+    return(max(x, na.rm = TRUE))
+  }
+}
+
+# Define a function to calculate mode, even if all missing
 get_mode <- function(x) {
+  x <- x[!is.na(x)]
+  if (length(x) == 0) return(NA)
   ux <- unique(x)
   ux[which.max(tabulate(match(x, ux)))]
 }
 
-# Group by 'eid' and summarize
+
 summary_data <- x %>%
   group_by(eid) %>%
   summarise(
     sex = get_mode(sex),
-    age = max(age),
+    age = safe_max(age),
     ethnicity_5 = get_mode(ethnicity_5),
     smoking_status = get_mode(smoking_status),
     alcohol_intake = get_mode(alcohol_intake),
-    time_outdoors_summer = max(time_outdoors_summer, na.rm=TRUE),
-    sleep_duration = max(sleep_duration, na.rm=TRUE),
+    time_outdoors_summer = safe_max(time_outdoors_summer),
+    sleep_duration = safe_max(sleep_duration),
     chronotype = get_mode(chronotype),
     BMI_cat = get_mode(BMI_cat),
-    townsend = max(townsend, na.rm=TRUE),
+    townsend = safe_max(townsend),
     child_obesity = get_mode(child_obesity),
     maternal_smoke = get_mode(maternal_smoke),
-    sunburn = max(sunburn, na.rm=TRUE),
+    sunburn_cat = get_mode(sunburn_cat),
     smoker = get_mode(smoker),
-    smoke_start = max(smoke_start, na.rm=TRUE),
-    smoke_20yr = max(smoke_20yr, na.rm=TRUE),
-    birth_latitude = max(birth_latitude, na.rm=TRUE),
-    mnd_YN = get_mode(mnd_YN),
-    PD_YN = get_mode(PD_YN),
-    dementia_YN = get_mode(dementia_YN),
+    smoke_start = safe_max(smoke_start),
+    smoke_20yr = safe_max(smoke_20yr),
+    birth_latitude = safe_max(birth_latitude),
     MS_YN = get_mode(MS_YN),
-    early_SW_YN = max(early_SW_YN,na.rm = TRUE),
-    early_NSW_YN = max(early_NSW_YN,na.rm = TRUE),
-    #bracket_SW_YN = max(bracket_SW_YN, na.rm=TRUE),
-    #bracket_NSW_YN = max(as.numeric(bracket_NSW_YN),na.rm = TRUE),
-    NDD = get_mode(NDD, na.rm=TRUE)
+    early_SW_YN = safe_max(as.numeric(early_SW_YN)),
+    early_NSW_YN = safe_max(as.numeric(early_NSW_YN)),
+    bracket_SW_YN = safe_max(as.numeric(bracket_SW_YN)),
+    bracket_NSW_YN = safe_max(as.numeric(bracket_NSW_YN))
   )
+
 
 summary_data$early_SW_YN = factor(summary_data$early_SW_YN)
 summary_data$early_NSW_YN = factor(summary_data$early_NSW_YN)
 summary_data$bracket_SW_YN = factor(summary_data$bracket_SW_YN)
 summary_data$bracket_NSW_YN = factor(summary_data$bracket_NSW_YN)
-
-max(x$bracket_SW_YN, na.rm=TRUE)
-any(x$bracket_NSW_YN == -Inf)
-any(x$bracket_SW_YN == -Inf)
- max(x$bracket_SW_YN, na.rm=TRUE)
-max(x$bracket_SW_YN==-Inf, na.rm=TRUE)
-
-# Remove rows where bracket_SW_YN is equal to -Inf
-summary_data[summary_data$bracket_SW_YN != -Inf, ]
-summary_data$bracket_SW_YN <- droplevels(summary_data$bracket_SW_YN)
-table(summary_data$bracket_NSW_YN, useNA = "always")
-summary_data <- summary_data[summary_data$bracket_NSW_YN != -Inf, ]
-summary_data$bracket_NSW_YN <- droplevels(summary_data$bracket_NSW_YN)
-
-
 
  #########################################################################################################################
  # 
@@ -299,18 +310,6 @@ summary_data$bracket_NSW_YN <- droplevels(summary_data$bracket_NSW_YN)
  #   
  #########################################################################################################################
  
-#  
-# #get variables for tables
-# vars <- UKB_masterSW %>%
-#   select(where(is.numeric)) %>%
-#   colnames() %>%
-#   str_c('"', ., '"') %>% 
-#   str_c(collapse = " + ") %>% 
-#   cat()
-# 
-# vars <- paste(x, collapse = " + ")
-# vars <- noquote(vars)
-
 #make tables
 my.render.cont <- function(x) {with(stats.apply.rounding(stats.default(x), digits=4), c("","Mean (SD)"=sprintf("%s (&plusmn; %s)", MEAN, SD)))}
 
@@ -346,32 +345,33 @@ upper_ci <- sample_mean + margin_of_error
 table1(~ sex + age + townsend + birth_latitude + #demography
          BMI_cat +   chronotype + child_obesity + #physiology
          alcohol_intake + time_outdoors_summer +  #lifestyle
+         + maternal_smoke + sunburn_cat +
          smoker + smoke_start + smoke_20yr  + #smoking
-         early_NSW_YN + early_SW_YN + factor(bracket_NSW_YN) + bracket_SW_YN # shiftwork 15-20
-         | NDD, data=summary_data, overall=FALSE, render.missing = NULL, render.continuous=my.render.cont, render.categorical=my.render.cat)
-
+         early_NSW_YN + early_SW_YN + factor(bracket_NSW_YN) + factor(bracket_SW_YN) # shiftwork 15-20
+         | MS_YN, data=summary_data, overall=FALSE,  render.continuous=my.render.cont, render.categorical=my.render.cat)
+render.missing = TRUE,
 ## Create Table 1 stratified by MS to get p-values
 tableOne <- CreateTableOne(vars = c('sex' , 'age' , 'townsend' , 'birth_latitude' , #demography
                                       'BMI_cat' ,  'healthy' , 'sleep_cat' , 'chronotype' , 'child_obesity' , #physiology
-                                      'alcohol_intake' , 'time_outdoors_summer' ,  #lifestype
+                                      'alcohol_intake' , 'time_outdoors_summer' , "sunburn_cat" ,  #lifestype
                                       'smoker' ,
                                     'smoke_start' , 'smoke_20yr'  ,
                                       'early_NSW_YN' , 'early_SW_YN' , 'bracket_NSW_YN' , 'bracket_SW_YN' ),
-                           strata = c("PD_YN"), 
+                           strata = c("MS_YN"), 
                            data = summary_data, 
                            #test = FALSE, 
                            factorVars = c())
 
+tableOne 
 
-
-# Table 2   Demography stratify by SW
+# Table 2   Demography stratify by SW - ever did SW
 ---------------------------------------------------------------------------------------------------------------------
   
 table1(~ sex + age + townsend + birth_latitude + #demography
            BMI_cat +   chronotype + child_obesity + #physiology
-           alcohol_intake + time_outdoors_summer +  #lifestyle
+           alcohol_intake + time_outdoors_summer + sunburn_cat +  #lifestyle
            smoker + smoke_start + smoke_20yr  + #smoking
-           early_NSW_YN + NDD + early_SW_YN   # shiftwork 15-20
+           early_NSW_YN + early_SW_YN   # shiftwork 15-20
          | bracket_SW_YN, data=summary_data, overall=FALSE, render.missing = NULL, render.continuous=my.render.cont, render.categorical=my.render.cat)
 
 ## Create Table 1 stratified by MS to get p-values
@@ -402,12 +402,17 @@ tableOne <- CreateTableOne(vars = c('sex' , 'age' , 'townsend' , 'birth_latitude
                                     'smoker' ,
                                     'smoke_start' , 'smoke_20yr'  ,
                                     'early_NSW_YN' , 'early_SW_YN' ),
-                           strata = c("bracket_NSW_YN"), 
+                           strata = c("early_SW_YN"), 
                            data = summary_data, 
                            #test = FALSE, 
                            factorVars = c())
 print(tableOne)
 
+sum(is.na((summary_data$bracket_NSW_YN))
+sum(is.na((summary_data$bracket_SW_YN)))
+    
+# Remove rows with NA in the summary_data$bracket_NSW_YN column
+summary_data <- summary_data[!is.na(summary_data$bracket_NSW_YN), ]
 
 # Table 3   Shiftwork exposure data 
 ---------------------------------------------------------------------------------------------------------------------
@@ -421,7 +426,6 @@ shiftwork_merged <- merge(shiftwork_merged, summary_data[,c("NDD", "eid")], by="
 
 table1(~ total_hr + total_hr_daySW + total_hr_nightSW + total_hr_mixSW + SW_cat + NSW_cat + yrs_SW + yrs_NSW
        | NDD, data=shiftwork_merged, overall=FALSE, render.missing = NULL, render.continuous=my.render.cont, render.categorical=my.render.cat)
-
 
   
 ################################################################################################################
