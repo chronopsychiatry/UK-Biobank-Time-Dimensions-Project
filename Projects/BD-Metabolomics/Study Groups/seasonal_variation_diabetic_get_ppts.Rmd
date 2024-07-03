@@ -1,0 +1,664 @@
+---
+title: "seasonal_variation_diabetic_get_ppts"
+author: "agpr141"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Seasonal variation in diabetic markers - get participants
+
+**Participant extract script**
+
+This .Rmd is used to extract the final participant dataframe for [paper] by Roguski et al. [date].
+
+#### 1. Load packages
+
+```{r install packages, echo=FALSE}
+library(tidyverse)
+library(dplyr)
+library(readr)
+```
+
+#### 2. Load initial df
+
+```{r load df, echo=FALSE}
+# set cwd
+#setwd("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data")
+
+# load in UKB_master
+load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\ukb_master.Rda")
+
+# make new df which i will now work with
+bdmet_df <- ukb_master
+rm(ukb_master)
+
+#  control exclusion vars
+control_excl_vars <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\normative mets/control_exclusion_participant.tsv")
+control_excl_vars <- control_excl_vars %>% 
+  rename('eid' = 'Participant ID')
+
+# merge above 2 datasets into 1
+bdmet_df_excl <- merge(bdmet_df,control_excl_vars, by="eid")
+
+# remove bdmet_df and control_excl_vars datasets (no longer needed)
+rm(bdmet_df, control_excl_vars)
+
+### remove people who shift/night shift work ####
+no_shift <- bdmet_df_excl[!grepl("Prefer not to answer|Do not know|Sometimes|Usually|Always", bdmet_df_excl$shift_work),] 
+control_excl_vars <- no_shift[!grepl("Prefer not to answer|Do not know|Sometimes|Usually|Always", no_shift$night_shift),]
+
+# remove columns which are superfluous
+control_excl_vars <- subset(control_excl_vars, select = -c(end_DXA, FEV, FVC, PEF, handgrip_l, handgrip_r))
+```
+
+#### 3. Correct weather
+
+```{r}
+library(pillar)
+library(readxl)
+setwd("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\biobank-time-dimensions\\Projects\\BD-Metabolomics")
+temp_table <- read_excel("./weather_ukb_270923.xlsx", sheet = "monthly temp")
+colnames(temp_table) <- c("station","assess_year", "assess_month", "tmax", "tmin", "frost", "rain", "sun", "average_temp")
+weather_stations <- read_excel("weather_ukb_270923.xlsx", sheet = "ukb centres - weather stations")
+#UKB_master <- read.csv("C:/UKB-time/UKB_master") - use ghaem_df instead
+colnames(weather_stations) <- c("station","assess_centre_name", "assess_centre")
+
+#setwd("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\biobank-time-dimensions\\Projects\\BD-Metabolomics")
+
+#check station names & clean up
+working_df <- control_excl_vars
+
+# check main df
+unique(working_df$station)  #lists 12 stations with 1st letter capital
+
+# check weather_stations and remove shef for revisits
+unique(weather_stations$station)  #lists 13 stations with 1st letter capital EXCEPT lower case shef (revisit & imaging)
+
+unique(temp_table$station)  #lists 12 stations with 1st letter lower case EXCEPT upper case Card, Brad
+#merge weather stations and centre
+#working_df  <- analysis_df
+working_df  = subset(working_df , select = -c(station,tmax, tmin,frost, rain, sun, average_temp))
+working_df <- merge(working_df,weather_stations, by="assess_centre")
+
+#merge dataframes based on year and month and centre
+working_df <- merge(working_df, temp_table, by = c("assess_year", "station", "assess_month"), all.x = TRUE)
+
+#rm(analysis_df)
+#analysis_df <- working_df
+#save(analysis_df,file="analysis_df.Rda")
+```
+
+#### 4. Create additional ICD10 exclusions
+
+ICD-10 exclusions:
+
+| Condition                            | ICD-10 code |
+|--------------------------------------|-------------|
+| Chronic hepatic failure              | K72.1       |
+| Chronic kidney disease - stage 4     | N18.4       |
+| Chronic kidney disease - stage 5     | N18.5       |
+| Anaemia due to enzyme disorders      | D55         |
+| Thalassaemia (category)              | D56         |
+| Sickle cell disorders (category)     | D57         |
+| Other hereditary haemolytic anaemias | D58         |
+| Acquired haemolytic anaemia          | D59         |
+| Seropositive rheumatoid arthritis    | M05         |
+| Other rheumatoid arthritis           | M06         |
+|                                      |             |
+
+```{r icd10 exclusion df}
+#load existing icd_10s
+
+load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\excluded_numbers.Rda")
+
+load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\excluded_icd.Rda")
+
+### amend icd10 exclusion criteria variables ####
+#Chronic hepatic failure
+excluded_numbers$K72.1 <- as.numeric(NA)
+#Chronic kidney disease
+excluded_numbers$N18.4 <- as.numeric(NA) # stage 4
+excluded_numbers$N18.5 <- as.numeric(NA) # stage 5
+####haemoglobinopathies
+#Anaemia due to enzyme disorders
+excluded_numbers$D55 <- as.numeric(NA)
+#Thalassaemia (category)
+excluded_numbers$D56 <- as.numeric(NA)
+#Sickle cell disorders (category)
+excluded_numbers$D57 <- as.numeric(NA)
+#Other hereditary haemolytic anaemias
+excluded_numbers$D58 <- as.numeric(NA)
+#Acquired haemolytic anaemia
+excluded_numbers$D59 <- as.numeric(NA)
+###Rheumatoid arthritis
+#Seropositive rheumatoid arthritis
+excluded_numbers$M05 <- as.numeric(NA)
+#Other rheumatoid arthritis
+excluded_numbers$M06 <- as.numeric(NA)
+#delete first blank column
+#excluded_numbers <- excluded_numbers[-c(1)]
+
+```
+
+run search
+
+```{r}
+#rename working_df
+control_excl_vars <- working_df
+
+#Chronic hepatic failure
+exclusions_icd$K72.1 <- as.numeric(NA)
+
+for (i in 1:nrow(control_excl_vars)){
+  row <- control_excl_vars$'Diagnoses - ICD10'[i]
+  exclusions_icd$K72.1[i] <- grepl("K72.1", row)}
+
+#count how many true cases there are
+excluded_numbers$K72.1  =  sum(exclusions_icd$K72.1, na.rm=TRUE)
+
+#Chronic kidney disease
+exclusions_icd$N18.4 <- as.numeric(NA) # stage 4
+
+for (i in 1:nrow(control_excl_vars)){
+  row <- control_excl_vars$'Diagnoses - ICD10'[i]
+  exclusions_icd$N18.4[i] <- grepl("N18.4", row)}
+
+#count how many true cases there are
+excluded_numbers$N18.4  =  sum(exclusions_icd$N18.4, na.rm=TRUE)
+
+exclusions_icd$N18.5 <- as.numeric(NA) # stage 5
+
+for (i in 1:nrow(control_excl_vars)){
+  row <- control_excl_vars$'Diagnoses - ICD10'[i]
+  exclusions_icd$N18.5[i] <- grepl("N18.5", row)}
+
+#count how many true cases there are
+excluded_numbers$N18.5  =  sum(exclusions_icd$N18.5, na.rm=TRUE)
+
+####haemoglobinopathies
+#Anaemia due to enzyme disorders
+exclusions_icd$D55 <- as.numeric(NA)
+
+for (i in 1:nrow(control_excl_vars)){
+  row <- control_excl_vars$'Diagnoses - ICD10'[i]
+  exclusions_icd$D55[i] <- grepl("D55", row)}
+
+#count how many true cases there are
+excluded_numbers$D55  =  sum(exclusions_icd$D55, na.rm=TRUE)
+
+#Thalassaemia (category)
+exclusions_icd$D56 <- as.numeric(NA)
+
+for (i in 1:nrow(control_excl_vars)){
+  row <- control_excl_vars$'Diagnoses - ICD10'[i]
+  exclusions_icd$D56[i] <- grepl("D56", row)}
+
+#count how many true cases there are
+excluded_numbers$D56  =  sum(exclusions_icd$D56, na.rm=TRUE)
+
+#Sickle cell disorders (category)
+exclusions_icd$D57 <- as.numeric(NA)
+
+for (i in 1:nrow(control_excl_vars)){
+  row <- control_excl_vars$'Diagnoses - ICD10'[i]
+  exclusions_icd$D57[i] <- grepl("D57", row)}
+
+#count how many true cases there are
+excluded_numbers$D57  =  sum(exclusions_icd$D57, na.rm=TRUE)
+
+#Other hereditary haemolytic anaemias
+exclusions_icd$D58 <- as.numeric(NA)
+
+for (i in 1:nrow(control_excl_vars)){
+  row <- control_excl_vars$'Diagnoses - ICD10'[i]
+  exclusions_icd$D58[i] <- grepl("D58", row)}
+
+#count how many true cases there are
+excluded_numbers$D58  =  sum(exclusions_icd$D58, na.rm=TRUE)
+
+#Acquired haemolytic anaemiaD
+exclusions_icd$D59 <- as.numeric(NA)
+
+for (i in 1:nrow(control_excl_vars)){
+  row <- control_excl_vars$'Diagnoses - ICD10'[i]
+  exclusions_icd$D59[i] <- grepl("D59", row)}
+
+#count how many true cases there are
+excluded_numbers$D59  =  sum(exclusions_icd$D59, na.rm=TRUE)
+
+###Rheumatoid arthritis
+#Seropositive rheumatoid arthritis
+exclusions_icd$M05 <- as.numeric(NA)
+
+for (i in 1:nrow(control_excl_vars)){
+  row <- control_excl_vars$'Diagnoses - ICD10'[i]
+  exclusions_icd$M05[i] <- grepl("M05", row)}
+
+#count how many true cases there are
+excluded_numbers$M05  =  sum(exclusions_icd$M05, na.rm=TRUE)
+
+#Other rheumatoid arthritis
+exclusions_icd$M06 <- as.numeric(NA)
+
+for (i in 1:nrow(control_excl_vars)){
+  row <- control_excl_vars$'Diagnoses - ICD10'[i]
+  exclusions_icd$M06[i] <- grepl("M06", row)}
+
+#count how many true cases there are
+excluded_numbers$M06  =  sum(exclusions_icd$M06, na.rm=TRUE)
+
+working_df <- control_excl_vars
+```
+
+```{r}
+#exclusions_icd <- exclusions_icd %>% 
+#  rename('eid' = 'control_excl_vars.eid')
+save(excluded_numbers,file="excluded_numbers.Rda")
+save(exclusions_icd,file="excluded_icd.Rda")
+```
+
+#### Load in excluded above and then extra variables for analysis
+
+```{r}
+fasting_time <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\fasting_time.tsv")
+
+fasting_time <- fasting_time %>% 
+  rename('fasting_time' = 'p74_i0')
+
+working_df <- merge(working_df,fasting_time, by="eid")
+
+townsend <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\townsend.tsv")
+
+townsend <- townsend %>% 
+  rename('townsend' = 'p22189')
+
+working_df <- merge(working_df,townsend, by="eid")
+
+
+sleep_activity <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\sleep_activity.tsv")
+
+sleep_activity <- sleep_activity %>% 
+  rename('sleep_duration_sr' = '1160-0.0',
+         'sleep_avg_acti' = '40042-0.0',
+         'sedentary_avg_acti' = '40043-0.0',
+         'moderate_avg_acti' = '40045-0.0',
+         'light_avg_acti' = '40044-0.0',
+         'acti_data_qual' = '90015-0.0',
+         'IPAQ_group' = '22032-0.0')
+
+working_df <- merge(working_df,sleep_activity, by="eid")
+```
+
+#### Load in blood biomarkers and metabolites
+
+```{r}
+blood_biochem_df <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\blood_biochemistry.tsv")
+blood_datetime <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\blood_datetime_3166_participant.tsv")
+
+
+#rename tsv variable columns
+blood_biochem_df <- blood_biochem_df %>% 
+  rename('alanine_at' = '30620-0.0',
+         'albumin' = '30600-0.0',
+         'alkaline_phos' = '30610-0.0',
+         'apolipo_a' = '30630-0.0',
+         'apolipo_b' = '30640-0.0',
+         'aspartate_at' = '30650-0.0',
+         'crp' = '30710-0.0',
+         'calcium' = '30680-0.0',
+         'cholesterol' = '30690-0.0',
+         'creatinine' = '30700-0.0',
+         'cystatin_c' = '30720-0.0',
+         'dir_bilirubin' = '30660-0.0',
+         'gamma_gmt' = '30730-0.0',
+         'glucose' = '30740-0.0',
+         'g_haem' = '30750-0.0',
+         'hdl_chol' = '30760-0.0',
+         'igf_1' = '30770-0.0',
+         'ldl_direct' = '30780-0.0',
+         'lipoprotein_a' = '30790-0.0',
+         'oestradiol' = '30800-0.0',
+         'phosphate' = '30810-0.0',
+         'rheum_factor' = '30820-0.0',
+         'shbg' = '30830-0.0',
+         'testosterone' = '30850-0.0',
+         'tot_bilirubin' = '30840-0.0',
+         'tot_protein' = '30860-0.0',
+         'triglycerides' = '30870-0.0',
+         'urate' = '30880-0.0',
+         'urea' = '30670-0.0',
+         'vit_d' = '30890-0.0',
+         )
+
+#add comments to variable to link with biobank datafield id
+
+comment(blood_biochem_df$alanine_at) <- c("Datafield = 30620-0.0")
+comment(blood_biochem_df$albumin) <- c("Datafield = 30600-0.0")
+comment(blood_biochem_df$alkaline_phos) <- c("Datafield = 30610-0.0")
+comment(blood_biochem_df$apolipo_a) <- c("Datafield = 30630-0.0")
+comment(blood_biochem_df$apolipo_b) <- c("Datafield = 30640-0.0")
+comment(blood_biochem_df$aspartate_at) <- c("Datafield = 30650-0.0")
+comment(blood_biochem_df$crp) <- c("Datafield = 30710-0.0")
+comment(blood_biochem_df$calcium) <- c("Datafield = 30680-0.0")
+comment(blood_biochem_df$cholesterol) <- c("Datafield = 30690-0.0")
+comment(blood_biochem_df$creatinine) <- c("Datafield = 30700-0.0")
+comment(blood_biochem_df$cystatin_c) <- c("Datafield = 30720-0.0")
+comment(blood_biochem_df$dir_bilirubin) <- c("Datafield = 30660-0.0")
+comment(blood_biochem_df$gamma_gmt) <- c("Datafield = 30730-0.0")
+comment(blood_biochem_df$glucose) <- c("Datafield = 30740-0.0")
+comment(blood_biochem_df$g_haem) <- c("Datafield = 30750-0.0")
+comment(blood_biochem_df$hdl_chol) <- c("Datafield = 30760-0.0")
+comment(blood_biochem_df$igf_1) <- c("Datafield = 30770-0.0")
+comment(blood_biochem_df$ldl_direct) <- c("Datafield = 30780-0.0")
+comment(blood_biochem_df$lipoprotein_a) <- c("Datafield = 30790-0.0")
+comment(blood_biochem_df$oestradiol) <- c("Datafield = 30800-0.0")
+comment(blood_biochem_df$phosphate) <- c("Datafield = 30810-0.0")
+comment(blood_biochem_df$rheum_factor) <- c("Datafield = 30820-0.0")
+comment(blood_biochem_df$shbg) <- c("Datafield = 30830-0.0")
+comment(blood_biochem_df$testosterone) <- c("Datafield = 30850-0.0")
+comment(blood_biochem_df$tot_bilirubin) <- c("Datafield = 30840-0.0")
+comment(blood_biochem_df$tot_protein) <- c("Datafield = 30860-0.0")
+comment(blood_biochem_df$triglycerides) <- c("Datafield = 30870-0.0")
+comment(blood_biochem_df$urate) <- c("Datafield = 30880-0.0")
+comment(blood_biochem_df$urea) <- c("Datafield = 30670-0.0")
+comment(blood_biochem_df$vit_d) <- c("Datafield = 30890-0.0")
+
+
+# exclude markers that are not of interest to us
+metabolites <- blood_biochem_df[c("eid", "alanine_at","albumin","apolipo_a", "apolipo_b", "crp", "cholesterol","creatinine", "cystatin_c", "dir_bilirubin", "gamma_gmt", "glucose", "g_haem", "hdl_chol", "ldl_direct", "lipoprotein_a", "phosphate", "rheum_factor", "tot_bilirubin", "triglycerides", "vit_d")]
+
+
+# merge with existing bdmet_df
+working_df <- merge(working_df,metabolites, by="eid")
+working_df <- merge(working_df,blood_datetime, by="eid")
+
+working_df <- working_df %>% 
+  rename('blood sample datetime' = '3166-0.0')
+
+```
+
+#### Get blood sample time data
+
+```{r}
+# load participant dataframe for analysis
+load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\Metabolite Analyses\\analysis_met.Rda")
+
+# get blood sample timings
+bs_vars <- readr::read_tsv("C:/Users/arogusk2/OneDrive - University of Edinburgh./HELIOS-BD/Side Projects/BioBank Project/core dataset/Sample timings/blood_datetime_3166_participant.tsv")
+
+#rename variable
+bs_vars <- bs_vars %>% 
+  rename('BS_datetime' = '3166-0.0')
+
+# initialise columns
+bs_vars$bs_year <- as.numeric(NA)
+bs_vars$bs_month <- as.numeric(NA)
+#bs_vars$bs_mday <- as.numeric(NA)
+#bs_vars$bs_wday <- as.numeric(NA)
+bs_vars$bs_time <- as.numeric(NA)
+
+#create forloop to pull out year, month, time and day of week
+for (i in 1:nrow(bs_vars)){
+  row <- bs_vars[i,]
+  
+  #convert to POSIXlt
+  lt <- as.POSIXlt(bs_vars$BS_datetime[i])
+  
+  #pull out year from data (lt format = # years since 1900)
+  year <- 1900+lt$year
+  bs_vars$bs_year[i] <- year
+  
+  # pull out month (zero indexed, add 1)
+  month <- 1+lt$mon
+  bs_vars$bs_month[i] <- month
+  
+  # pull out day of the month
+  #mday <- lt$mday
+  #bs_vars$bs_mday[i] <- mday
+  
+  # pull out day of the week
+  #wday <- lt$wday
+  #bs_vars$bs_wday[i] <- wday
+  
+  # pull out ToD
+  time <- format(as.POSIXct(bs_vars$BS_datetime[i]), format = "%H:%M")
+  bs_vars$bs_time[i] <- time
+}
+
+#merge bs_vars into main df
+working_df <- merge(working_df,bs_vars, by="eid")
+```
+
+Tidy data
+
+```{r}
+# remove people with NA glycated haemoglobin
+ghaem_df <- working_df %>%  filter(!is.na(g_haem))
+
+# remove people with NA glucose
+ghaem_df <- ghaem_df %>%  filter(!is.na(glucose))
+
+#remove people with glycated haemoglobin levels outside of manufacturer's reportable range
+ghaem_df<- ghaem_df %>%  filter(!g_haem>184)
+ghaem_df<- ghaem_df %>%  filter(!g_haem<15)
+
+# remove people with NA variables: bs_datetime (removes 2)
+#ghaem_df<- ghaem_df %>%  filter(!is.na(BS_datetime))
+
+# make season numeric
+#ghaem_df$bs_season <- as.numeric(as.character(ghaem_df$bs_season))
+
+# tidy time outdoors data to remove '-10', '-3', '-1' values:
+ghaem_df$time_outdoors_summer[ghaem_df$time_outdoors_summer ==-10] <- 0
+ghaem_df$time_outdoors_summer[ghaem_df$time_outdoors_summer ==-3] <- NA
+ghaem_df$time_outdoors_summer[ghaem_df$time_outdoors_summer ==-1] <- NA
+
+ghaem_df$time_outdoors_winter[ghaem_df$time_outdoors_winter ==-10] <- 0
+ghaem_df$time_outdoors_winter[ghaem_df$time_outdoors_winter ==-3] <- NA
+ghaem_df$time_outdoors_winter[ghaem_df$time_outdoors_winter ==-1] <- NA
+
+# tidy self-report sleep time to remove -3', '-1' values:
+ghaem_df$sleep_duration[ghaem_df$sleep_duration ==-3] <- NA
+ghaem_df$sleep_duration[ghaem_df$sleep_duration ==-1] <- NA
+
+
+# recode ethnicity into 7 groups
+library('plyr')
+#1=White, 2=Mixed, 3=Asian/Asian British, 4=Black/Black British, 5=Chinese, 6=Other ethnic group, 7=do not know/prefer not to answer
+ghaem_df$ethnicity_recode <- revalue(ghaem_df$ethnicity, c("British"="1", "Any other white background"="1", "White"="1", "Irish"="1", "Mixed"="2", "White and Black Caribbean"="2", "White and Black African"="2", "White and Asian"="2", "Any other mixed background"="2", "Asian or Asian British"="3", "Indian"="3", "Pakistani"="3", "Bangladeshi"="3", "Any other Asian background"="3", "Black or Black British"="4", "Caribbean"="4", "African"="4", "Any other Black background"="4", "Chinese"="5", "Other ethnic group"="6", "Do not know"="7", "Prefer not to answer"="7"))
+#ghaem_df$ethnicity_recode <- as.numeric(ghaem_df$ethnicity_recode)
+
+#ethnicity dummy vars code
+#white
+ghaem_df$ethnicity_white <- revalue(ghaem_df$ethnicity_recode, c("1"="1", "2"="0", "3"="0", "4"="0", "5"="0", "6"="0", "7"="0"))
+
+#mixed
+ghaem_df$ethnicity_mixed <- revalue(ghaem_df$ethnicity_recode, c("1"="0", "2"="1", "3"="0", "4"="0", "5"="0", "6"="0", "7"="0"))
+
+#asian/asian british
+ghaem_df$ethnicity_asian <- revalue(ghaem_df$ethnicity_recode, c("1"="0", "2"="0", "3"="1", "4"="0", "5"="0", "6"="0", "7"="0"))
+
+#black/black british
+ghaem_df$ethnicity_asian <- revalue(ghaem_df$ethnicity_recode, c("1"="0", "2"="0", "3"="0", "4"="1", "5"="0", "6"="0", "7"="0"))
+
+#chinese
+ghaem_df$ethnicity_asian <- revalue(ghaem_df$ethnicity_recode, c("1"="0", "2"="0", "3"="0", "4"="0", "5"="1", "6"="0", "7"="0"))
+
+#other
+ghaem_df$ethnicity_asian <- revalue(ghaem_df$ethnicity_recode, c("1"="0", "2"="0", "3"="0", "4"="0", "5"="0", "6"="1", "7"="0"))
+
+# recode employment into 5 groups
+#1=employed, 2=retired, 3=unable to work because of sickness/disability, 4=other unemployment, 5=do not know/prefer not to answer
+ghaem_df$employment_recode <- revalue(ghaem_df$employed, c("In paid employment or self-employed"="1", "Retired"="2", "Doing unpaid or voluntary work"="4", "Unable to work because of sickness or disability"="3", "Full or part-time student"="4", "Unemployed"="4", "Looking after home and/or family"="4", "None of the above"="4", "Prefer not to answer"="5"))
+
+#remove plyr package as has masking for later functions
+detach("package:plyr", unload=TRUE)
+
+library('plyr')
+# recode vars
+##Group
+#control
+#ghaem_df$group <- revalue(ghaem_df$Group, c("control"="1", "bipolar"="2"))
+#ghaem_df$group_f <- factor(ghaem_df$group, levels= c("1", "2"), labels= c("control", "bipolar"), ordered=FALSE)
+
+### LEVEL 1
+#Sex
+#sex
+#ghaem_df$sex_recode <- revalue(ghaem_df$sex, c("Male"="1", "Female"="2"))
+ghaem_df$sex_f <- factor(ghaem_df$sex, ordered=FALSE)
+
+#ghaem_df$sex_fact <- factor(ghaem_df$sex_recode, levels= c("Male", "Female"), labels=c("male", "female"))
+
+#ethnicity
+# set values to NA if not relevant
+ghaem_df$ethnicity_recode[ghaem_df$ethnicity_recode == -1] <- NA
+ghaem_df$ethnicity_recode[ghaem_df$ethnicity_recode == -3] <- NA
+#1=White, 2=Mixed, 3=Asian/Asian British, 4=Black/Black British, 5=Chinese, 6=Other ethnic group, 7=do not know/prefer not to answer
+ghaem_df$ethnicity_f <- factor(ghaem_df$ethnicity_recode, levels= c("1", "2", "3", "4", "5", "6"), labels= c("white", "mixed", "asian", "black", "chinese", "other"), ordered=FALSE)
+
+### LEVEL 2 
+#smoking
+# set values to NA if not relevant
+ghaem_df$smoking_f <- ghaem_df$smoking_status
+ghaem_df$smoking_f[ghaem_df$smoking_f == -3] <- NA
+ghaem_df$smoking_f <- factor(ghaem_df$smoking_f, levels= c("Never", "Previous", "Current"), labels= c("Never", "Previous", "Current"), ordered=FALSE)
+
+#alcohol - showing up strange!
+#recode: never/special occasions=1 (LOW), 1-3month/1-2week=2 (MODERATE), 3-4week/daily=3 (HIGH)
+ghaem_df$alcohol_f <- as.character(ghaem_df$alcohol_intake)
+#ghaem_df$alcohol_f[ghaem_df$alcohol_f == 'Prefer not to answer'] <- NA
+ghaem_df$alcohol_f <- revalue(ghaem_df$alcohol_f, c("Never"="Low", "Special occasions only"="Low", "One to three times a month"="Moderate", "Once or twice a week"="Moderate","Three or four times a week"="High", "Daily or almost daily"="High", "Prefer not to answer"=NA))
+ghaem_df$alcohol_f <- factor(ghaem_df$alcohol_f, levels= c("Low", "Moderate", "High"), labels= c("Low", "Moderate", "High"), ordered=TRUE)
+
+#health self-report
+ghaem_df$health_f <- as.character(ghaem_df$health_self_report)
+ghaem_df$health_f[ghaem_df$health_f == 'Prefer not to answer'] <- NA
+ghaem_df$health_f[ghaem_df$health_f == 'Do not know'] <- NA
+ghaem_df$health_f <- factor(ghaem_df$health_f, levels= c("Excellent", "Good", "Fair", "Poor"), labels= c("Excellent", "Good", "Fair", "Poor"), ordered=TRUE)
+
+
+#disbility
+ghaem_df$disability_f <- as.character(ghaem_df$disability_self_report)
+ghaem_df$disability_f[ghaem_df$disability_f == 'Prefer not to answer'] <- NA
+ghaem_df$disability_f[ghaem_df$disability_f == 'Do not know'] <- NA
+ghaem_df$disability_f <- factor(ghaem_df$disability_f, levels= c("No", "Yes"), labels= c("No", "Yes"), ordered=FALSE)
+
+
+#chronotype
+ghaem_df$chrono_f <- as.character(ghaem_df$chronotype)
+ghaem_df$chrono_f[ghaem_df$chrono_f == 'Prefer not to answer'] <- NA
+ghaem_df$chrono_f[ghaem_df$chrono_f == 'Do not know'] <- NA
+ghaem_df$chrono_f <- factor(ghaem_df$chrono_f, ordered=TRUE)
+
+### Level 4 
+#assess_centre to factor
+ghaem_df$centre_f <- factor(ghaem_df$assess_centre, ordered=FALSE)
+```
+
+#### **create participant groups**
+
+```{r}
+### remove people with self-reported diabetes dx ####
+#unique(no_shift_2$`Diabetes diagnosed by doctor | Instance 0`)
+#no_dm <- control_excl_vars[!grepl("Yes", control_excl_vars$'Diabetes diagnosed by doctor | Instance 0'),]
+#unique(bdmet_df$`Gestational diabetes only | Instance 0`)
+#no_dm_2 <- no_dm[!grepl("Yes", no_dm$'Gestational diabetes only | Instance 0'),]
+
+### remove people with probable single/recurrent major depression ####
+no_md <- ghaem_df[!grepl("Probable", ghaem_df$`Bipolar and major depression status | Instance 0`),]
+
+#merge icd search output variables with control_excl_vars ####
+study_population <- merge(no_md,exclusions_icd, by="eid")
+
+### CONTROL DIABETES group: remove people who meet any of the exclusion criteria ####
+c_dm <- study_population %>%
+  filter(F20!='1' & F21!='1'& F22!='1' & F23!='1' & F24!='1' & F25!='1'& F27!='1' &
+           F28!='1' & F30!='1' & F31!='1'& F32!='1'& F33!='1' & F34!='1' &
+           F38.1!='1' & F39!='1' & E10!='0'| E11!='0' | E12!='0' | E13!='0' |
+           E14!='0' & F50!='1'& E70_E72!='1'& E74!='1' & E75!='1' & E76!='1' & 
+           E77!='1' & E78!='1' & E79!='1' & E80!='1' & G47.2!='1'& F51.2!='1' &
+           K72.1!='1' & N18.4!='1' & N18.5!='1' & D55!='1' & D56!='1'& D57!='1' &
+           D58!='1' & D59!='1' & M05!='1' & M06!='1'
+           )
+#remove people with probable bipolar
+c_dm_group <- c_dm[!grepl("Disorder", c_dm$'Bipolar and major depression status | Instance 0'),]
+
+### CONTROL NON-DIABETES group: remove people who meet any of the exclusion criteria ####
+c_nondm <- study_population %>%
+  filter(F20!='1' & F21!='1'& F22!='1' & F23!='1' & F24!='1' & F25!='1'& F27!='1' &
+           F28!='1' & F30!='1' & F31!='1'& F32!='1'& F33!='1' & F34!='1' &
+           F38.1!='1' & F39!='1' & E10!='1'& E11!='1' & E12!='1' & E13!='1' &
+           E14!='1' & F50!='1'& E70_E72!='1'& E74!='1' & E75!='1' & E76!='1' & 
+           E77!='1' & E78!='1' & E79!='1' & E80!='1' & G47.2!='1'& F51.2!='1' &
+           K72.1!='1' & N18.4!='1' & N18.5!='1' & D55!='1' & D56!='1'& D57!='1' &
+           D58!='1' & D59!='1' & M05!='1' & M06!='1'
+           )
+#remove people with probable bipolar
+c_nondm_gr <- c_nondm[!grepl("Disorder", c_nondm$'Bipolar and major depression status | Instance 0'),]
+
+#remove people with doctor diabetes
+c_nondm_group <- c_nondm_gr[!grepl("Yes", c_nondm_gr$'Diabetes diagnosed by doctor | Instance 0'),]
+
+### BIPOLAR DIABETES group: remove people who meet any of the exclusion criteria ####
+bd_dm <- study_population %>%
+  filter(F20!='1' & F21!='1'& F22!='1' & F23!='1' & F24!='1' & F25!='1'& F27!='1' &
+           F28!='1' &
+           F32!='1'& F33!='1' & F34!='1' & F38.1!='1' & F39!='1' &
+           E10!='0'| E11!='0' | E12!='0' | E13!='0' | E14!='0' &
+           F50!='1'&
+           E70_E72!='1'& E74!='1' & E75!='1' & E76!='1' & E77!='1' & E78!='1' &
+           E79!='1' & E80!='1' &
+           G47.2!='1'& F51.2!='1' &
+           K72.1!='1' & N18.4!='1' & N18.5!='1' & D55!='1' & D56!='1'& D57!='1' &
+           D58!='1' & D59!='1' & M05!='1' & M06!='1')
+
+# create new bipolar group of people who have either: ICD10 bipolar disorder (F31) or have probable bipolar (Pell & Smith criteria)
+bd_dm_group <- dplyr::filter(bd_dm, grepl('Bipolar I Disorder|Bipolar II Disorder', `Bipolar and major depression status | Instance 0`)|bd_dm$F31!='0')
+
+### BIPOLAR NON-DIABETES group: remove people who meet any of the exclusion criteria ####
+bd_nondm <- study_population %>%
+  filter(F20!='1' & F21!='1'& F22!='1' & F23!='1' & F24!='1' & F25!='1'& F27!='1' &
+           F28!='1' &
+           F32!='1'& F33!='1' & F34!='1' & F38.1!='1' & F39!='1' & 
+           E10!='1'& E11!='1' & E12!='1' & E13!='1' & E14!='1' &
+           F50!='1'&
+           E70_E72!='1'& E74!='1' & E75!='1' & E76!='1' & E77!='1' & E78!='1' &
+           E79!='1' & E80!='1' &
+           G47.2!='1'& F51.2!='1' &
+           K72.1!='1' & N18.4!='1' & N18.5!='1' & D55!='1' & D56!='1'& D57!='1' &
+           D58!='1' & D59!='1' & M05!='1' & M06!='1')
+
+# create new bipolar group of people who have either: ICD10 bipolar disorder (F31) or have probable bipolar (Pell & Smith criteria)
+bd_nondm_group <- dplyr::filter(bd_nondm, grepl('Bipolar I Disorder|Bipolar II Disorder', `Bipolar and major depression status | Instance 0`)|bd_nondm$F31!='0')
+
+```
+
+#### save 4x groups for analysis
+
+```{r save groups}
+setwd("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\Seasonal Variation Diabetic Markers - Analysis")
+save(bd_dm_group,file="bd_dm_group.Rda")
+save(bd_nondm_group,file="bd_nondm_group.Rda")
+save(c_dm_group,file="c_dm_group.Rda")
+save(c_nondm_group,file="c_nondm_group.Rda")
+
+# Combine both group dataframes into one for future analysis purposes ####
+#add new column to both with study group
+bd_dm_new <- bd_dm_group %>%
+  mutate(group = 'bipolar dm')
+bd_nondm_new <- bd_nondm_group %>%
+  mutate(group = 'bipolar nondm')
+c_dm_new <- c_dm_group %>%
+  mutate(group = 'control dm')
+c_nondm_new <- c_nondm_group %>%
+  mutate(group = 'control nondm')
+
+#join 2 dataframes
+svdm_all_ppts <- rbind(bd_dm_new,bd_nondm_new,c_dm_new, c_nondm_new)
+#save
+save(svdm_all_ppts,file="svdm_all_ppts.Rda")
+```
