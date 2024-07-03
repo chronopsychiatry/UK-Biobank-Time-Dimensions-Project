@@ -1,0 +1,233 @@
+---
+title: "seasonal_diabetic_markers_final_analysis"
+author: "agpr141"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Seasonal variation in diabetic markers
+
+**Final analysis script**
+
+This .Rmd is used for the analyses in [paper] by Roguski et al. [date].
+
+#### Load packages
+
+```{r load packages}
+#library(tidyverse)
+library(dplyr)
+library(readr)
+library(yarrr)
+library(season)
+```
+
+#### Table 1
+
+```{r table 1, echo=FALSE}
+
+# summary statistics - mean for continuous variables:
+demo_mean_df <- ghaem_df %>%
+  group_by(Group) %>%
+  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales', 'time_outdoors_summer', 'time_outdoors_winter', 'fasting_time', 'townsend', 'sleep_duration'),
+               mean, na.rm=TRUE)
+
+# summary statistics - std.dev for continuous variables:
+demo_sd_df <- ghaem_df %>%
+  group_by(Group) %>%
+  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales', 'time_outdoors_summer', 'time_outdoors_winter', 'fasting_time', 'townsend', 'sleep_duration'),
+               sd, na.rm=TRUE)
+
+#counts for discrete variables:
+demo_sex_df <- ghaem_df %>%
+  group_by(Group) %>%
+  count(sex)
+demo_ethnicity_df <- ghaem_df %>%
+  group_by(Group) %>%
+  count(ethnicity_recode)
+#1=White, 2=Mixed, 3=Asian/Asian British, 4=Black/Black British, 5=Chinese, 6=Other ethnic group, 7=do not know/prefer not to answer
+
+demo_disabled_df <- ghaem_df %>%
+  group_by(Group) %>%
+  count(disability_self_report)    
+demo_chronotype_df <- ghaem_df %>%
+  group_by(Group) %>%
+  count(chronotype)    
+demo_employment_df <- ghaem_df %>%
+  group_by(Group) %>%
+  count(employment_recode) 
+demo_smoking_df <- ghaem_df %>%
+  group_by(Group) %>%
+  count(smoking_status)  
+demo_alcohol_df <- ghaem_df %>%
+  group_by(Group) %>%
+  count(alcohol_intake)
+demo_healthstatus_df <- ghaem_df %>%
+  group_by(Group) %>%
+  count(health_self_report) 
+demo_IPAQ_df <- ghaem_df %>%
+  group_by(Group) %>%
+  count(IPAQ_group) 
+
+
+#plot data to visualise distribution
+# age - normal
+age_plot <- ggplot(ghaem_df, aes(x = age)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# bmi - right skew
+bmi_plot <- ggplot(ghaem_df, aes(x = BMI)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# age completed education - normal
+age_edu_plot <- ggplot(ghaem_df, aes(x = age_completed_education)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# IMD: England - right skew
+imd_e_plot <- ggplot(ghaem_df, aes(x = deprivation_index_england)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# IMD: Scotland - right skew
+imd_s_plot <- ggplot(ghaem_df, aes(x = deprivation_index_scotland)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# IMD: Wales - right skew
+imd_w_plot <- ggplot(ghaem_df, aes(x = deprivation_index_wales)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# time outdoors summer - right skew
+outsummer_plot <- ggplot(ghaem_df, aes(x = time_outdoors_summer)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# time outdoors winter - right skew
+outwinter_plot <- ggplot(ghaem_df, aes(x = time_outdoors_winter)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# fasting time - right skew
+fastingtime_plot <- ggplot(ghaem_df, aes(x = fasting_time)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# townsend - right skew
+townsend_plot <- ggplot(ghaem_df, aes(x = townsend)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+
+# sleep duration - right skew
+sleepdur_plot <- ggplot(ghaem_df, aes(x = sleep_duration)) +
+  geom_histogram(fill = "salmon2", colour = "black") +
+  facet_grid(Group ~ ., scales = "free")
+
+# plot in multi-plot
+figure <- ggarrange(age_plot,bmi_plot,age_edu_plot,imd_e_plot,imd_s_plot,imd_w_plot,outsummer_plot,outwinter_plot, fastingtime_plot,townsend_plot, labels = c("Age", "BMI", "Age Education", "IMD_E", "IMD_S", "IMD_W", "outdoors summer", "outdoors winter", "fasting time", "townsend"),
+                    ncol = 5, nrow = 2)
+figure
+
+
+# stats tests - chi square for categorical
+#sex
+sex_chi <- chisq.test(x = table(ghaem_df$Group,ghaem_df$sex))
+yarrr::apa(sex_chi)# print stats test result in legible apa format
+
+#ethnicity
+ethnicity_chi <- chisq.test(x = table(ghaem_df$Group,ghaem_df$ethnicity_recode))
+yarrr::apa(ethnicity_chi)
+
+#employment
+employment_chi <- chisq.test(x = table(ghaem_df$Group,ghaem_df$employment_recode))
+yarrr::apa(employment_chi)
+
+#disability
+disability_chi <- chisq.test(x = table(ghaem_df$Group, ghaem_df$disability_self_report=='Yes'))
+yarrr::apa(disability_chi)
+
+#smoking
+smoking_chi <- chisq.test(x = table(ghaem_df$Group, ghaem_df$smoking_status))
+yarrr::apa(smoking_chi)
+
+#alcohol
+alcohol_chi <- chisq.test(x = table(ghaem_df$Group, ghaem_df$alcohol_intake))
+yarrr::apa(alcohol_chi)
+
+#chronotype
+chrono_chi <- chisq.test(x = table(ghaem_df$Group, ghaem_df$chronotype))
+yarrr::apa(chrono_chi)
+
+#health self-report
+health_chi <- chisq.test(x = table(ghaem_df$Group, ghaem_df$health_self_report))
+yarrr::apa(health_chi)
+
+#IPAQ
+IPAQ_chi <- chisq.test(x = table(ghaem_df$Group, ghaem_df$IPAQ_group))
+yarrr::apa(IPAQ_chi)
+
+# stats tests - t-test for parametric continous
+#age
+age_ttest <- t.test(ghaem_df$age ~ ghaem_df$Group, na.rm=TRUE)
+yarrr::apa(age_ttest)
+
+# stats tests - wilcoxon rank sum for non-parametric continous
+#BMI
+bmi_wrs <- wilcox.test(BMI ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+bmi_wrs
+
+#IMD ENGLAND
+imd_e_wrs <- wilcox.test(deprivation_index_england ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+imd_e_wrs
+
+#IMD SCOTLAND
+imd_s_wrs <- wilcox.test(deprivation_index_scotland ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+imd_s_wrs
+
+#IMD WALES
+imd_w_wrs <- wilcox.test(deprivation_index_wales ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+imd_w_wrs
+
+#age completed education
+edu_age_wrs <- wilcox.test(age_completed_education ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+edu_age_wrs
+
+#time outdoors summer
+outsummer_wrs <- wilcox.test(time_outdoors_summer ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+outsummer_wrs
+
+#time outdoors winter
+outwinter_wrs <- wilcox.test(time_outdoors_winter ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+outwinter_wrs
+
+#fasting time
+fasting_wrs <- wilcox.test(fasting_time ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+fasting_wrs
+
+#townsend
+townsend_wrs <- wilcox.test(townsend ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+townsend_wrs
+
+#sleep duration
+sleepdur_wrs <- wilcox.test(sleep_duration ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+sleepdur_wrs
+
+
+### our marker levels
+#hba1c
+ghaem_ttest <- t.test(ghaem_df$g_haem ~ ghaem_df$Group, na.rm=TRUE)
+yarrr::apa(ghaem_ttest)
+
+#glucose
+glucose_wrs <- wilcox.test(glucose ~ Group, data = ghaem_df, exact = FALSE, conf.int = TRUE)
+glucose_wrs
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

@@ -31,7 +31,7 @@ bdmet_df <- ukb_master
 rm(ukb_master)
 
 #  control exclusion vars
-control_excl_vars <- readr::read_tsv("./normative mets/control_exclusion_participant.tsv")
+control_excl_vars <- readr::read_tsv("C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\normative mets/control_exclusion_participant.tsv")
 control_excl_vars <- control_excl_vars %>% 
   rename('eid' = 'Participant ID')
 

@@ -121,7 +121,7 @@ ghaem_df<- ghaem_df %>%  filter(!g_haem>184)
 ghaem_df<- ghaem_df %>%  filter(!g_haem<15)
 
 #remove people with glycated haemoglobin levels above 48mmol/ml (diabetes diagnostic criteria)
-ghaem_df<- ghaem_df %>%  filter(!g_haem>48)
+ghaem_df<- ghaem_df %>%  filter(!g_haem>=48)
 
 # add new column to df to indicate if ghaem value is IQR-defined outlier
 find_outlier <- function(x) {
@@ -302,7 +302,7 @@ bipolar_df <- ghaem_df %>%  filter(Group=='bipolar')
 
 ```{r table 1}
 
-# summary statistics - median for continuous variables:
+# summary statistics - mean for continuous variables:
 demo_mean_df <- ghaem_df %>%
   group_by(Group) %>%
   summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales', 'time_outdoors_summer', 'time_outdoors_winter', 'fasting_time', 'townsend', 'sleep_duration'),
@@ -1933,6 +1933,15 @@ model4_b <- lm(g_haem ~ ROC_pos +
 summary(model4_b)
 # test for multicollinearity
 ols_vif_tol(model4_b)
+```
+
+```{r hba1c seasonal MLR}
+
+# control
+
+
+#bipolar
+
 ```
 
 #### Glucose- ROC
