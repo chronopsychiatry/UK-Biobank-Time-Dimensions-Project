@@ -18,11 +18,27 @@ This .Rmd is used for the analyses in [paper] by Roguski et al. [date].
 #### Load packages
 
 ```{r load packages}
-#library(tidyverse)
+library(tidyverse)
 library(dplyr)
 library(readr)
 library(yarrr)
 library(season)
+```
+
+#### Load data
+
+```{r load data}
+
+load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\Seasonal Variation Diabetic Markers - Analysis\\bd_dm_group.Rda")
+
+load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\Seasonal Variation Diabetic Markers - Analysis\\bd_nondm_group.Rda")
+
+load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\Seasonal Variation Diabetic Markers - Analysis\\c_dm_group.Rda")
+
+load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\Seasonal Variation Diabetic Markers - Analysis\\c_nondm_group.Rda")
+
+load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\Side Projects\\BioBank Project\\BD-Metabolomics data\\Seasonal Variation Diabetic Markers - Analysis\\svdm_all_ppts.Rda")
+
 ```
 
 #### Table 1
@@ -30,46 +46,46 @@ library(season)
 ```{r table 1, echo=FALSE}
 
 # summary statistics - mean for continuous variables:
-demo_mean_df <- ghaem_df %>%
-  group_by(Group) %>%
-  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales', 'time_outdoors_summer', 'time_outdoors_winter', 'fasting_time', 'townsend', 'sleep_duration'),
+demo_mean_df <- svdm_all_ppts %>%
+  group_by(group) %>%
+  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales', 'time_outdoors_summer', 'time_outdoors_winter', 'fasting_time', 'townsend', 'sleep_duration', 'g_haem', 'glucose'),
                mean, na.rm=TRUE)
 
 # summary statistics - std.dev for continuous variables:
-demo_sd_df <- ghaem_df %>%
-  group_by(Group) %>%
-  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales', 'time_outdoors_summer', 'time_outdoors_winter', 'fasting_time', 'townsend', 'sleep_duration'),
+demo_sd_df <- svdm_all_ppts %>%
+  group_by(group) %>%
+  summarise_at(c('age', 'BMI', 'age_completed_education', 'deprivation_index_england', 'deprivation_index_scotland', 'deprivation_index_wales', 'time_outdoors_summer', 'time_outdoors_winter', 'fasting_time', 'townsend', 'sleep_duration', 'g_haem', 'glucose'),
                sd, na.rm=TRUE)
 
 #counts for discrete variables:
-demo_sex_df <- ghaem_df %>%
-  group_by(Group) %>%
+demo_sex_df <- svdm_all_ppts %>%
+  group_by(group) %>%
   count(sex)
-demo_ethnicity_df <- ghaem_df %>%
-  group_by(Group) %>%
+demo_ethnicity_df <- svdm_all_ppts %>%
+  group_by(group) %>%
   count(ethnicity_recode)
 #1=White, 2=Mixed, 3=Asian/Asian British, 4=Black/Black British, 5=Chinese, 6=Other ethnic group, 7=do not know/prefer not to answer
 
-demo_disabled_df <- ghaem_df %>%
-  group_by(Group) %>%
+demo_disabled_df <- svdm_all_ppts %>%
+  group_by(group) %>%
   count(disability_self_report)    
-demo_chronotype_df <- ghaem_df %>%
-  group_by(Group) %>%
+demo_chronotype_df <- svdm_all_ppts %>%
+  group_by(group) %>%
   count(chronotype)    
-demo_employment_df <- ghaem_df %>%
-  group_by(Group) %>%
+demo_employment_df <- svdm_all_ppts %>%
+  group_by(group) %>%
   count(employment_recode) 
-demo_smoking_df <- ghaem_df %>%
-  group_by(Group) %>%
+demo_smoking_df <- svdm_all_ppts %>%
+  group_by(group) %>%
   count(smoking_status)  
-demo_alcohol_df <- ghaem_df %>%
-  group_by(Group) %>%
+demo_alcohol_df <- svdm_all_ppts %>%
+  group_by(group) %>%
   count(alcohol_intake)
-demo_healthstatus_df <- ghaem_df %>%
-  group_by(Group) %>%
+demo_healthstatus_df <- svdm_all_ppts %>%
+  group_by(group) %>%
   count(health_self_report) 
-demo_IPAQ_df <- ghaem_df %>%
-  group_by(Group) %>%
+demo_IPAQ_df <- svdm_all_ppts %>%
+  group_by(group) %>%
   count(IPAQ_group) 
 
 
