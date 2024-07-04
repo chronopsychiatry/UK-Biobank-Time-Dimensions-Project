@@ -23,6 +23,8 @@ library(dplyr)
 library(readr)
 library(yarrr)
 library(season)
+library(wesanderson)
+library(circacompare)
 ```
 
 #### Load data
@@ -246,4 +248,580 @@ glucose_wrs <- wilcox.test(glucose ~ Group, data = ghaem_df, exact = FALSE, conf
 glucose_wrs
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+#### Plots
+
+#### 
+
+```{r initialise plot}
+
+#colour gradient
+#col <- inferno(12, begin=0.3, end=0.7, direction=1) 
+#as.data.frame(col)
+
+dayCOL<-c("#50576CFF", "#989278FF", "#ADA274FF", "#D8C563FF", "#EED654FF", "#FFEA46FF", "#EED654FF", "#D8C563FF", "#ADA274FF", "#858379FF", "#50576CFF", "#1B3B6DFF")
+
+
+SeasonPal <- c("darkseagreen3","darkseagreen3","darkseagreen3","lightgoldenrod2","lightgoldenrod2","lightgoldenrod2","indianred3","indianred3","indianred3","lightsteelblue2","lightsteelblue2","lightsteelblue2") 
+#0450b4, #046dc8, #1184a7, #15a2a2, #6fb1a0, #b4418e, #d94a8c, #ea515f, #fe7434, #fea802
+
+dummy <- c_nondm_group %>% 
+  dplyr::select(assess_month, average_temp) %>%
+  group_by(assess_month) %>%
+  summarise(colo = mean(average_temp, na.rm=TRUE))
+
+
+amber_col <- colorRampPalette(as.character(wes_palette("Zissou1", n=12, type='continuous'))) #colorRampPalette(c("#15A2A2", "#ea515f"))
+#detach("package:wesanderson", unload=TRUE)
+amber_col_list <- amber_col(12)
+dummy_order <- dummy[order(dummy$colo),]
+dummy_order$hex[1]= amber_col_list[1]
+dummy_order$hex[2]= amber_col_list[2]
+dummy_order$hex[3]= amber_col_list[3]
+dummy_order$hex[4]= amber_col_list[4]
+dummy_order$hex[5]= amber_col_list[5]
+dummy_order$hex[6]= amber_col_list[6]
+dummy_order$hex[7]= amber_col_list[7]
+dummy_order$hex[8]= amber_col_list[8]
+dummy_order$hex[9]= amber_col_list[9]
+dummy_order$hex[10]= amber_col_list[10]
+dummy_order$hex[11]= amber_col_list[11]
+dummy_order$hex[12]= amber_col_list[12]
+dummy_order <- dummy_order[order(dummy_order$assess_month),]
+temp_col <- as.list(dummy_order$hex)
+
+names <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+namesshort <-c("J","F","M","A","M","J","J","A","S","O","N","D")
+```
+
+#### HbA1c control non-diabetic
+
+```{r HbA1c all control}
+
+#run cosinor
+hba1c_c_nondm_cos <- cosinor(g_haem~1 #+ control_df$age + control_df$BMI + control_df$sex_f + control_df$ethnicity_f
+                             , date='assess_month', type='monthly',data=c_nondm_group)
+control_cos_summary <- summary(hba1c_c_nondm_cos)
+#summary(hba1c_c_nondm_cos$glm)
+mesor_control <- mean(hba1c_c_nondm_cos$glm$fitted.values) # for mesor
+#plot(hba1c_c_nondm_cos)
+#seasrescheck(hba1c_c_nondm_cos$residuals) # check the residuals
+
+
+#create new vars for plotting fitted sinusoid from a Cosinor object
+time_fit_control = subset(hba1c_c_nondm_cos$glm$data, select = hba1c_c_nondm_cos$date)[, 1]
+o_c = order(time_fit_control)
+
+# HbA1c - control
+
+pirateplot(formula =  g_haem ~ assess_month,
+           data = c_nondm_group,
+           #col = rgb(cr(daylen / max(daylen)), max=255),
+           pal=temp_col, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("HbA1c (mmol/mol)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = temp_col,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           ylim=c(34,35.5),  # Adjust y axis limits
+           #ylim=c(32,36.5)
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3)),
+           main = "HbA1c Seasonal Profile - Non-diabetic population"
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_control[o_c],hba1c_c_nondm_cos$fitted.values[o_c], lty=2,lwd=1, col="black")
+points(time_fit_control[o_c], hba1c_c_nondm_cos$fitted.values[o_c], pch = 19)
+legend(10, 60, legend=c("Average Temperature (°c)"),
+       #col=c("darkseagreen3", "lightgoldenrod2", "indianred3","lightsteelblue2"),
+       lty=1, lwd=5, cex=0.8)
+
+## potential code for 
+plot.new()
+season_cols <- viridis(50, option ="E")
+
+tiff("legend_temp1.tiff", width = 7, height = 6, units = 'in', res = 300)
+plot.new()
+colkey(clim = range(1:12),
+       col = temp_col,
+      dist = -0.2, 
+       #shift = 0.5,
+       side = 4, 
+       add = TRUE, 
+       clab = "Average temperature", 
+       line.clab=.5,#lower title
+       cex.clab = 1,
+       col.clab = "black",
+       adj.clab=0,
+       length = .5, 
+       width = 1.5, 
+       col.axis = "black", 
+       col.ticks = "black",
+       col.box = "white",
+       at = c(6.5,17.5), 
+       #labels = c("6hr","18hr"),
+       mgp=c(3, .3, 0),
+       tck=0,
+       cex.axis = 1,
+       lwd.ticks=.2)
+dev.off()
+
+```
+
+#### HbA1c control diabetic
+
+```{r hba1c diabetic}
+
+#run cosinor
+hba1c_c_dm_cos <- cosinor(g_haem~1 #+ c_dm_group$age + c_dm_group$BMI + c_dm_group$sex_f + c_dm_group$ethnicity_f
+                             , date='assess_month', type='monthly',data=c_dm_group)
+c_dm_cos_summary <- summary(hba1c_c_dm_cos)
+#summary(hba1c_c_dm_cos$glm)
+mesor_control <- mean(hba1c_c_dm_cos$glm$fitted.values) # for mesor
+#plot(hba1c_c_dm_cos)
+#seasrescheck(hba1c_c_dm_cos$residuals) # check the residuals
+
+
+#create new vars for plotting fitted sinusoid from a Cosinor object
+time_fit_control = subset(hba1c_c_dm_cos$glm$data, select = hba1c_c_dm_cos$date)[, 1]
+o_c = order(time_fit_control)
+
+# HbA1c - control
+dev.new()
+pirateplot(formula =  g_haem ~ assess_month,
+           data = c_dm_group,
+           #col = rgb(cr(daylen / max(daylen)), max=255),
+           pal=temp_col, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("HbA1c (mmol/mol)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = temp_col,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           ylim=c(45,50),  # Adjust y axis limits
+           #ylim=c(32,36.5)
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3)),
+           main = "HbA1c Seasonal Profile - Diabetic population"
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_control[o_c],hba1c_c_dm_cos$fitted.values[o_c], lty=2,lwd=1, col="black")
+points(time_fit_control[o_c], hba1c_c_dm_cos$fitted.values[o_c], pch = 19)
+legend(10, 60, legend=c("Average Temperature (°c)"),
+       #col=c("darkseagreen3", "lightgoldenrod2", "indianred3","lightsteelblue2"),
+       lty=1, lwd=5, cex=0.8)
+```
+
+#### Glucose non-diabetic
+
+```{r hba1c diabetic}
+
+#run cosinor
+glu_c_nondm_cos <- cosinor(glucose~1 #+ c_dm_group$age + c_dm_group$BMI + c_dm_group$sex_f + c_dm_group$ethnicity_f
+                             , date='assess_month', type='monthly',data=c_nondm_group)
+c_nondm_cos_summary <- summary(glu_c_nondm_cos)
+#summary(glu_c_nondm_cos$glm)
+mesor_control <- mean(glu_c_nondm_cos$glm$fitted.values) # for mesor
+#plot(glu_c_nondm_cos)
+#seasrescheck(glu_c_nondm_cos$residuals) # check the residuals
+
+
+#create new vars for plotting fitted sinusoid from a Cosinor object
+time_fit_control = subset(glu_c_nondm_cos$glm$data, select = glu_c_nondm_cos$date)[, 1]
+o_c = order(time_fit_control)
+
+# HbA1c - control
+dev.new()
+pirateplot(formula =  glucose ~ assess_month,
+           data = c_nondm_group,
+           #col = rgb(cr(daylen / max(daylen)), max=255),
+           pal=temp_col, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("Glucose (mmol/L)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = temp_col,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           ylim=c(4.4,5.4),  # Adjust y axis limits
+           #ylim=c(32,36.5)
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3)),
+           main = "Glucose Seasonal Profile - Non-diabetic population"
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_control[o_c],glu_c_nondm_cos$fitted.values[o_c], lty=2,lwd=1, col="black")
+points(time_fit_control[o_c], glu_c_nondm_cos$fitted.values[o_c], pch = 19)
+legend(10, 60, legend=c("Average Temperature (°c)"),
+       #col=c("darkseagreen3", "lightgoldenrod2", "indianred3","lightsteelblue2"),
+       lty=1, lwd=5, cex=0.8)
+```
+
+#### Glucose diabetic
+
+```{r glucose diabetic}
+
+#run cosinor
+glu_c_dm_cos <- cosinor(glucose~1 #+ c_dm_group$age + c_dm_group$BMI + c_dm_group$sex_f + c_dm_group$ethnicity_f
+                             , date='assess_month', type='monthly',data=c_dm_group)
+c_dm_cos_summary <- summary(glu_c_dm_cos)
+#summary(glu_c_dm_cos$glm)
+mesor_control <- mean(glu_c_dm_cos$glm$fitted.values) # for mesor
+#plot(glu_c_dm_cos)
+#seasrescheck(glu_c_dm_cos$residuals) # check the residuals
+
+
+#create new vars for plotting fitted sinusoid from a Cosinor object
+time_fit_control = subset(glu_c_dm_cos$glm$data, select = glu_c_dm_cos$date)[, 1]
+o_c = order(time_fit_control)
+
+# HbA1c - control
+dev.new()
+pirateplot(formula =  glucose ~ assess_month,
+           data = c_dm_group,
+           #col = rgb(cr(daylen / max(daylen)), max=255),
+           pal=temp_col, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("Glucose (mmol/L)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = temp_col,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           ylim=c(6.2,7.2),  # Adjust y axis limits
+           #ylim=c(32,36.5)
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3)),
+           main = "Glucose Seasonal Profile - Diabetic population"
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_control[o_c],glu_c_dm_cos$fitted.values[o_c], lty=2,lwd=1, col="black")
+points(time_fit_control[o_c], glu_c_dm_cos$fitted.values[o_c], pch = 19)
+legend(10, 60, legend=c("Average Temperature (°c)"),
+       #col=c("darkseagreen3", "lightgoldenrod2", "indianred3","lightsteelblue2"),
+       lty=1, lwd=5, cex=0.8)
+```
+
+#### Circacompare - control glucose
+
+```{r}
+#create new control_df
+control_df <- filter(svdm_all_ppts, group == 'control dm' | group == 'control nondm')
+
+complete
+cos_stats_glucose <- circacompare(x=control_df, col_time="assess_month", 
+                                  col_group="group", col_outcome="glucose", 
+                                  period=12, alpha_threshold=0.05, 
+                                  control = c('sex', 'age', 'BMI', 'ethnicity_f'))
+```
+
+#### Circacompare - control HbA1c
+
+```{r}
+cos_stats_ghaem <- circacompare(x=control_df, col_time="assess_month", 
+                                  col_group="group", col_outcome="g_haem", 
+                                  period=12, alpha_threshold=0.1, 
+                                  control = c('sex', 'age', 'BMI', 'ethnicity_f')) #set alpha to 0.1 as p=0.054 for diabetic group
+```
+
+#### HbA1c - bipolar non-diabetic
+
+```{r HbA1c all control}
+
+#run cosinor
+hba1c_bd_nondm_cos <- cosinor(g_haem~1 #+ control_df$age + control_df$BMI + control_df$sex_f + control_df$ethnicity_f
+                             , date='assess_month', type='monthly',data=bd_nondm_group)
+bd_cos_summary <- summary(hba1c_bd_nondm_cos)
+#summary(hba1c_bd_nondm_cos$glm)
+mesor_control <- mean(hba1c_bd_nondm_cos$glm$fitted.values) # for mesor
+#plot(hba1c_bd_nondm_cos)
+#seasrescheck(hba1c_bd_nondm_cos$residuals) # check the residuals
+
+
+#create new vars for plotting fitted sinusoid from a Cosinor object
+time_fit_bd = subset(hba1c_bd_nondm_cos$glm$data, select = hba1c_bd_nondm_cos$date)[, 1]
+o_c = order(time_fit_bd)
+
+# HbA1c - plot
+
+pirateplot(formula =  g_haem ~ assess_month,
+           data = bd_nondm_group,
+           #col = rgb(cr(daylen / max(daylen)), max=255),
+           pal=temp_col, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("HbA1c (mmol/mol)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = temp_col,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           ylim=c(30,40),  # Adjust y axis limits
+           #ylim=c(32,36.5)
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3)),
+           main = "HbA1c Seasonal Profile - Non-diabetic bipolar population"
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_bd[o_c],hba1c_bd_nondm_cos$fitted.values[o_c], lty=2,lwd=1, col="black")
+points(time_fit_bd[o_c], hba1c_bd_nondm_cos$fitted.values[o_c], pch = 19)
+legend(10, 60, legend=c("Average Temperature (°c)"),
+       #col=c("darkseagreen3", "lightgoldenrod2", "indianred3","lightsteelblue2"),
+       lty=1, lwd=5, cex=0.8)
+
+
+```
+
+#### HbA1c bipolar diabetic
+
+```{r hba1c diabetic}
+
+#run cosinor
+hba1c_bd_dm_cos <- cosinor(g_haem~1 #+ c_dm_group$age + c_dm_group$BMI + c_dm_group$sex_f + c_dm_group$ethnicity_f
+                             , date='assess_month', type='monthly',data=bd_dm_group)
+bd_dm_cos_summary <- summary(hba1c_bd_dm_cos)
+#summary(hba1c_bd_dm_cos$glm)
+mesor_control <- mean(hba1c_bd_dm_cos$glm$fitted.values) # for mesor
+#plot(hba1c_bd_dm_cos)
+#seasrescheck(hba1c_bd_dm_cos$residuals) # check the residuals
+
+
+#create new vars for plotting fitted sinusoid from a Cosinor object
+time_fit_control = subset(hba1c_bd_dm_cos$glm$data, select = hba1c_bd_dm_cos$date)[, 1]
+o_c = order(time_fit_control)
+
+# HbA1c - control
+dev.new()
+pirateplot(formula =  g_haem ~ assess_month,
+           data = bd_dm_group,
+           #col = rgb(cr(daylen / max(daylen)), max=255),
+           pal=temp_col, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("HbA1c (mmol/mol)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = temp_col,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           ylim=c(25,65),  # Adjust y axis limits
+           #ylim=c(32,36.5)
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3)),
+           main = "HbA1c Seasonal Profile - Diabetic bipolar population"
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_control[o_c],hba1c_bd_dm_cos$fitted.values[o_c], lty=2,lwd=1, col="black")
+points(time_fit_control[o_c], hba1c_bd_dm_cos$fitted.values[o_c], pch = 19)
+#legend(10, 60, legend=c("Average Temperature (°c)"),
+       #col=c("darkseagreen3", "lightgoldenrod2", "indianred3","lightsteelblue2"),
+       #lty=1, lwd=5, cex=0.8)
+```
+
+#### Glucose non-diabetic
+
+```{r hba1c diabetic}
+
+#run cosinor
+glu_bd_nondm_cos <- cosinor(glucose~1 #+ c_dm_group$age + c_dm_group$BMI + c_dm_group$sex_f + c_dm_group$ethnicity_f
+                             , date='assess_month', type='monthly',data=bd_nondm_group)
+bd_nondm_cos_summary <- summary(glu_bd_nondm_cos)
+#summary(glu_bd_nondm_cos$glm)
+mesor_control <- mean(glu_bd_nondm_cos$glm$fitted.values) # for mesor
+#plot(glu_bd_nondm_cos)
+#seasrescheck(glu_bd_nondm_cos$residuals) # check the residuals
+
+
+#create new vars for plotting fitted sinusoid from a Cosinor object
+time_fit_control = subset(glu_bd_nondm_cos$glm$data, select = glu_bd_nondm_cos$date)[, 1]
+o_c = order(time_fit_control)
+
+# HbA1c - control
+dev.new()
+pirateplot(formula =  glucose ~ assess_month,
+           data = bd_nondm_group,
+           #col = rgb(cr(daylen / max(daylen)), max=255),
+           pal=temp_col, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("Glucose (mmol/L)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = temp_col,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           ylim=c(4.6,5.8),  # Adjust y axis limits
+           #ylim=c(32,36.5)
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3)),
+           main = "Glucose Seasonal Profile - Non-diabetic bipolar population"
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_control[o_c],glu_bd_nondm_cos$fitted.values[o_c], lty=2,lwd=1, col="black")
+points(time_fit_control[o_c], glu_bd_nondm_cos$fitted.values[o_c], pch = 19)
+#legend(10, 60, legend=c("Average Temperature (°c)"),
+ #      #col=c("darkseagreen3", "lightgoldenrod2", "indianred3","lightsteelblue2"),
+  #     lty=1, lwd=5, cex=0.8)
+```
+
+#### Glucose diabetic
+
+```{r glucose diabetic}
+
+#run cosinor
+glu_bd_dm_cos <- cosinor(glucose~1 #+ c_dm_group$age + c_dm_group$BMI + c_dm_group$sex_f + c_dm_group$ethnicity_f
+                             , date='assess_month', type='monthly',data=bd_dm_group)
+bd_dm_cos_summary <- summary(glu_bd_dm_cos)
+#summary(glu_bd_dm_cos$glm)
+mesor_control <- mean(glu_bd_dm_cos$glm$fitted.values) # for mesor
+#plot(glu_bd_dm_cos)
+#seasrescheck(glu_bd_dm_cos$residuals) # check the residuals
+
+
+#create new vars for plotting fitted sinusoid from a Cosinor object
+time_fit_control = subset(glu_bd_dm_cos$glm$data, select = glu_bd_dm_cos$date)[, 1]
+o_c = order(time_fit_control)
+
+# HbA1c - control
+dev.new()
+pirateplot(formula =  glucose ~ assess_month,
+           data = bd_dm_group,
+           #col = rgb(cr(daylen / max(daylen)), max=255),
+           pal=temp_col, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("Glucose (mmol/L)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = temp_col,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           ylim=c(2,10),  # Adjust y axis limits
+           #ylim=c(32,36.5)
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3)),
+           main = "Glucose Seasonal Profile - Diabetic bipolar population"
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_control[o_c],glu_bd_dm_cos$fitted.values[o_c], lty=2,lwd=1, col="black")
+points(time_fit_control[o_c], glu_bd_dm_cos$fitted.values[o_c], pch = 19)
+#legend(10, 60, legend=c("Average Temperature (°c)"),
+#       #col=c("darkseagreen3", "lightgoldenrod2", "indianred3","lightsteelblue2"),
+#       lty=1, lwd=5, cex=0.8)
+```
+
+#### Circacompare - glucose
+
+```{r}
+#create new control_df
+bd_df <- filter(svdm_all_ppts, group == 'bipolar dm' | group == 'bipolar nondm')
+
+
+cos_stats_glucose <- circacompare(x=bd_df, col_time="assess_month", 
+                                  col_group="group", col_outcome="glucose", 
+                                  period=12, alpha_threshold=0.8, 
+                                  control = c('sex', 'age', 'BMI', 'ethnicity_f'))
+```
+
+#### Circacompare - HbA1c
+
+```{r}
+cos_stats_ghaem <- circacompare(x=bd_df, col_time="assess_month", 
+                                  col_group="group", col_outcome="g_haem", 
+                                  period=12, alpha_threshold=0.5, 
+                                  control = c('sex', 'age', 'BMI', 'ethnicity_f')) #set alpha to 0.1 as p=0.054 for diabetic group
+```
