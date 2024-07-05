@@ -46,7 +46,7 @@ load(file="C:\\Users\\arogusk2\\OneDrive - University of Edinburgh\\HELIOS-BD\\S
 #### Table 1
 
 ```{r table 1, echo=FALSE}
-
+report_sample(svdm_all_ppts, group_by='group', select='sex')
 # summary statistics - mean for continuous variables:
 demo_mean_df <- svdm_all_ppts %>%
   group_by(group) %>%
@@ -379,6 +379,69 @@ colkey(clim = range(1:12),
        lwd.ticks=.2)
 dev.off()
 
+#### year expanded
+non_dm_no06 <- c_nondm_group %>%  filter(assess_year>2006 & bs_year>2006)
+#make new column for date all same year
+non_dm_d <- non_dm_no06
+non_dm_d$date_yrsame <- update(non_dm_d$assess_date, year = 2024)
+
+#run cosinor
+hb_c_nondm_cos_y <- cosinor(g_haem~1, #+ control_07$age + control_07$BMI + control_07$sex_f + control_07$bs_itime + control_07$ethnicity_f, 
+                            date='assess_date', type='daily', data=non_dm_d, cycles=1)
+hb_c_nondm_cos_y_summ <- summary(hb_c_nondm_cos_y)
+#plot
+ggplot(non_dm_d, aes(x=assess_date, y=g_haem)) +
+  #geom_line(colour="lightgrey")+
+  geom_smooth()
+
+#plot temp
+dev.new()
+ggplot(non_dm_d, aes(x=assess_date, y=average_temp)) +
+  #geom_line(colour="lightgrey")+
+  geom_smooth()
+
+#create new vars for plotting fitted sinusoid from a Cosinor object
+time_fit_control = subset(hba1c_c_nondm_cos$glm$data, select = hba1c_c_nondm_cos$date)[, 1]
+o_c = order(time_fit_control)
+
+# HbA1c - control
+
+pirateplot(formula =  g_haem ~ BS_date,
+           data = non_dm_d,
+           #col = rgb(cr(daylen / max(daylen)), max=255),
+           pal=temp_col, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("HbA1c (mmol/mol)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = temp_col,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           ylim=c(34,35.5),  # Adjust y axis limits
+           #ylim=c(32,36.5)
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3)),
+           main = "HbA1c Seasonal Profile - Non-diabetic population"
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_control[o_c],hba1c_c_nondm_cos$fitted.values[o_c], lty=2,lwd=1, col="black")
+points(time_fit_control[o_c], hba1c_c_nondm_cos$fitted.values[o_c], pch = 19)
+legend(10, 60, legend=c("Average Temperature (°c)"),
+       #col=c("darkseagreen3", "lightgoldenrod2", "indianred3","lightsteelblue2"),
+       lty=1, lwd=5, cex=0.8)
+
 ```
 
 #### HbA1c control diabetic
@@ -673,7 +736,7 @@ pirateplot(formula =  g_haem ~ assess_month,
            #bty=n,
            #point.cex = .5, # Points
            #quant = c(.1, .9), # Adjust quantiles
-           ylim=c(25,65),  # Adjust y axis limits
+           ylim=c(30,70),  # Adjust y axis limits
            #ylim=c(32,36.5)
            #gl.col = gray(.2), # Gridline specifications
            #gl.lty = 1,
@@ -824,4 +887,407 @@ cos_stats_ghaem <- circacompare(x=bd_df, col_time="assess_month",
                                   col_group="group", col_outcome="g_haem", 
                                   period=12, alpha_threshold=0.5, 
                                   control = c('sex', 'age', 'BMI', 'ethnicity_f')) #set alpha to 0.1 as p=0.054 for diabetic group
+```
+
+#### Multivariable Linear Model
+
+```{r}
+#make new var for positive photoperiod ROC
+
+c_nondm_group$ROC_pos <- abs(c_nondm_group$photoperiod_roc_min)
+c_dm_group$ROC_pos <- abs(c_dm_group$photoperiod_roc_min)
+bd_nondm_group$ROC_pos <- abs(bd_nondm_group$photoperiod_roc_min)
+bd_dm_group$ROC_pos <- abs(bd_dm_group$photoperiod_roc_min)
+svdm_all_ppts$ROC_pos <- abs(svdm_all_ppts$photoperiod_roc_min)
+
+#make bs_itime var
+library(data.table)
+c_nondm_group$bs_itime <- as.ITime(c_nondm_group$bs_time)
+c_nondm_group$bs_itime <- as.integer(c_nondm_group$bs_itime)
+c_nondm_group<- c_nondm_group %>%  filter(!bs_itime<1)
+
+
+
+c_dm_group$bs_itime <- as.ITime(c_dm_group$bs_time)
+c_dm_group$bs_itime <- as.integer(c_dm_group$bs_itime)
+c_dm_group<- c_dm_group %>%  filter(!bs_itime<1)
+
+
+
+bd_nondm_group$bs_itime <- as.ITime(bd_nondm_group$bs_time)
+bd_nondm_group$bs_itime <- as.integer(bd_nondm_group$bs_itime)
+bd_nondm_group<- bd_nondm_group %>%  filter(!bs_itime<1)
+
+
+
+bd_dm_group$bs_itime <- as.ITime(bd_dm_group$bs_time)
+bd_dm_group$bs_itime <- as.integer(bd_dm_group$bs_itime)
+bd_dm_group<- bd_dm_group %>%  filter(!bs_itime<1)
+detach("package:data.table", unload=TRUE) 
+```
+
+```{r}
+#non-diabetic control
+#exploratory plot
+ggplot(svdm_all_ppts, aes(x=ROC_pos, y=g_haem, color=group)) + 
+  #geom_point()+
+  geom_smooth(method=lm)#+  
+  #ylim(20, 50)
+
+#multivariate analysis - level 1
+model1 <- lm(g_haem ~ ROC_pos +
+               #group +
+               #level 1
+               age + sex_f + townsend + ethnicity_f,
+  data = c_nondm_group
+)
+summary(model1)
+#abline(model1, col="red", lwd=2) # fit line to plot
+
+# test for multicollinearity
+ols_vif_tol(model1)
+
+#multivariate analysis - level 2
+model2 <- lm(g_haem ~ ROC_pos + 
+               #group +
+               #level 1
+               age + sex_f + townsend + ethnicity_f +
+               #level 2
+               BMI + smoking_f +
+               alcohol_f + health_f + 
+               chrono_f,
+  data = c_nondm_group
+)
+summary(model2)
+
+# test for multicollinearity
+ols_vif_tol(model2)
+
+#multivariate analysis - level 3
+# average temp removed due to high collinearity (VIF: 11.944)
+model3 <- lm(g_haem ~ ROC_pos + 
+               #group_f +
+               #level 1
+               age + sex_f + townsend + ethnicity_f +
+               #level 2
+               BMI + smoking_f +
+               alcohol_f + health_f + 
+               chrono_f +
+               #level 3
+               daylength_min + assess_latitude +
+               time_outdoors_summer + time_outdoors_winter, 
+  data = c_nondm_group
+)
+summary(model3)
+
+# test for multicollinearity
+ols_vif_tol(model3)
+
+#multivariate analysis - level 4
+model4 <- lm(g_haem ~ ROC_pos + 
+               #group_f +
+               #level 1
+               age + sex_f + townsend + ethnicity_f +
+               #level 2
+               BMI +  #smoking_f +
+               #alcohol_f + health_f +
+               chrono_f +
+               #level 3
+               daylength_min + assess_latitude +
+               time_outdoors_summer + time_outdoors_winter +
+               #level 4
+               centre_f + bs_itime,
+  data = c_nondm_group
+)
+summary(model4)
+# test for multicollinearity
+ols_vif_tol(model4)
+```
+
+#### Compare AICs - HbA1c
+
+```{r compare AICs - HbA1c nondiabetic bipolar}
+
+# run cosinor - 1 cycle
+ghaem_bd_nondm_cos1 <- cosinor(g_haem~1 + bd_nondm_group$age + bd_nondm_group$BMI + bd_nondm_group$sex_f + bd_nondm_group$bs_itime + bd_nondm_group$ethnicity_f ,
+                               date='assess_month', type='monthly', 
+                               data=bd_nondm_group, cycles=1)
+
+# run cosinor - 2 cycle
+ghaem_bd_nondm_cos2 <- cosinor(g_haem~1 + bd_nondm_group$age + bd_nondm_group$BMI + bd_nondm_group$sex_f + bd_nondm_group$bs_itime + bd_nondm_group$ethnicity_f ,
+                               date='assess_month', type='monthly',
+                               data=bd_nondm_group, cycles=2) 
+
+
+#view aic
+ghaem_bd_nondm_cos1$glm$aic
+ghaem_bd_nondm_cos2$glm$aic
+
+
+#plot cycle2 model
+#cosinor for plotting
+ghaem_bd_nondm_cos2p <- cosinor(g_haem~1, #+ bd_nondm_group$age + bd_nondm_group$BMI + bd_nondm_group$sex_f + bd_nondm_group$bs_itime + bd_nondm_group$ethnicity_f , 
+                                date='assess_month', type='monthly', 
+                                data=bd_nondm_group, cycles=2) 
+
+
+time_fit_bd = subset(ghaem_bd_nondm_cos2p$glm$data, select = ghaem_bd_nondm_cos2p$date)[, 1]
+o_c = order(time_fit_bd)
+
+# HbA1c - plot
+
+pirateplot(formula =  g_haem ~ assess_month,
+           data = bd_nondm_group,
+           #col = rgb(cr(daylen / max(daylen)), max=255),
+           pal=temp_col, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("HbA1c (mmol/mol)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = temp_col,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           ylim=c(30,40),  # Adjust y axis limits
+           #ylim=c(32,36.5)
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3)),
+           main = "HbA1c Seasonal Profile - Non-diabetic bipolar population"
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_bd[o_c],ghaem_bd_nondm_cos2p$fitted.values[o_c], lty=2,lwd=1, col="black")
+points(time_fit_bd[o_c], ghaem_bd_nondm_cos2p$fitted.values[o_c], pch = 19)
+
+
+# compare AICs between models
+# exp(model_x_AIC - model_y_AIC/2) = value
+# put 'best' model as model_y_AIC; value = how many times as probable as the first model is second model to minimse information loss
+# lower AIC = better model (generally)
+exp((ghaem_bd_nondm_cos2$glm$aic-ghaem_bd_nondm_cos1$glm$aic)/2)
+```
+
+```{r compare AICs - HbA1c diabetic bipolar}
+
+# run cosinor - 1 cycle
+ghaem_bd_dm_cos1 <- cosinor(g_haem~1 + bd_dm_group$age + bd_dm_group$BMI + bd_dm_group$sex_f + bd_dm_group$bs_itime + bd_dm_group$ethnicity_f , 
+                            date='assess_month', type='monthly', 
+                            data=bd_dm_group, cycles=1)
+
+# run cosinor - 2 cycle
+ghaem_bd_dm_cos2 <- cosinor(g_haem~1+ bd_dm_group$age + bd_dm_group$BMI + bd_dm_group$sex_f + bd_dm_group$bs_itime + bd_dm_group$ethnicity_f , 
+                            date='assess_month', type='monthly', 
+                            data=bd_dm_group, cycles=2) 
+
+
+#view aic
+ghaem_bd_dm_cos1$glm$aic
+ghaem_bd_dm_cos2$glm$aic
+
+
+#plot cycle2 model
+#cosinor for plotting
+ghaem_bd_dm_cos2p <- cosinor(g_haem~1, #+ bd_nondm_group$age + bd_nondm_group$BMI + bd_nondm_group$sex_f + bd_nondm_group$bs_itime + bd_nondm_group$ethnicity_f , 
+                                date='assess_month', type='monthly', 
+                                data=bd_dm_group, cycles=2) 
+
+
+time_fit_bd = subset(ghaem_bd_dm_cos2p$glm$data, select = ghaem_bd_dm_cos2p$date)[, 1]
+o_c = order(time_fit_bd)
+
+# HbA1c - plot
+
+pirateplot(formula =  g_haem ~ assess_month,
+           data = bd_dm_group,
+           #col = rgb(cr(daylen / max(daylen)), max=255),
+           pal=temp_col, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("HbA1c (mmol/mol)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = temp_col,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           ylim=c(30,70),  # Adjust y axis limits
+           #ylim=c(32,36.5)
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3)),
+           main = "HbA1c Seasonal Profile - Diabetic bipolar population"
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_bd[o_c],ghaem_bd_dm_cos2p$fitted.values[o_c], lty=2,lwd=1, col="black")
+points(time_fit_bd[o_c], ghaem_bd_dm_cos2p$fitted.values[o_c], pch = 19)
+
+
+# compare AICs between models
+# exp(model_x_AIC - model_y_AIC/2) = value
+# put 'best' model as model_y_AIC; value = how many times as probable as the first model is second model to minimse information loss
+# lower AIC = better model (generally)
+exp((ghaem_bd_dm_cos1$glm$aic-ghaem_bd_dm_cos2$glm$aic)/2)
+
+```
+
+#### Compare AICs - Glucose
+
+```{r compare AICs - glucose nondiabetic bipolar}
+
+# run cosinor - 1 cycle
+glu_bd_nondm_cos1 <- cosinor(glucose~1 + bd_nondm_group$age + bd_nondm_group$BMI + bd_nondm_group$sex_f + bd_nondm_group$bs_itime + bd_nondm_group$ethnicity_f ,
+                               date='assess_month', type='monthly', 
+                               data=bd_nondm_group, cycles=1)
+
+# run cosinor - 2 cycle
+glu_bd_nondm_cos2 <- cosinor(glucose~1 + bd_nondm_group$age + bd_nondm_group$BMI + bd_nondm_group$sex_f + bd_nondm_group$bs_itime + bd_nondm_group$ethnicity_f ,
+                               date='assess_month', type='monthly',
+                               data=bd_nondm_group, cycles=2) 
+
+
+#view aic
+glu_bd_nondm_cos1$glm$aic
+glu_bd_nondm_cos2$glm$aic
+
+
+#plot cycle2 model
+#cosinor for plotting
+glu_bd_nondm_cos2p <- cosinor(glucose~1, #+ bd_nondm_group$age + bd_nondm_group$BMI + bd_nondm_group$sex_f + bd_nondm_group$bs_itime + bd_nondm_group$ethnicity_f , 
+                                date='assess_month', type='monthly', 
+                                data=bd_nondm_group, cycles=2) 
+
+
+time_fit_bd = subset(glu_bd_nondm_cos2p$glm$data, select = glu_bd_nondm_cos2p$date)[, 1]
+o_c = order(time_fit_bd)
+
+#glucose - plot
+
+pirateplot(formula =  glucose ~ assess_month,
+           data = bd_nondm_group,
+           #col = rgb(cr(daylen / max(daylen)), max=255),
+           pal=temp_col, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("Glucose (mmol/L)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = temp_col,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           ylim=c(4.6,5.8),  # Adjust y axis limits
+           #ylim=c(32,36.5)
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3)),
+           main = "Glucose Seasonal Profile - Non-diabetic bipolar population"
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_bd[o_c],glu_bd_nondm_cos2p$fitted.values[o_c], lty=2,lwd=1, col="black")
+points(time_fit_bd[o_c], glu_bd_nondm_cos2p$fitted.values[o_c], pch = 19)
+
+
+# compare AICs between models
+# exp(model_x_AIC - model_y_AIC/2) = value
+# put 'best' model as model_y_AIC; value = how many times as probable as the first model is second model to minimse information loss
+# lower AIC = better model (generally)
+exp((glu_bd_nondm_cos1$glm$aic-glu_bd_nondm_cos2$glm$aic)/2)
+```
+
+```{r compare AICs - glucose diabetic bipolar}
+# run cosinor - 1 cycle
+glu_bd_dm_cos1 <- cosinor(glucose~1 + bd_dm_group$age + bd_dm_group$BMI + bd_dm_group$sex_f + bd_dm_group$bs_itime + bd_dm_group$ethnicity_f ,
+                               date='assess_month', type='monthly', 
+                               data=bd_dm_group, cycles=1)
+
+# run cosinor - 2 cycle
+glu_bd_dm_cos2 <- cosinor(glucose~1 + bd_dm_group$age + bd_dm_group$BMI + bd_dm_group$sex_f + bd_dm_group$bs_itime + bd_dm_group$ethnicity_f ,
+                               date='assess_month', type='monthly',
+                               data=bd_dm_group, cycles=2) 
+
+
+#view aic
+glu_bd_dm_cos1$glm$aic
+glu_bd_dm_cos2$glm$aic
+
+
+#plot cycle2 model
+#cosinor for plotting
+glu_bd_dm_cos2p <- cosinor(glucose~1, #+ bd_nondm_group$age + bd_nondm_group$BMI + bd_nondm_group$sex_f + bd_nondm_group$bs_itime + bd_nondm_group$ethnicity_f , 
+                                date='assess_month', type='monthly', 
+                                data=bd_dm_group, cycles=2) 
+
+
+time_fit_bd = subset(glu_bd_dm_cos2p$glm$data, select = glu_bd_dm_cos2p$date)[, 1]
+o_c = order(time_fit_bd)
+
+#glucose - plot
+
+pirateplot(formula =  glucose ~ assess_month,
+           data = bd_dm_group,
+           #col = rgb(cr(daylen / max(daylen)), max=255),
+           pal=temp_col, #set to your own color palette created previously
+           xlab = "Month",
+           ylab = expression(bold(paste("Glucose (mmol/L)"))),
+           yaxt="n",
+           xaxt = "n",
+           theme=0, #set theme to 0
+           bty="n",
+           #bean.f.o = .4, # Bean fill
+           #point.o = .4, # Points
+           inf.f.o = .8, # Inference fill
+           inf.b.o = 1, # Inference border
+           inf.f.col = temp_col,
+           inf.method = "ci",
+           avg.line.o = 1, # Average line
+           #bty=n,
+           #point.cex = .5, # Points
+           #quant = c(.1, .9), # Adjust quantiles
+           ylim=c(2,10),  # Adjust y axis limits
+           #ylim=c(32,36.5)
+           #gl.col = gray(.2), # Gridline specifications
+           #gl.lty = 1,
+           #gl.lwd = c(0, .3)),
+           main = "Glucose Seasonal Profile - Diabetic bipolar population"
+           )
+
+axis(2,col.axis="black", lwd=2, las=2, cex.axis = 0.6)
+axis(1, at=1:12, labels = namesshort, lwd=2, cex.axis = 0.8,font=2)
+lines(time_fit_bd[o_c],glu_bd_dm_cos2p$fitted.values[o_c], lty=2,lwd=1, col="black")
+points(time_fit_bd[o_c], glu_bd_dm_cos2p$fitted.values[o_c], pch = 19)
+
+
+# compare AICs between models
+# exp(model_x_AIC - model_y_AIC/2) = value
+# put 'best' model as model_y_AIC; value = how many times as probable as the first model is second model to minimse information loss
+# lower AIC = better model (generally)
+exp((glu_bd_dm_cos1$glm$aic-glu_bd_dm_cos2$glm$aic)/2)
 ```
