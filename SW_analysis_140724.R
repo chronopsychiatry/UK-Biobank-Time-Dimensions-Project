@@ -138,8 +138,10 @@ shiftwork_cum <- shiftwork_cum %>%
   filter(!is.na(total_hr) & total_hr != 0)
 
 UKB_masterSW_cum <- merge(shiftwork_cum, UKB_master, by="eid")
-UKB_masterSW_cum$SW <- UKB_masterSW_cum$total_hr_nightSW + UKB_masterSW_cum$total_hr_mixSW + UKB_masterSW_cum$total_hr_daySW
-UKB_masterSW_cum$NSW <- UKB_masterSW_cum$total_hr_nightSW + UKB_masterSW_cum$total_hr_mixSW
+
+# Calculate total work hours by summing the values row-wise
+UKB_masterSW_cum$SW <- rowSums(UKB_masterSW_cum[, c("total_hr_nightSW", "total_hr_mixSW", "total_hr_daySW")])
+UKB_masterSW_cum$NSW <- rowSums(UKB_masterSW_cum[, c("total_hr_nightSW", "total_hr_mixSW")])
 
 UKB_masterSW_cum$NDD <- UKB_masterSW_cum$NDD <- 0
 UKB_masterSW_cum$NDD <- ifelse(UKB_masterSW_cum$MS_YN == 1, "MS", 
@@ -255,8 +257,8 @@ shiftwork_years$SW_cat <- cut(shiftwork_years$yrs_SW, breaks = breaks, labels = 
 shiftwork_years$NSW_cat <- cut(shiftwork_years$yrs_NSW, breaks = breaks, labels = labels, include.lowest = TRUE)
 
 shiftwork_years <- merge(UKB_masterSW,shiftwork_years, by = "eid")  # merge the new SW categories into main table
-
-
+table(shiftwork_years$bracket_SW_type)
+shiftwork_years$bracket
 
 ##############################################################################################################
 #
@@ -285,6 +287,7 @@ get_mode <- function(x) {
   ux <- unique(x)
   ux[which.max(tabulate(match(x, ux)))]
 }
+
 
 summary_data <- x %>%
   group_by(eid) %>%
@@ -575,33 +578,39 @@ table(summary_data$alcohol_intake)
 MS_model1 <- glm(MS_YN ~ age + sex + townsend ,
                  data = summary_data, family = "binomial")
 MS_model2 <- glm(MS_YN ~ age + sex + townsend  
-                 + child_obesity + early_SW_YN + chronotype,
+                 + child_obesity  + chronotype,
                  data = summary_data, family = "binomial")
 MS_model3 <- glm(MS_YN ~ age + sex + townsend  
-                 + child_obesity + early_SW_YN + chronotype
-                 + alcohol_intake + smoking_status + time_outdoors_summer  + bracket_SW_YN,
+                child_obesity  +  early_SW_YN + chronotype
+                 + alcohol_intake + smoking_status + time_outdoors_summer + early_SW_YN + bracket_SW_YN  ,
                  data = summary_data, family = "binomial")
 summary(MS_model3)
 tab_model(MS_model1, MS_model2, MS_model3 ,show.intercept=FALSE)
 
+# make categorical vars
+UKB_masterSW_cum$NSW_cat <- ifelse(UKB_masterSW_cum$total_hr_nightSW > 0, 1,0)
+UKB_masterSW_cum$mixSW_cat <- ifelse(UKB_masterSW_cum$total_hr_mixSW > 0, 1,0)
+UKB_masterSW_cum$daySW_cat <- ifelse(UKB_masterSW_cum$total_hr_daySW > 0, 1,0)
+
+
 # MS           final model looking at numbers that did early SW and any NSW
-MS_model1 <- glm(MS_YN ~ age + sex + townsend ,
-                 data = summary_data, family = "binomial")
-MS_model2 <- glm(MS_YN ~ age + sex + townsend  
-                 + child_obesity + early_SW_YN + chronotype,
-                 data = summary_data, family = "binomial")
-MS_model3 <- glm(MS_YN ~ age + sex + townsend  
-                 + child_obesity + early_SW_YN + chronotype
-                 + alcohol_intake + smoking_status + time_outdoors_summer  + bracket_NSW_YN,
-                 data = summary_data, family = "binomial")
-summary(MS_model3)
-tab_model(MS_model1, MS_model2, MS_model3 ,show.intercept=FALSE)
+# MS_model1 <- glm(MS_YN ~ age + sex + townsend ,
+#                  data = summary_data, family = "binomial")
+# MS_model2 <- glm(MS_YN ~ age + sex + townsend  
+#                  + child_obesity + early_SW_YN + chronotype,
+#                  data = summary_data, family = "binomial")
+# MS_model3 <- glm(MS_YN ~ age + sex + townsend  
+#                  + child_obesity + early_SW_YN + chronotype
+#                  + alcohol_intake + smoking_status + time_outdoors_summer  + bracket_NSW_YN,
+#                  data = summary_data, family = "binomial")
+# summary(MS_model3)
+# tab_model(MS_model1, MS_model2, MS_model3 ,show.intercept=FALSE)
 
 
 
 #check VIF for early life and ever sw
 library (car)
-vif_values <- car::vif(PD_model3)
+vif_values <- car::vif(MS_model3)
 print(vif_values)
 
 
@@ -630,65 +639,67 @@ table(UKB_masterSW_cum$alcohol_intake)
 UKB_masterSW_cum$NSW_normal <- UKB_masterSW_cum$NSW/UKB_masterSW_cum$total_hr
 UKB_masterSW_cum$SW_normal <- UKB_masterSW_cum$SW/UKB_masterSW_cum$total_hr
 
-# MS and total hours of SW           
+
+# MS and total hours of SW, Mix and NSW        
+UKB_masterSW_cum$SW <- UKB_masterSW_cum$total_hr_nightSW + UKB_masterSW_cum$total_hr_mixSW + UKB_masterSW_cum$total_hr_daySW
+
+
+
 MSx_model1 <- glm(MS_YN ~ age + sex + townsend,
-                 data = UKB_masterSW_cum, family = "binomial")
+                  data = UKB_masterSW_cum, family = "binomial")
 MSx_model2 <- glm(MS_YN ~ age + sex + townsend 
-                 + child_obesity + early_SW_YN + chronotype,
-                 data = UKB_masterSW_cum, family = "binomial")
+                  + child_obesity  + chronotype,
+                  data = UKB_masterSW_cum, family = "binomial")
 MSx_model3 <- glm(MS_YN ~ age + sex + townsend
-                 + child_obesity + early_SW_YN + chronotype
-                 + alcohol_intake + smoking_status + time_outdoors_summer + SW,
-                 data = UKB_masterSW_cum, family = "binomial")
+                  child_obesity   + chronotype
+                  + alcohol_intake + smoking_status + time_outdoors_summer +  early_SW_YN + total_hr_mixSW + total_hr_daySW + total_hr_nightSW + total_hr,
+                  data = UKB_masterSW_cum, family = "binomial")
 tab_model(MSx_model1, MSx_model2, MSx_model3 ,show.intercept=FALSE)
 summary(MSx_model3 )
+
+#check VIF for early life and ever sw
+library (car)
+vif_values <- car::vif(MSx_model3)
+print(vif_values)
+
+# #just hours SW
+# MSx_model1 <- glm(MS_YN ~ age + sex + townsend,
+#                  data = UKB_masterSW_cum, family = "binomial")
+# MSx_model2 <- glm(MS_YN ~ age + sex + townsend 
+#                  + child_obesity + early_SW_YN + chronotype,
+#                  data = UKB_masterSW_cum, family = "binomial")
+# MSx_model3 <- glm(MS_YN ~ age + sex + townsend
+#                  + child_obesity + early_SW_YN + chronotype
+#                  + alcohol_intake + smoking_status + time_outdoors_summer + SW,
+#                  data = UKB_masterSW_cum, family = "binomial")
+# tab_model(MSx_model1, MSx_model2, MSx_model3 ,show.intercept=FALSE)
+# summary(MSx_model3 )
 
 # MS and total hours of NSW           
-MSx_model1 <- glm(MS_YN ~ age + sex + townsend + centre,
-                  data = UKB_masterSW_cum, family = "binomial")
-MSx_model2 <- glm(MS_YN ~ age + sex + townsend + centre 
-                  + child_obesity + early_SW_YN + chronotype,
-                  data = UKB_masterSW_cum, family = "binomial")
-MSx_model3 <- glm(MS_YN ~ age + sex + townsend + centre 
-                  + child_obesity + early_SW_YN + chronotype
-                  + alcohol_intake + smoking_status + time_outdoors_summer + NSW,
-                  data = UKB_masterSW_cum, family = "binomial")
-tab_model(MSx_model1, MSx_model2, MSx_model3 ,show.intercept=FALSE)
-summary(MSx_model3 )
-
-# MS and total hours of NSW normalised           
-MSx_model1 <- glm(MS_YN ~ age + sex + townsend + centre,
-                  data = UKB_masterSW_cum, family = "binomial")
-MSx_model2 <- glm(MS_YN ~ age + sex + townsend + centre 
-                  + child_obesity + early_SW_YN + chronotype,
-                  data = UKB_masterSW_cum, family = "binomial")
-MSx_model3 <- glm(MS_YN ~ age + sex + townsend + centre 
-                  + child_obesity + early_SW_YN + chronotype
-                  + alcohol_intake + smoking_status + time_outdoors_summer + NSW_normal,
-                  data = UKB_masterSW_cum, family = "binomial")
-tab_model(MSx_model1, MSx_model2, MSx_model3 ,show.intercept=FALSE)
-summary(MSx_model3 )
-
-
-# MS and total hours of SW normalised           
-MSx_model1 <- glm(MS_YN ~ age + sex + townsend + centre,
-                  data = UKB_masterSW_cum, family = "binomial")
-MSx_model2 <- glm(MS_YN ~ age + sex + townsend + centre 
-                  + child_obesity + early_SW_YN + chronotype,
-                  data = UKB_masterSW_cum, family = "binomial")
-MSx_model3 <- glm(MS_YN ~ age + sex + townsend + centre 
-                  + child_obesity + early_SW_YN + chronotype
-                  + alcohol_intake + smoking_status + time_outdoors_summer + SW_normal,
-                  data = UKB_masterSW_cum, family = "binomial")
-tab_model(MSx_model1, MSx_model2, MSx_model3 ,show.intercept=FALSE)
-summary(MSx_model3 )
-
-
-
-
-
-
-
+# MSx_model1 <- glm(MS_YN ~ age + sex + townsend + centre,
+#                   data = UKB_masterSW_cum, family = "binomial")
+# MSx_model2 <- glm(MS_YN ~ age + sex + townsend + centre 
+#                   + child_obesity + early_SW_YN + chronotype,
+#                   data = UKB_masterSW_cum, family = "binomial")
+# MSx_model3 <- glm(MS_YN ~ age + sex + townsend + centre 
+#                   + child_obesity + early_SW_YN + chronotype
+#                   + alcohol_intake + smoking_status + time_outdoors_summer + NSW,
+#                   data = UKB_masterSW_cum, family = "binomial")
+# tab_model(MSx_model1, MSx_model2, MSx_model3 ,show.intercept=FALSE)
+# summary(MSx_model3 )
+# 
+# # MS and total hours of NSW normalised           
+# MSx_model1 <- glm(MS_YN ~ age + sex + townsend + centre,
+#                   data = UKB_masterSW_cum, family = "binomial")
+# MSx_model2 <- glm(MS_YN ~ age + sex + townsend + centre 
+#                   + child_obesity + early_SW_YN + chronotype,
+#                   data = UKB_masterSW_cum, family = "binomial")
+# MSx_model3 <- glm(MS_YN ~ age + sex + townsend + centre 
+#                   + child_obesity + early_SW_YN + chronotype
+#                   + alcohol_intake + smoking_status + time_outdoors_summer + NSW_normal,
+#                   data = UKB_masterSW_cum, family = "binomial")
+# tab_model(MSx_model1, MSx_model2, MSx_model3 ,show.intercept=FALSE)
+# summary(MSx_model3 )
 
 
 
