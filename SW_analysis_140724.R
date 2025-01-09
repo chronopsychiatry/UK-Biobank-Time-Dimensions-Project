@@ -14,6 +14,9 @@ library(see)
 library(sjmisc)
 library(sjlabelled)
 library(lubridate)
+library(pscl)
+
+
 
 setwd("C:/Users/Admin/OneDrive - Maynooth University/UK Biobank Shiftwork")
 
@@ -63,17 +66,6 @@ UKB_master <- merge(UKB_master,maternal_smoke,by="eid")
 #problem with age started smoking question in UKB, doesn't include "ocasionally" in smoker and does include "once or twice" in never smoked in contrast to the smoking status varibale.  If age started smoking is nested in smoking status then the definition of former and current are not the same.  This will not matter because the are all mixed up, but some people that were smokers in status variable were not asked the age question.
 
 #two variables to include = smoking_status with smoke_start as nested
-
-
-
-
-
-# Fit the linear regression model delete this
-#model <- lm(response ~ 1 + explanatory1 + explanatory2 + explanatory2:nested_explanatory, data = df)
-
-
-
-
 
 # goto get_NDD_var_040124.R to get NDD data into UKB_master
 
@@ -370,13 +362,13 @@ summary_data <- summary_data[!is.na(summary_data$bracket_NSW_YN), ]
 summary_data <- summary_data[!is.na(summary_data$bracket_SW_YN), ]
 
 
-table1(~ sex + age + townsend + birth_latitude + #demography
+p1<-table1(~ sex + age + townsend + birth_latitude + #demography
          BMI_cat +   chronotype + child_obesity + #physiology
          alcohol_intake + time_outdoors_summer +  #lifestyle
          + maternal_smoke + sunburn_cat +
          smoker + smoke_start + smoke_20yr  +  #smoking
          early_NSW_YN + early_SW_YN + factor(bracket_NSW_YN) + factor(bracket_SW_YN) # shiftwork 15-20
-         | MS_YN, data=summary_data, overall=FALSE,  render.continuous=my.render.cont, render.categorical=my.render.cat)
+         | factor(MS_YN), data=summary_data, overall=FALSE,  render.continuous=my.render.cont, render.categorical=my.render.cat)
 
 ## Create Table 1 stratified by MS to get p-values
 tableOne <- CreateTableOne(vars = c('sex' , 'age' , 'townsend' , 'birth_latitude' , #demography
@@ -390,8 +382,8 @@ tableOne <- CreateTableOne(vars = c('sex' , 'age' , 'townsend' , 'birth_latitude
                            #test = FALSE, 
                            factorVars = c())
 
-tableOne 
-
+p <- print(tableOne, printToggle = FALSE, noSpaces = TRUE)
+kable(p, format = "latex")
 # Table 2   Demography stratify by SW - ever did SW
 ---------------------------------------------------------------------------------------------------------------------
   
@@ -516,7 +508,7 @@ sum(shiftwork_exposure$total_hr_nightSW==0)
 sum(is.na(shiftwork_exposure$total_hr_nightSW))
 
 
-table1(~ total_hr + total_hr_daySW  +  total_hr_nightSW + total_hr_mixSW + early_NSW_YN.x + early_SW_YN.x  + Most_Common_SW       | MS_YN, data=shiftwork_exposure, overall=FALSE, render.missing = NULL, render.continuous=my.render.cont, render.categorical=my.render.cat)
+table1(~ total_hr + total_hr_daySW  +  total_hr_nightSW + total_hr_mixSW + early_NSW_YN.x + early_SW_YN.x  + Most_Common_SW       | factor(MS_YN), data=shiftwork_exposure, overall=FALSE, render.missing = NULL, render.continuous=my.render.cont, render.categorical=my.render.cat)
 
 ## Create Table 1 stratified by MS to get p-values
 tableOne <- CreateTableOne(
@@ -527,20 +519,7 @@ data = shiftwork_exposure,
 factorVars = c()
 )
 
-print(tableOne)
 
-str(shiftwork_exposure)
-
-
-# # to do bracket stratification need shiftwork_cum to get dose and need shiftwork_years to get years, merge these two
-# for_merge <- shiftwork_cum[,c("eid","total_hr", "total_hr_daySW", "total_hr_nightSW", "total_hr_mixSW")]
-# shiftwork_merged <- merge(shiftwork_years, for_merge, by="eid")
-# shiftwork_merged <- merge(shiftwork_merged, summary_data[,c("MS_YN", "eid")], by="eid")
-# 
-# table1(~ total_hr + total_hr_daySW  + total_hr_nightSW + total_hr_mixSW + early_NSW_YN + early_SW_YN  + SW_type + SW_occupation        | MS_YN, data=shiftwork_merged, overall=FALSE, render.missing = NULL, render.continuous=my.render.cont, render.categorical=my.render.cat)
-
-
-  
 ################################################################################################################
 #
 # 6.  Regression models
@@ -549,48 +528,48 @@ str(shiftwork_exposure)
 
 
 # MODELS FOR PROB OF BEING A SW OR EARLY SW AND MS
----------------------------------------------------------------------------------------------------------------------
-  
-#remove post 2015 diagnosis Filter out rows where eid is present in diag2015
-#summary_data_filter <- subset(summary_data, !(eid %in% diag_2015))
-
-
-# Specify the reference level using the relevel function
-summary_data$chronotype <- factor(summary_data$chronotype)
-summary_data$chronotype <- relevel(summary_data$chronotype, ref = "Morning")
-table(summary_data$chronotype)
-
-
-summary_data$smoking_status <- factor(summary_data$smoking_status)
-summary_data$smoking_status <- relevel(summary_data$smoking_status, ref = "Never")
-table(summary_data$smoking_status)
-
-summary_data$child_obesity <- factor(summary_data$child_obesity)
-summary_data$child_obesity <- relevel(summary_data$child_obesity, ref = "About average")
-table(summary_data$child_obesity)
-
-summary_data$alcohol_intake <- factor(summary_data$alcohol_intake)
-summary_data$alcohol_intake <- relevel(summary_data$alcohol_intake, ref = "Never")
-table(summary_data$alcohol_intake)
-
-
-# MS           final model looking at numbers that did early SW and any SW
-MS_model1 <- glm(MS_YN ~ age + sex + townsend ,
-                 data = summary_data, family = "binomial")
-MS_model2 <- glm(MS_YN ~ age + sex + townsend  
-                 + child_obesity  + chronotype,
-                 data = summary_data, family = "binomial")
-MS_model3 <- glm(MS_YN ~ age + sex + townsend  
-                child_obesity  +  early_SW_YN + chronotype
-                 + alcohol_intake + smoking_status + time_outdoors_summer + early_SW_YN + bracket_SW_YN  ,
-                 data = summary_data, family = "binomial")
-summary(MS_model3)
-tab_model(MS_model1, MS_model2, MS_model3 ,show.intercept=FALSE)
-
-# make categorical vars
-UKB_masterSW_cum$NSW_cat <- ifelse(UKB_masterSW_cum$total_hr_nightSW > 0, 1,0)
-UKB_masterSW_cum$mixSW_cat <- ifelse(UKB_masterSW_cum$total_hr_mixSW > 0, 1,0)
-UKB_masterSW_cum$daySW_cat <- ifelse(UKB_masterSW_cum$total_hr_daySW > 0, 1,0)
+# ---------------------------------------------------------------------------------------------------------------------
+#   
+# #remove post 2015 diagnosis Filter out rows where eid is present in diag2015
+# #summary_data_filter <- subset(summary_data, !(eid %in% diag_2015))
+# 
+# 
+# # Specify the reference level using the relevel function
+# summary_data$chronotype <- factor(summary_data$chronotype)
+# summary_data$chronotype <- relevel(summary_data$chronotype, ref = "Morning")
+# table(summary_data$chronotype)
+# 
+# 
+# summary_data$smoking_status <- factor(summary_data$smoking_status)
+# summary_data$smoking_status <- relevel(summary_data$smoking_status, ref = "Never")
+# table(summary_data$smoking_status)
+# 
+# summary_data$child_obesity <- factor(summary_data$child_obesity)
+# summary_data$child_obesity <- relevel(summary_data$child_obesity, ref = "About average")
+# table(summary_data$child_obesity)
+# 
+# summary_data$alcohol_intake <- factor(summary_data$alcohol_intake)
+# summary_data$alcohol_intake <- relevel(summary_data$alcohol_intake, ref = "Never")
+# table(summary_data$alcohol_intake)
+# 
+# 
+# # MS           final model looking at numbers that did early SW and any SW
+# MS_model1 <- glm(MS_YN ~ age + sex + townsend ,
+#                  data = summary_data, family = "binomial")
+# MS_model2 <- glm(MS_YN ~ age + sex + townsend  
+#                  + child_obesity  + chronotype,
+#                  data = summary_data, family = "binomial")
+# MS_model3 <- glm(MS_YN ~ age + sex + townsend  
+#                 child_obesity  +  early_SW_YN + chronotype
+#                  + alcohol_intake + smoking_status + time_outdoors_summer + early_SW_YN + bracket_SW_YN  ,
+#                  data = summary_data, family = "binomial")
+# summary(MS_model3)
+# tab_model(MS_model1, MS_model2, MS_model3 ,show.intercept=FALSE)
+# 
+# # make categorical vars
+# UKB_masterSW_cum$NSW_cat <- ifelse(UKB_masterSW_cum$total_hr_nightSW > 0, 1,0)
+# UKB_masterSW_cum$mixSW_cat <- ifelse(UKB_masterSW_cum$total_hr_mixSW > 0, 1,0)
+# UKB_masterSW_cum$daySW_cat <- ifelse(UKB_masterSW_cum$total_hr_daySW > 0, 1,0)
 
 
 # MS           final model looking at numbers that did early SW and any NSW
@@ -605,13 +584,6 @@ UKB_masterSW_cum$daySW_cat <- ifelse(UKB_masterSW_cum$total_hr_daySW > 0, 1,0)
 #                  data = summary_data, family = "binomial")
 # summary(MS_model3)
 # tab_model(MS_model1, MS_model2, MS_model3 ,show.intercept=FALSE)
-
-
-
-#check VIF for early life and ever sw
-library (car)
-vif_values <- car::vif(MS_model3)
-print(vif_values)
 
 
 
@@ -640,128 +612,101 @@ UKB_masterSW_cum$NSW_normal <- UKB_masterSW_cum$NSW/UKB_masterSW_cum$total_hr
 UKB_masterSW_cum$SW_normal <- UKB_masterSW_cum$SW/UKB_masterSW_cum$total_hr
 
 
-# MS and total hours of SW, Mix and NSW        
-UKB_masterSW_cum$SW <- UKB_masterSW_cum$total_hr_nightSW + UKB_masterSW_cum$total_hr_mixSW + UKB_masterSW_cum$total_hr_daySW
-
-
-
-MSx_model1 <- glm(MS_YN ~ age + sex + townsend,
-                  data = UKB_masterSW_cum, family = "binomial")
-MSx_model2 <- glm(MS_YN ~ age + sex + townsend 
-                  + child_obesity  + chronotype,
-                  data = UKB_masterSW_cum, family = "binomial")
-MSx_model3 <- glm(MS_YN ~ age + sex + townsend
-                  child_obesity   + chronotype
-                  + alcohol_intake + smoking_status + time_outdoors_summer +  early_SW_YN + total_hr_mixSW + total_hr_daySW + total_hr_nightSW + total_hr,
-                  data = UKB_masterSW_cum, family = "binomial")
-tab_model(MSx_model1, MSx_model2, MSx_model3 ,show.intercept=FALSE)
-summary(MSx_model3 )
-
-#check VIF for early life and ever sw
-library (car)
-vif_values <- car::vif(MSx_model3)
-print(vif_values)
-
-# #just hours SW
-# MSx_model1 <- glm(MS_YN ~ age + sex + townsend,
-#                  data = UKB_masterSW_cum, family = "binomial")
-# MSx_model2 <- glm(MS_YN ~ age + sex + townsend 
-#                  + child_obesity + early_SW_YN + chronotype,
-#                  data = UKB_masterSW_cum, family = "binomial")
-# MSx_model3 <- glm(MS_YN ~ age + sex + townsend
-#                  + child_obesity + early_SW_YN + chronotype
-#                  + alcohol_intake + smoking_status + time_outdoors_summer + SW,
-#                  data = UKB_masterSW_cum, family = "binomial")
-# tab_model(MSx_model1, MSx_model2, MSx_model3 ,show.intercept=FALSE)
-# summary(MSx_model3 )
-
-# MS and total hours of NSW           
-# MSx_model1 <- glm(MS_YN ~ age + sex + townsend + centre,
-#                   data = UKB_masterSW_cum, family = "binomial")
-# MSx_model2 <- glm(MS_YN ~ age + sex + townsend + centre 
-#                   + child_obesity + early_SW_YN + chronotype,
-#                   data = UKB_masterSW_cum, family = "binomial")
-# MSx_model3 <- glm(MS_YN ~ age + sex + townsend + centre 
-#                   + child_obesity + early_SW_YN + chronotype
-#                   + alcohol_intake + smoking_status + time_outdoors_summer + NSW,
-#                   data = UKB_masterSW_cum, family = "binomial")
-# tab_model(MSx_model1, MSx_model2, MSx_model3 ,show.intercept=FALSE)
-# summary(MSx_model3 )
+# # MS and total hours of SW, Mix and NSW        
+# UKB_masterSW_cum$SW <- UKB_masterSW_cum$total_hr_nightSW + UKB_masterSW_cum$total_hr_mixSW + UKB_masterSW_cum$total_hr_daySW
 # 
-# # MS and total hours of NSW normalised           
-# MSx_model1 <- glm(MS_YN ~ age + sex + townsend + centre,
+# 
+# 
+# MSx_model1 <- glm(MS_YN ~ total_hr_mixSW + total_hr_daySW + total_hr_nightSW + total_hr ,
 #                   data = UKB_masterSW_cum, family = "binomial")
-# MSx_model2 <- glm(MS_YN ~ age + sex + townsend + centre 
-#                   + child_obesity + early_SW_YN + chronotype,
+# )
+# MSx_model2 <- glm(MS_YN ~ total_hr_mixSW + total_hr_daySW + total_hr_nightSW + total_hr +age + sex + townsend + child_obesity  +                    chronotype,data = UKB_masterSW_cum, family = "binomial")
+# MSx_model3 <- glm(MS_YN ~total_hr_mixSW + total_hr_daySW + total_hr_nightSW + total_hr + age + sex + townsend + child_obesity   +                   chronotype+ alcohol_intake + smoking_status + time_outdoors_summer +  early_SW_YN  ,
 #                   data = UKB_masterSW_cum, family = "binomial")
-# MSx_model3 <- glm(MS_YN ~ age + sex + townsend + centre 
-#                   + child_obesity + early_SW_YN + chronotype
-#                   + alcohol_intake + smoking_status + time_outdoors_summer + NSW_normal,
-#                   data = UKB_masterSW_cum, family = "binomial")
-# tab_model(MSx_model1, MSx_model2, MSx_model3 ,show.intercept=FALSE)
-# summary(MSx_model3 )
+# 
+# 
+# tab_model(MSx_model1, MSx_model2, MSx_model3 ,show.intercept=FALSE, transform = NULL)
+# tab_model(MSx_model3 )
+# 
+# #check VIF for early life and ever sw
+# library (car)
+# vif_values <- car::vif(MSx_model3)
+# print(vif_values)
 
 
+#  zero model
+# Create a binary indicator for whether the shift work hours are zero or non-zero
+# Calculate the row sums for the specified columns.  This gives total hour of SW zero or not for part 1
+UKB_masterSW_cum$total_shiftwork_hours <- rowSums(UKB_masterSW_cum[, c("total_hr_mixSW", "total_hr_nightSW", "total_hr_daySW")])
+
+# for all SW
+UKB_masterSW_cum$SW_YN <- ifelse(UKB_masterSW_cum$total_shiftwork_hours > 0& !is.na
+                                 (UKB_masterSW_cum$total_shiftwork_hours), 1, 0)  
+table(UKB_masterSW_cum$SW_YN)
+
+# for NSW
+UKB_masterSW_cum$NSW_YN <- ifelse(UKB_masterSW_cum$total_hr_nightSW > 0 & !is.na
+                                 (UKB_masterSW_cum$total_hr_nightSW), 1, 0)  
+table(UKB_masterSW_cum$NSW_YN)
+
+# for mix SW
+UKB_masterSW_cum$mixSW_YN <- ifelse(UKB_masterSW_cum$total_hr_mixSW > 0 & !is.na
+                                 (UKB_masterSW_cum$total_hr_mixSW), 1, 0)  
+table(UKB_masterSW_cum$mixSW_YN)
+
+# for day SW
+UKB_masterSW_cum$daySW_YN <- ifelse(UKB_masterSW_cum$total_hr_daySW > 0 & !is.na
+                                    (UKB_masterSW_cum$total_hr_daySW), 1, 0)  
+table(UKB_masterSW_cum$daySW_YN)
+UKB_masterSW_cum$total_hr_daySW_std <- as.numeric(scale(UKB_masterSW_cum$total_hr_daySW))
+UKB_masterSW_cum$total_hr_nightSW_std <- as.numeric(scale(UKB_masterSW_cum$total_hr_nightSW))
+UKB_masterSW_cum$total_hr_mixSW_std <- as.numeric(scale(UKB_masterSW_cum$total_hr_mixSW))
+UKB_masterSW_cum$total_hr_std <- as.numeric(scale(UKB_masterSW_cum$total_hr))
+UKB_masterSW_cum$total_shiftwork_hours_std <- as.numeric(scale(UKB_masterSW_cum$total_shiftwork_hours))
+
+data$total_shiftwork_hours_scaled <- as.numeric(scale(data$total_shiftwork_hours))
+
+# model part 1 addresses ever doing SW
+part1 <- glm(MS_YN ~ SW_YN + total_hr_std +
+               age + sex + townsend + child_obesity + early_SW_YN  + 
+               alcohol_intake  + time_outdoors_summer+ smoking_status, 
+             family = binomial, data = UKB_masterSW_cum)
+summary(part1)
+tab_model(part1)
 
 
+# model part 2 addresses total shiftwork hours and tests interaction with early life SW
+part2 <- glm(MS_YN ~ total_shiftwork_hours_std*early_SW_YN + total_hr_std +
+               age + sex + townsend + child_obesity + early_SW_YN  + 
+               alcohol_intake  + time_outdoors_summer+ smoking_status, 
+             family = binomial, data = UKB_masterSW_cum)
+summary(part2)
+tab_model(part2)
 
-#  MODELS FOR years of SW multiplied by total hours of shiftwork in career - can't use shiftwork_years because includes all age brackets
----------------------------------------------------------------------------------------------------------------------
-  
-#remove post 2015 diagnosis Filter out rows where eid is present in diag2015
-#shiftwork_cum_pre2015 <- subset(shiftwork_years, !(eid %in% diag_2015))
+# model part 3 addresses total shiftwork hours divided by type
+part3 <-  glm(MS_YN ~ total_hr_daySW_std + total_hr_mixSW_std + total_hr_nightSW_std +
+                age + sex + townsend + child_obesity + early_SW_YN +  
+                alcohol_intake + time_outdoors_summer  + smoking_status + total_hr_std , 
+              family = binomial, data = UKB_masterSW_cum)
+summary(part3)
+tab_model(part3)
 
-# make categorical variables
-x <- UKB_masterSW_cum[,c("eid","early_NSW_YN", "early_SW_YN" )]
-shiftwork_years <- merge(shiftwork_years,x, by="eid")
-shiftwork_years$SW_dose_yr <- shiftwork_years$yrs_SW * shiftwork_years$SW
+#================================================================================
+# sensitivity analysis
 
-# MS year of SW           
-MSyr_model1 <- glm(MS_YN ~ age + sex + townsend,
-                  data = shiftwork_years, family = "binomial")
-MSyr_model2 <- glm(MS_YN ~ age + sex + townsend 
-                  + child_obesity + early_SW_YN + chronotype,
-                  data = shiftwork_years, family = "binomial")
-MSyr_model3 <- glm(MS_YN ~ age + sex + townsend 
-                  + child_obesity  + early_SW_YN + chronotype
-                  + alcohol_intake + smoker + time_outdoors_summer + yrs_SW,
-                  data = shiftwork_years, family = "binomial")
-tab_model(MSyr_model1, MSyr_model2, MSyr_model3 ,show.intercept=FALSE)
-summary(MSyr_model3 )
+# Subset the data to only include shift workers # sensitivity - repeat logistic model to check difference within shiftworkers
+shift_workers <- subset(UKB_masterSW_cum, SW_YN == 1)
 
-# MS year of NSW           
-MSyr_model1 <- glm(MS_YN ~ age + sex + townsend,
-                   data = shiftwork_years, family = "binomial")
-MSyr_model2 <- glm(MS_YN ~ age + sex + townsend 
-                   + child_obesity + early_SW_YN + chronotype,
-                   data = shiftwork_years, family = "binomial")
-MSyr_model3 <- glm(MS_YN ~ age + sex + townsend 
-                   + child_obesity  + early_SW_YN + chronotype
-                   + alcohol_intake + smoker + time_outdoors_summer + yrs_NSW,
-                   data = shiftwork_years, family = "binomial")
-tab_model(MSyr_model1, MSyr_model2, MSyr_model3 ,show.intercept=FALSE)
-summary(MSyr_model3 )
+# part 4 total shiftwork hours only in shiftworkers - check dose with no zeros
+part4 <- glm(MS_YN ~ total_shiftwork_hours_std*early_SW_YN+  age + sex + townsend + child_obesity + chronotype    + total_hr_std+
+               alcohol_intake + smoking_status  + time_outdoors_summer, family = binomial, data = shift_workers)
+summary(part4)
+tab_model(part4)
 
+# part 5 total shiftwork hours only in shiftworkers - check dose with no zeros
+part5 <- glm(MS_YN ~ (total_hr_daySW_std) + (total_hr_mixSW_std) + (total_hr_nightSW_std)+  age + sex + townsend + child_obesity + chronotype    + total_hr_std + early_SW_YN + alcohol_intake + smoking_status  + time_outdoors_summer,  family = binomial, data = shift_workers)
+summary(part5)
+tab_model(part5)
 
-
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~    2015
-
-MSyr_model3 <- glm(MS_YN ~ age + sex 
-                   + child_obesity + alcohol_intake + smoker + time_outdoors_summer + yrs_SW + nightSW,
-                   data = shiftwork_cum_pre2015, family = "binomial")
-summary(MSyr_model3 )
-
-# MS           final model looking at numbers that did early SW and any SW
-MS_model1 <- glm(MS_YN ~ age + sex + townsend + centre,
-                 data = summary_data, family = "binomial")
-MS_model2 <- glm(MS_YN ~ age + sex + townsend + centre 
-                 + child_obesity + early_SW_YN + chronotype,
-                 data = summary_data, family = "binomial")
-MS_model3 <- glm(MS_YN ~ age + sex + townsend + centre 
-                 + child_obesity + early_SW_YN + chronotype
-                 + alcohol_intake + smoker + time_outdoors_summer  + bracket_SW_YN,
-                 data = summary_data, family = "binomial")
-summary(MS_model3)
 
 

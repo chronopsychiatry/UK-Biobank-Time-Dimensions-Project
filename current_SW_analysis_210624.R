@@ -1,4 +1,13 @@
-# Install and load the survival package
+## Script name:         current_SW_analysis_210624.R
+
+## Purpose of script:   data processing and analysis of baseline shiftwork data
+
+## Author:              Cathy Wyse
+
+## Date Created:        2024-06-21
+
+## Contact:             cathy.wyse@mu.ie
+
 library(survival)
 library(lubridate)
 library(forestmodel)
@@ -37,33 +46,35 @@ MS_date <- MS_diag_and_centre_date
 
 MS_date$MS_diag_date <- as.Date(MS_date$X131042.0.0)
 MS_date$assess_date <- as.Date(MS_date$X53.0.0)
-censor_date <- as.Date("2022-10-13")
+censor_date <- max(MS_date$MS_diag_date, na.rm=TRUE)
+
+#merge dates into UKB_work dataset
+UKB_master_work <-merge(UKB_master_work, MS_date, by = "eid")
 
 #make start_date
-MS_date$MS_start_date <- MS_date$assess_date
+UKB_master_work$MS_start_date <- UKB_master_work$assess_date
 
-#make end date
-MS_date$end_date <- MS_date$MS_diag_date
-MS_date$end_date[is.na(MS_date$end_date)] <- censor_date
+#make end date as either diagnosis or end of study
+UKB_master_work$end_date <- UKB_master_work$MS_diag_date
+UKB_master_work$end_date[is.na(UKB_master_work$end_date)] <- censor_date
+sum(!is.na(UKB_master_work$MS_diag_date)) # 1098 still includes pre baseline diagnosis
 
 #make follow up time in months
-MS_date$follow_up <- time_length(interval(MS_date$MS_start_date, MS_date$end_date), "months")
+UKB_master_work$follow_up <- time_length(interval(UKB_master_work$MS_start_date, UKB_master_work$end_date), "months")
 
 #does MS diag come before assessment centre - there were 342 people without MS as baseline in working group
-MS_date$MS_baseline <- (ifelse(time_length(interval(MS_date$assess_date, MS_date$MS_diag_date), "months") > 0, 1,0))
-table(MS_date$MS_baseline)
+UKB_master_work$MS_baseline <- (ifelse(time_length(interval(UKB_master_work$assess_date, UKB_master_work$MS_diag_date), "months") > 0, 1,0))
+table(UKB_master_work$MS_baseline) # 342 diagnosis after baseline
 
-500347-sum(is.na(MS_date$MS_diag_date))
-
-# merge into main UKB working participant dataset
-UKB_master_work <-merge(UKB_master_work, MS_date, by = "eid")
+v<-UKB_master_work[(!is.na(UKB_master_work$MS_baseline)),]
+nrow(v[,c("MS_baseline", "MS_diag_date")]) #1098 in total, 756 before assess, 342 after
+table(UKB_master_work$MS_baseline)
 
 # remove people with MS at baseline from UKB_master_work
 UKB_master_work$MS_baseline <- factor(UKB_master_work$MS_baseline)
 
 # keep rows where MS_baseline equals 1 ie where the months between diagnosis and baseline assessment were > 0
-table(UKB_master_work$MS_baseline)
-UKB_master_work <- UKB_master_work[is.na(UKB_master_work$MS_baseline) | UKB_master_work$MS_baseline == 0, ]
+UKB_master_work <- UKB_master_work[is.na(UKB_master_work$MS_baseline) | UKB_master_work$MS_baseline == 1, ]
 
 table(UKB_master_work$MS_YN)
 
@@ -106,10 +117,10 @@ my.render.cont = function(x) {c("", "mean (95% CI)"=sprintf("%s (%s, %s)",
 
 ## Create Table 1 stratified by MS to get p-values
 tableOne <- CreateTableOne(vars = c('sex' ,  'age' , 'townsend' , 'birth_latitude' , #demography
-                                    'health_self_report','BMI_cat' , 'sleep_cat' , 'chronotype' , 'child_obesity' , #physiology
+                                    'BMI_cat' , 'sleep_cat' , 'chronotype' , 'child_obesity' , #physiology
                                     'alcohol_intake' , 'time_outdoors_summer' ,  #lifestype
-                                    'smoker' , 'sunburn_cat', 'maternal_smoke','smoke_start',
-                                    "current_shift_work",'current_night_shift'),
+                                    'smoking_status' , 'sunburn_cat', 
+                                    "current_shift_work",'current_night_shift', 'maternal_smoke', 'health_self_report'),
                            strata = c('MS_YN'), 
                            data = UKB_master_work, 
                            #test = FALSE, 
@@ -134,14 +145,14 @@ UKB_master_work$shiftwork_YN <- factor(UKB_master_work$shiftwork_YN)
 table(UKB_master_work$shiftwork_YN, useNA="always")
 
 # Remove rows with NA in the factor variable (stay in analysis dataset)
-UKB_master_work <- UKB_master_work[!is.na(UKB_master_work$shiftwork_YN), ]
+UKB_master_work2 <- UKB_master_work[!is.na(UKB_master_work$shiftwork_YN), ]
 
 table1(~ sex + age + townsend + birth_latitude + ethnicity_5 + #demography
          BMI_cat + child_obesity  + maternal_smoke + sunburn_cat + 
          chronotype + health_self_report + sleep_duration + sleep_cat +#physiology
          alcohol_intake + time_outdoors_summer +  #lifestyle
          smoking_status + smoke_start + current_shift_work + current_night_shift #smoking
-       | shiftwork_YN, data=UKB_master_work, overall=FALSE,  render.continuous=my.render.cont, render.categorical=my.render.cat)
+       | shiftwork_YN, data=UKB_master_work2, overall=FALSE,  render.continuous=my.render.cont, render.categorical=my.render.cat)
 
 ## Create Table 1 stratified by MS to get p-values
 tableOne <- CreateTableOne(vars = c('sex' , 'age' , 'townsend' , 'birth_latitude' , #demography
@@ -194,7 +205,7 @@ print(tableOne)
 # MS_status <- MSYN
 
 UKB_master_work$assess_date #baseline date
-end_date <- "2024-07-14"
+end_date <- censor_date
 
 UKB_master_work$MS_YN # 'status' is the event indicator (1 for event, 0 for censored)
 UKB_master_work$MS_diag_date
@@ -216,7 +227,6 @@ UKB_master_work$MS_followup_all <- ifelse(is.na(UKB_master_work$MS_followup), UK
 
 # make a variable that includes nightSW
 # Create a combined categorical variable for shift work
-# Create the combined categorical variable for shift work
 UKB_master_work$shiftwork_cat <- with(UKB_master_work, 
                                       ifelse(current_shift_work %in% c("Always", "Sometimes", "Usually"), 
                                              ifelse(current_night_shift %in% c("Always", "Sometimes", "Usually"), 
@@ -228,12 +238,8 @@ UKB_master_work$shiftwork_cat <- with(UKB_master_work,
 # Recode the shiftwork variable
 UKB_master_work$shiftwork_all <- ifelse(UKB_master_work$current_shift_work %in% c("Always", "Sometimes", "Usually"), "Yes", "No")
 
-table(UKB_master_work$shiftwork_cat)
-table(UKB_master_work$shiftwork_night)
-table(UKB_master_work$shiftwork_all)
-
 ifelse(UKB_master_work$shiftwork_night==1, UKB_master_work$shiftwork_cat=="night",
-       ifelse(UKB_master_work$shiftwork_all==1, UKB_master)
+       ifelse(UKB_master_work$shiftwork_all==1, UKB_master))
 
 # Recode the nightshift variable
 UKB_master_work$nightshift_binary <- ifelse(UKB_master_work$current_night_shift %in% c("Always", "Sometimes", "Usually"), "Yes", "No")
@@ -244,18 +250,24 @@ UKB_master_work$shiftwork_cat <- factor(UKB_master_work$shiftwork_cat, levels = 
 # Set "No Shift Work" as the reference level
 UKB_master_work$shiftwork_cat <- relevel(UKB_master_work$shiftwork_cat, ref = "No Shift Work")
 
+# Set "Never" as the reference level
+UKB_master_work$alcohol_intake <- relevel(factor(UKB_master_work$alcohol_intake), ref = "Never")
 
 # Set "Never" as the reference level
-UKB_master_work$Smoking <- relevel(UKB_master_work$Smoking, ref = "Never")
-table(UKB_master_work$Smoking)
+UKB_master_work$smoking_status <- relevel(factor(UKB_master_work$smoking_status), ref = "Never")
+table(UKB_master_work$smoking_status)
 
+# Set "morning" as the reference level
+UKB_master_work$Chronotype <- relevel(factor(UKB_master_work$chronotype), ref = "Morning")
+table(UKB_master_work$Chronotype)
+UKB_master_work$Chronotype <- relevel(factor(UKB_master_work$Chronotype), ref = "Morning")
 
 # Set "No Shift Work" as the reference level
-UKB_master_work$shiftwork_cat <- relevel(UKB_master_work$shiftwork_cat, ref = "No Shift Work")
+UKB_master_work$shiftwork_cat <- relevel(factor(UKB_master_work$shiftwork_cat), ref = "No Shift Work")
 
-table(UKB_master_work$shiftwork_cat)
-table(UKB_master_work$current_night_shift)
-table(UKB_master_work$current_shift_work)
+# Set "optimal" as the reference level
+UKB_master_work$sleep_cat <- relevel(factor(UKB_master_work$sleep_cat), ref = "Optimal Sleep")
+
 
 # Create a Surv object
 UKB_master_work$Surv_object <- with(UKB_master_work, Surv(time = MS_followup_all, event = MS_YN))
@@ -269,54 +281,49 @@ names(UKB_master_work)[names(UKB_master_work) == "townsend"] <- "Townsend Index"
 names(UKB_master_work)[names(UKB_master_work) == "BMI_cat"] <- "BMI"
 names(UKB_master_work)[names(UKB_master_work) == "child_obesity"] <- "Childhood Obesity"
 names(UKB_master_work)[names(UKB_master_work) == "sleep_duration"] <- "Sleep Duration"
+#names(UKB_master_work)[names(UKB_master_work) == "sleep_cat"] <- "Sleep Duration"
 names(UKB_master_work)[names(UKB_master_work) == "chronotype"] <- "Chronotype"
-names(UKB_master_work)[names(UKB_master_work) == "Alcohol Intake"] <- "Alcohol"
+names(UKB_master_work)[names(UKB_master_work) == "alcohol_intake"] <- "Alcohol"
 names(UKB_master_work)[names(UKB_master_work) == "time_outdoors_summer"] <- "Time Outdoors"
 names(UKB_master_work)[names(UKB_master_work) == "smoking_status"] <- "Smoking"
 names(UKB_master_work)[names(UKB_master_work) == "shiftwork_cat"] <- "Shiftwork"
 
 
-UKB_master_work$`Alcohol Intake`
-
 # Fit the Cox proportional hazards model
-cox_model1 <- coxph(Surv_object ~ Sex + Age + `Townsend Index`, data = UKB_master_work)
+cox_model1 <- coxph(Surv_object ~ Shiftwork , data = UKB_master_work)
 
 cox_model2 <- coxph(Surv_object ~ Sex + Age + `Townsend Index` + 
                       BMI + `Childhood Obesity` +`Sleep Duration` + Chronotype , data = UKB_master_work)
 
-cox_model3 <- coxph(Surv_object ~ Sex + Age + `Townsend Index` + BMI + `Childhood Obesity` + 
-                      `Sleep Duration` + Chronotype + Alcohol + `Time Outdoors` + Smoking + 
-                      Shiftwork, data = UKB_master_work)
+cox_model3 <- coxph(Surv_object ~ Shiftwork + Sex + Age + `Townsend Index` + BMI + `Childhood Obesity` + 
+                      `Sleep Duration` + Chronotype + Alcohol + `Time Outdoors` + Smoking  
+                      , data = UKB_master_work)
 
+summary(cox_model3)
+UKB_master_work$sleep_cat
 
-# Summary of the model
-print(summary(cox_model1))
 
 pars <- forest_model_format_options(
   colour = "black",
   color = NULL,
   shape = 15,
-  text_size = 4,
+  text_size = 8, # Set text size to 10
   point_size = 3,
   banded = TRUE
 )
 
-
-
-
-
 panels <- list(
-  list(width = 0.03),
-  list(width = 0.1, display = ~variable, fontface = "bold", heading = "Variable"),
+  list(width = 0.02),
+  list(width = 0.05, display = ~variable, fontface = "bold", heading = "Variable"),
   list(width = 0.1, display = ~level),
  
   list(width = 0.03, item = "vline", hjust = 0.5),
   list(
-    width = 0.55, item = "forest", hjust = 0.5, heading = "Hazard ratio", linetype = "dashed",
+    width = 0.9, item = "forest", hjust = 0.5, heading = "HR", linetype = "dashed",
     line_x = 0
   ),
   list(width = 0.03, item = "vline", hjust = 0.5),
-  list(width = 0.12, display = ~ ifelse(reference, "Reference", sprintf(
+  list(width = 0.05, display = ~ ifelse(reference, "Reference", sprintf(
     "%0.2f (%0.2f, %0.2f)",
     trans(estimate), trans(conf.low), trans(conf.high)
   )), display_na = NA),
@@ -328,9 +335,21 @@ panels <- list(
   list(width = 0.03)
 )
 
-p<-forest_model(cox_model3, format_options=pars, return_data=TRUE, panels)
+p<-forest_model(cox_model3, format_options=pars, panels)
+p
 # Save the plot as SVG
-ggsave("HRforest.svg", plot = p, device = "svg", width = 20, height = 15, units = "cm", dpi = 300)
+ggsave("HRforest020125.svg", plot = p, device = "svg", width = 8, height = 5, units = "cm", dpi = 600)
+
+ggsave(
+  "HRforest_A4_portrait.jpg",
+  plot = p,
+  device = "jpg",
+  width = 20,  # A4 width in cm
+  height = 20,  # A4 height in cm
+  units = "cm",
+  dpi = 600
+)
+
 
 dat<-p$plot_data$forest_data
 

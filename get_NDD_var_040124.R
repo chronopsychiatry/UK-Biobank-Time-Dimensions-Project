@@ -1,12 +1,16 @@
+## Script name:         get_NDD_var_040124.R
+
+## Purpose of script:   extract data on prevalence of NDD
+
+## Author:              Cathy Wyse
+
+## Date Created:        2024-01-04
+
+## Contact:             cathy.wyse@mu.ie
+
+
 library(psych)
 library(dplyr)
-
-# problems
-
-# decide not to exclude cases after online work study?
-# need to exclude data after diagnosis of MS
-
-# data$Measurement_Date <= diagnosis_date 
 
 ##############################################################################################
 # Multiple Sclerosis
