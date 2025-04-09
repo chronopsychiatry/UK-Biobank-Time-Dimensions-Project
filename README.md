@@ -25,4 +25,4 @@ The 'Projects' folder contains code for the individual sub-projects of the wider
 
 * [BD-Metabolomics](Projects/BD-Metabolomics) - exploring metabolic profile seasonal variation in bipolar disorder
 * [Lifetime-Shiftwork](Projects/Lifetime-Shiftwork) - exploring the effects of early-career shiftwork on health
-      
+* [Lifetime-Shiftwork](Projects/Lifetime-Shiftwork) - exploring social situation    
