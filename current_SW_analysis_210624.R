@@ -15,7 +15,6 @@ library(labelled)
 library(finalfit)
 
 library(forestplot)
-install.packages("metafor")
 library(metafor)
 # ----------------------  make new dataset of working people only ---------------------------------------
 
@@ -299,53 +298,53 @@ cox_model3 <- coxph(Surv_object ~ Shiftwork + Sex + Age + `Townsend Index` + BMI
                       `Sleep Duration` + Chronotype + Alcohol + `Time Outdoors` + Smoking  
                       , data = UKB_master_work)
 
-summary(cox_model3)
-UKB_master_work$sleep_cat
+summary(cox_model3)# Extracting the forest model data
 
 
 pars <- forest_model_format_options(
   colour = "black",
   color = NULL,
   shape = 15,
-  text_size = 8, # Set text size to 10
+  text_size = 6, # Set text size to 10
   point_size = 3,
   banded = TRUE
 )
 
 panels <- list(
   list(width = 0.02),
-  list(width = 0.05, display = ~variable, fontface = "bold", heading = "Variable"),
-  list(width = 0.1, display = ~level),
- 
-  list(width = 0.03, item = "vline", hjust = 0.5),
+  list(width = 0.60, display = ~variable, fontface = "bold", heading = "Variable"),
+  list(width = 0.06, display = ~level),
+  
+  list(width = 0.02, item = "vline", hjust = 0.5),
   list(
-    width = 0.9, item = "forest", hjust = 0.5, heading = "HR", linetype = "dashed",
+    width = 0.40, item = "forest", hjust = 0.5, heading = "HR", linetype = "dashed",
     line_x = 0
   ),
   list(width = 0.03, item = "vline", hjust = 0.5),
-  list(width = 0.05, display = ~ ifelse(reference, "Reference", sprintf(
+  list(width = 0.07, display = ~ ifelse(reference, "Reference", sprintf(
     "%0.2f (%0.2f, %0.2f)",
     trans(estimate), trans(conf.low), trans(conf.high)
-  )), display_na = NA),
+  )), display_na = NA, heading = "HR (95% CI)"),
   list(
-    width = 0.05,
+    width = 0.04,
     display = ~ ifelse(reference, "", format.pval(p.value, digits = 1, eps = 0.001)),
     display_na = NA, hjust = 1, heading = "p"
   ),
-  list(width = 0.03)
+  list(width = 0.01)
 )
+
 
 p<-forest_model(cox_model3, format_options=pars, panels)
 p
 # Save the plot as SVG
-ggsave("HRforest020125.svg", plot = p, device = "svg", width = 8, height = 5, units = "cm", dpi = 600)
+ggsave("HRforest080525.svg", plot = p, device = "svg", width = 20, height = 20, units = "cm", dpi = 600)
 
 ggsave(
   "HRforest_A4_portrait.jpg",
   plot = p,
   device = "jpg",
   width = 20,  # A4 width in cm
-  height = 20,  # A4 height in cm
+  height = 25,  # A4 height in cm
   units = "cm",
   dpi = 600
 )

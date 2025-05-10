@@ -63,7 +63,7 @@ maternal_smoke$maternal_smoke <- factor(maternal_smoke$maternal_smoke)
 UKB_master <- merge(UKB_master,maternal_smoke,by="eid")
 
 #adding early life smoking variable - derived from age started smoking
-#problem with age started smoking question in UKB, doesn't include "ocasionally" in smoker and does include "once or twice" in never smoked in contrast to the smoking status varibale.  If age started smoking is nested in smoking status then the definition of former and current are not the same.  This will not matter because the are all mixed up, but some people that were smokers in status variable were not asked the age question.
+#problem with age started smoking question in UKB, doesn't include "occasionally" in smoker and does include "once or twice" in never smoked in contrast to the smoking status variable.  If age started smoking is nested in smoking status then the definition of former and current are not the same.  This will not matter because the are all mixed up, but some people that were smokers in status variable were not asked the age question.
 
 #two variables to include = smoking_status with smoke_start as nested
 
@@ -691,6 +691,19 @@ part3 <-  glm(MS_YN ~ total_hr_daySW_std + total_hr_mixSW_std + total_hr_nightSW
 summary(part3)
 tab_model(part3)
 
+# Extract p-values from model
+all_p_values <- summary(part3)$coefficients[,4]
+
+# Identify which rows correspond to  shift work variables
+shift_work_vars <- c("total_hr_daySW_std", "total_hr_mixSW_std", "total_hr_nightSW_std")
+shift_work_indices <- which(names(all_p_values) %in% shift_work_vars)
+
+# Extract only the p-values for shift work variables
+shift_work_p_values <- all_p_values[shift_work_indices]
+
+# Apply FDR correction only to these p-values
+adjusted_p_values <- p.adjust(shift_work_p_values, method = "BH")
+
 #================================================================================
 # sensitivity analysis
 
@@ -707,6 +720,43 @@ tab_model(part4)
 part5 <- glm(MS_YN ~ (total_hr_daySW_std) + (total_hr_mixSW_std) + (total_hr_nightSW_std)+  age + sex + townsend + child_obesity + chronotype    + total_hr_std + early_SW_YN + alcohol_intake + smoking_status  + time_outdoors_summer,  family = binomial, data = shift_workers)
 summary(part5)
 tab_model(part5)
+
+#================================================================================
+# permuataion analysis
+
+
+library(boot)
+
+# Function to fit the model and extract coefficients
+boot_fn <- function(data, indices) {
+  boot_data <- data[indices, ]  # Resample with replacement
+  model <- glm(MS_YN ~ total_hr_daySW_std + total_hr_mixSW_std + 
+                 total_hr_nightSW_std + age + sex + townsend + child_obesity + 
+                 early_SW_YN + alcohol_intake + time_outdoors_summer + smoking_status + 
+                 total_hr_std, 
+               family = binomial, data = boot_data)
+  return(coef(model))  # Extract coefficients
+}
+
+# Run bootstrap with 1000 resamples
+set.seed(123)
+boot_results <- boot(data = UKB_masterSW_cum, statistic = boot_fn, R = 1000)
+
+# Compute confidence intervals
+boot_ci <- boot.ci(boot_results, type = "perc")  # Percentile method
+
+# Print results
+print(boot_results)
+print(boot_ci)
+# Compute percentile CIs for all coefficients
+boot_ci_all <- lapply(1:length(boot_results$t0), function(i) boot.ci(boot_results, type = "perc", index = i))
+
+# Print the results
+boot_ci_all
+# Compute empirical p-values
+empirical_pvals <- colMeans(boot_results$t >= 0) * 2  # Two-tailed test
+print(empirical_pvals)
+
 
 
 

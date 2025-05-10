@@ -101,9 +101,10 @@ col <- c("#0073C2FF","#3B3B3BFF","#EFC000FF")
 all_SW_agebracket <- prop.table(table(factor(shiftwork$SW_summary),factor(shiftwork$agebracket)), margin=2)
 
   dev.new()
-par(mar = c(5, 4, 4, 6))  
+
 #Type of Shift Work by Age Bracket
-jpeg("SW_YN_barplot.jpg", width = 17, height = 10, pointsize = 12, units = "cm", res = 300)
+par(mar = c(5, 4, 1, 6))  
+svg("SW_barplot.svg", width = 20/2.54, height = 14/2.54)
 #par(mar = c(5, 4, 2, 6))
 barplot((all_SW_agebracket), col = col, border = NA, space = .1, yaxt = "n")
 title(main = "", col.main = "black", font.main = 2, cex=.6)
@@ -155,25 +156,21 @@ col<-c( "#21908CFF", "#3B528BFF", "#440154FF")
 #col <- viridis(length(labels), option = "D", begin = 1, end = 0, direction = 1 )
 
 par(mar = c(5, 4, 1, 6))  
-
-#Work Status by Age Bracket
-jpeg("SW_type_barplot.jpg", width = 17, height = 10, pointsize = 12, units = "cm", res = 300)
-
+svg("SW_type_barplot.svg", width = 20 / 2.54, height = 14 / 2.54) # Convert cm to inches for svg
 barplot(SW_agebracket, col = col, space = .1, border = NA, yaxt = "n")
-title(main = "", col.main = "black", font.main = 2, cex=1)
+title(main = "", col.main = "black", font.main = 2, cex = 1)
 title(xlab = "Age Bracket", col.lab = "black", font.lab = 2)
 legend(
   "top", 
-  inset = c(0, -0.2), # Adjusts the legend position
+  inset = c(0, -0.2), 
   bty = "n", 
   xpd = TRUE, 
   border = NA, 
   horiz = TRUE, 
   legend = labels3, 
   fill = col, 
-  cex = 1 # Reduce font size
+  cex = 1
 )
-
 
 axis(2, at = c(0,0.2,0.4,0.6,0.8,1),las = 1, cex.axis = 1, labels = c("0","20%","40%","60%", "80%", "100%"))  
 
